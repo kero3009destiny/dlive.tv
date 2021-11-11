@@ -1,0 +1,25 @@
+
+    var doc = {"kind":"Document","definitions":[{"kind":"FragmentDefinition","name":{"kind":"Name","value":"DashboardSubscriptionSettingFrag"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"User"}},"directives":[],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"private"},"arguments":[],"directives":[],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"showSubSettingTab"},"arguments":[],"directives":[]}]}},{"kind":"FragmentSpread","name":{"kind":"Name","value":"SettingsSubscribeFrag"},"directives":[]}]}}],"loc":{"start":0,"end":162}};
+    doc.loc.source = {"body":"#import './SettingsSubscribe.graphql'\n\nfragment DashboardSubscriptionSettingFrag on User {\n  id\n  private {\n    showSubSettingTab\n  }\n  ...SettingsSubscribeFrag\n}","name":"GraphQL request","locationOffset":{"line":1,"column":1}};
+  
+
+    var names = {};
+    function unique(defs) {
+      return defs.filter(
+        function(def) {
+          if (def.kind !== 'FragmentDefinition') return true;
+          var name = def.name.value
+          if (names[name]) {
+            return false;
+          } else {
+            names[name] = true;
+            return true;
+          }
+        }
+      )
+    }
+  doc.definitions = doc.definitions.concat(unique(require('./SettingsSubscribe.graphql').definitions));
+
+
+      module.exports = doc;
+    

@@ -1,0 +1,50 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import CashInButton from '@/components/CashInButton.vue';
+import DToken from '@/components/DToken.vue';
+import { Component, Mixins } from 'vue-property-decorator';
+import MeMixin from '@/mixins/MeMixin';
+import { namespace } from 'vuex-class';
+
+const meModule = namespace('me');
+
+@Component({
+  components: {
+    CashInButton,
+    DToken
+  }
+})
+export default class AppSidebarCashin extends Mixins(MeMixin) {
+  @meModule.Getter('meBalance')
+  private meBalance!: string;
+}

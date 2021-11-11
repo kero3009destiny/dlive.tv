@@ -1,0 +1,24 @@
+
+    var doc = {"kind":"Document","definitions":[{"kind":"FragmentDefinition","name":{"kind":"Name","value":"TreasureChestStreamerFrag"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"User"}},"directives":[],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"treasureChest"},"arguments":[],"directives":[],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"nextGiveawayThresholdAt"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"startGiveawayValueThreshold"},"arguments":[],"directives":[]}]}}]}}],"loc":{"start":0,"end":133}};
+    doc.loc.source = {"body":"fragment TreasureChestStreamerFrag on User {\n  id\n  treasureChest {\n    nextGiveawayThresholdAt\n    startGiveawayValueThreshold\n  }\n}","name":"GraphQL request","locationOffset":{"line":1,"column":1}};
+  
+
+    var names = {};
+    function unique(defs) {
+      return defs.filter(
+        function(def) {
+          if (def.kind !== 'FragmentDefinition') return true;
+          var name = def.name.value
+          if (names[name]) {
+            return false;
+          } else {
+            names[name] = true;
+            return true;
+          }
+        }
+      )
+    }
+  
+
+      module.exports = doc;
+    

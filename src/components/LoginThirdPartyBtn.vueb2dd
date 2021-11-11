@@ -1,0 +1,4 @@
+var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',{staticClass:"login-third-party-btn flex-column flex-align-center clickable",on:{"click":_vm.login}},[_c('img',{attrs:{"src":_vm.imgSrc,"width":"32px"}}),_c('span',{staticClass:"margint-3 text-12-regular text-uppercase"},[_vm._v(_vm._s(_vm.$t(_vm.text)))])])}
+var staticRenderFns = []
+
+export { render, staticRenderFns }

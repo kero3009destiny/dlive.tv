@@ -1,0 +1,278 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import VDonationGifts from '@/components/VDonationGifts.vue';
+import DDivider from '@/components/DDivider.vue';
+import TreasureChest from '@/components/TreasureChest.vue';
+import { Component, Prop, Vue } from 'vue-property-decorator';
+import { LivestreamInfoFrag, RerunReplayFrag } from '@/graphql/types';
+import { ROUTE_GAME_NAME } from '@/router';
+import { SIH_RESIZE_CATEGORY_SMALL, SIHresize } from '@/utils/images';
+import DToken from '@/components/DToken.vue';
+
+import { namespace } from 'vuex-class';
+const rerunModule = namespace('rerun');
+
+@Component({
+  components: {
+    VDonationGifts,
+    TreasureChest,
+    DDivider,
+    DToken
+  }
+})
+export default class LivestreamInfo extends Vue {
+  @Prop({
+    required: true
+  })
+  public streamerInfo!: LivestreamInfoFrag.Fragment;
+
+  // local
+  private isRepostShown: boolean = false;
+  private showMore: boolean = false;
+  private videoInfoHeight: number = 0;
+
+  @rerunModule.Getter('currentRerun')
+  private currentRerun!: RerunReplayFrag.Fragment | null;
+
+  get livestream() {
+    if (this.streamerInfo.hostingLivestream === null) {
+      return this.streamerInfo.livestream;
+    }
+    return null;
+  }
+
+  get isRerun() {
+    return (
+      this.streamerInfo.livestream === null &&
+      this.streamerInfo.hostingLivestream === null &&
+      this.streamerInfo.rerun !== null &&
+      this.currentRerun !== null
+    );
+  }
+
+  get isLivestream() {
+    return (
+      this.streamerInfo.hostingLivestream === null &&
+      this.streamerInfo.livestream !== null
+    );
+  }
+
+  get hostingLivestream() {
+    return this.streamerInfo.hostingLivestream;
+  }
+  get totalReward() {
+    if (
+      this.streamerInfo !== undefined &&
+      this.streamerInfo.livestream !== null
+    ) {
+      return this.streamerInfo.livestream.totalReward;
+    }
+    return '0';
+  }
+  get isLive() {
+    return (
+      this.streamerInfo !== undefined && this.streamerInfo.livestream !== null
+    );
+  }
+
+  get watchingCount() {
+    if (
+      this.streamerInfo !== undefined &&
+      this.streamerInfo.livestream !== null
+    ) {
+      return this.streamerInfo.livestream.watchingCount;
+    }
+    return '0';
+  }
+
+  get rerunWatchingCount() {
+    if (this.streamerInfo !== undefined && this.streamerInfo.rerun !== null) {
+      return this.streamerInfo.rerun.watchingCount;
+    }
+    return '0';
+  }
+  public updated() {
+    this.$nextTick(() => {
+      const elem = document.getElementById('video-content');
+      if (elem != null) {
+        this.videoInfoHeight = elem.scrollHeight;
+      }
+    });
+  }
+
+  public routeToCategory(category: LivestreamInfoFrag.Category) {
+    return {
+      name: ROUTE_GAME_NAME,
+      params: {
+        categoryID: category.backendID,
+        categoryName: category.title.replace(/\s+/g, '-')
+      }
+    };
+  }
+
+  public imgSrc(imgUrl: string) {
+    return SIHresize(imgUrl, SIH_RESIZE_CATEGORY_SMALL);
+  }
+}

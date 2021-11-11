@@ -1,0 +1,128 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import {
+  ROUTE_LIVESTREAM,
+  ROUTE_POPUP_CHAT,
+  ROUTE_CLIP_IFRAME,
+  ROUTE_DASHBOARD,
+  ROUTE_PAST_BROADCAST,
+  ROUTE_PARTNER_PROGRESS,
+  ROUTE_CLIP
+} from '@/router';
+import { Component, Prop, Vue } from 'vue-property-decorator';
+import { VDliveNameFrag, PartnerStatus } from '@/graphql/types';
+import { PERMISSION_EVENTS, partnerPermissionCheck } from '@/utils/permission';
+
+@Component({})
+export default class VDliveName extends Vue {
+  @Prop({ required: true })
+  public displaynameHeader!: VDliveNameFrag.Fragment;
+
+  @Prop({ required: false, default: '' })
+  public nameStyle!: string;
+
+  @Prop({ required: false })
+  public verifyIconSize!: number;
+
+  @Prop({ required: false })
+  public maxLength!: number;
+
+  @Prop({ required: false, default: true })
+  public bageShow!: boolean;
+
+  @Prop({ required: false, default: false })
+  public withColon!: boolean;
+
+  get hasBadge() {
+    return this.bageShow && this.BadgePageCheck && this.BadgePermissionCheck;
+  }
+
+  get BadgePermissionCheck() {
+    return partnerPermissionCheck(
+      PERMISSION_EVENTS.BADGE,
+      this.displaynameHeader.partnerStatus
+    );
+  }
+
+  get BadgePageCheck() {
+    if (!this.$route.name) {
+      return false;
+    }
+    const pages = [
+      ROUTE_LIVESTREAM,
+      ROUTE_POPUP_CHAT,
+      ROUTE_CLIP_IFRAME,
+      ROUTE_DASHBOARD,
+      ROUTE_PAST_BROADCAST,
+      ROUTE_PARTNER_PROGRESS,
+      ROUTE_CLIP
+    ];
+    return pages.indexOf(this.$route.name) !== -1;
+  }
+
+  get isGlobalPartner() {
+    return this.displaynameHeader.partnerStatus === PartnerStatus.GlobalPartner;
+  }
+
+  get partnerBadge() {
+    if (this.isGlobalPartner) {
+      return require('@/assets/icon/global-badge.svg');
+    } else {
+      return require('@/assets/icon/verified-badge.svg');
+    }
+  }
+
+  get partnerStatus() {
+    if (this.isGlobalPartner) {
+      return this.$t('VDliveName.GlobalPartner') as string;
+    } else {
+      return this.$t('VDliveName.VerifiedPartner') as string;
+    }
+  }
+
+  get nameMaxLength() {
+    if (this.maxLength) {
+      return `max-width: ${this.maxLength}px;`;
+    }
+    return '';
+  }
+
+  get getVerifyIconSize() {
+    if (this.verifyIconSize !== undefined) {
+      if (
+        this.displaynameHeader.partnerStatus === PartnerStatus.GlobalPartner
+      ) {
+        return `width: ${this.verifyIconSize + 2}px; height: ${this
+          .verifyIconSize + 2}px`;
+      }
+      return `width: ${this.verifyIconSize}px; height: ${
+        this.verifyIconSize
+      }px`;
+    }
+    return `width: 12px; height: 12px`;
+  }
+}

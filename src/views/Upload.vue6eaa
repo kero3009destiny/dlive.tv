@@ -1,0 +1,411 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { UploadVideoResult } from '@/api/uploadVideo';
+import uploadThumbnail from '@/api/uploadThumbnail';
+import { EVENTS } from '@/utils/constants';
+import Follow from '@/components/VFollow.vue';
+import VUploadImage from '@/components/VUploadImage.vue';
+import VUploadVideo from '@/components/VUploadVideo.vue';
+import ADD_VIDEO from '@/graphql/mutations/AddVideo.graphql';
+import SEARCH_CATEGORY from '@/graphql/queries/UploadSearchCategory.graphql';
+import VIDEO_PERMLINK from '@/graphql/mutations/UploadVideoPermlink.graphql';
+import MeMixin from '@/mixins/MeMixin';
+import SnackbarMixin from '@/mixins/SnackbarMixin';
+import { Component, Mixins } from 'vue-property-decorator';
+import { ApolloQuery } from '@/decorators/apollo';
+import {
+  VideoPermlink,
+  Maybe,
+  UploadAddVideo,
+  UploadSearchCategory
+} from '@/graphql/types';
+import { PERMISSION_EVENTS, partnerPermissionCheck } from '@/utils/permission';
+import { Meta } from '@/decorators/meta.ts';
+import { Language } from '@/store/globalInfo/types';
+import { ROUTE_HOME } from '@/router';
+
+// import { errorData } from 'hls.js';
+
+// TODO(yumin): move rules to a specific module so they are shared.
+@Component({
+  components: {
+    VUploadImage,
+    VUploadVideo,
+    Follow
+  }
+})
+export default class Upload extends Mixins(SnackbarMixin, MeMixin) {
+  @Meta({
+    MetaInfo: {
+      title: 'Live Dashboard · DLive'
+    }
+  })
+  public meta!: string;
+
+  public videoPermlink?: Maybe<VideoPermlink.VideoPermlinkGenerate> = null;
+
+  @ApolloQuery({
+    fetchPolicy: 'network-only',
+    query: SEARCH_CATEGORY,
+    debounce: 500,
+    skip() {
+      return !this.searchText;
+    },
+    variables(): UploadSearchCategory.Variables {
+      return {
+        text: this.searchText
+      };
+    }
+  })
+  public search?: UploadSearchCategory.Categories;
+
+  // form data
+  public thumbnailUrl: string = '';
+  public videoRst: UploadVideoResult | null = null;
+
+  // local
+  private uploadThumbnail = uploadThumbnail;
+  private searchText: string = '';
+  private title = '';
+  private description = '';
+  private selectedLanguage: Language | null = null;
+  private selectedCategory: UploadSearchCategory.List | null = null;
+  private publishing = false;
+  private suggestions = [];
+  private formValid = false;
+
+  public mounted() {
+    if (!this.$store.getters['accessToken/token']) {
+      this.$router.push({ name: ROUTE_HOME });
+    }
+    this.$apollo
+      .mutate<VideoPermlink.Mutation>({
+        mutation: VIDEO_PERMLINK
+      })
+      .then(({ data }: { data: VideoPermlink.Mutation }) => {
+        if (data.videoPermlinkGenerate.err) {
+          this.$errCode(data.videoPermlinkGenerate.err.code);
+          return;
+        }
+        this.videoPermlink = data.videoPermlinkGenerate;
+      })
+      .catch((err: Error) => {
+        this.$errorPlain(this.$t('Upload.FailToUploadDueTo') + err.message);
+      });
+  }
+
+  get hasUploadPermission() {
+    if (this.me !== null) {
+      return partnerPermissionCheck(
+        PERMISSION_EVENTS.UPLOAD_VIDEO,
+        this.me.partnerStatus
+      );
+    }
+    return false;
+  }
+
+  get descriptionRules() {
+    return [
+      (v: string) => {
+        return (
+          (v && v !== '') || (this.$t('Upload.DescriptionRequired') as string)
+        );
+      },
+      (v: string) => {
+        return (
+          (v && v.length <= EVENTS.BC_CONTENT_LENGTH) ||
+          (this.$t('Upload.DescriptionMustLessThan') as string)
+        );
+      }
+    ];
+  }
+
+  get titleRules() {
+    return [
+      (v: string) => {
+        return (v && v !== '') || (this.$t('Upload.TitleRequired') as string);
+      },
+      (v: string) => {
+        return (
+          (v && v.length <= EVENTS.BC_TITLE_LENGTH) ||
+          (this.$t('Upload.TitleMustLessThan') as string)
+        );
+      }
+    ];
+  }
+
+  get languageRules() {
+    return [
+      (v: Language | null | undefined) => {
+        return (
+          (v && v.id !== undefined) ||
+          (this.$t('Upload.LanguageRequired') as string)
+        );
+      }
+    ];
+  }
+
+  get categoryRules() {
+    return [
+      (v: UploadSearchCategory.List | null | undefined) => {
+        return (
+          (v && v.id !== undefined) ||
+          (this.$t('Upload.CategoryRequired') as string)
+        );
+      }
+    ];
+  }
+
+  get uploadPermlink() {
+    if (this.videoPermlink != null) {
+      return this.videoPermlink.permlinkToken;
+    } else {
+      return '';
+    }
+  }
+
+  get uploadDataValid() {
+    return this.formValid && this.thumbnailUrl && this.videoRst;
+  }
+
+  public onImageDone(imgURL: string) {
+    this.thumbnailUrl = imgURL;
+  }
+
+  public onVideoDone(uploadRst: UploadVideoResult) {
+    this.videoRst = uploadRst;
+  }
+
+  // publish video to backend
+  public publishVideo() {
+    if (!this.videoPermlink) {
+      return;
+    }
+    if (!this.videoRst) {
+      // FIXME(@ning): just throw? no catch?
+      throw new Error('publish video without upload?');
+    }
+    if (this.selectedCategory === null || this.selectedLanguage === null) {
+      // FIXME(@ning): error?
+      return;
+    }
+    this.publishing = true;
+    this.$apollo
+      .mutate<UploadAddVideo.Mutation>({
+        mutation: ADD_VIDEO,
+        variables: {
+          video: {
+            permlink: this.videoPermlink.permlink,
+            thumbnailUrl: this.thumbnailUrl,
+            title: this.title.trim(),
+            content: this.description.trim(),
+            filename: this.videoRst.key,
+            bucketName: this.videoRst.bucketName,
+            region: this.videoRst.region,
+            categoryId: this.selectedCategory.backendID,
+            languageId: this.selectedLanguage.backendID
+          }
+        }
+      })
+      .then(({ data }: { data: UploadAddVideo.Mutation }) => {
+        if (data.videoAdd.err) {
+          this.$errCode(data.videoAdd.err.code);
+          return;
+        }
+        (this.$refs.form as HTMLFormElement).reset();
+        this.publishing = false;
+        (this.$refs.uploadVideo as VUploadVideo).reset();
+        (this.$refs.uploadImage as VUploadVideo).reset();
+        const view = document.getElementById('view');
+        if (view !== null) {
+          view.scrollTop = 0;
+        }
+        this.$success('Upload.SuccessUpload');
+      })
+      .catch((err: Error) => {
+        this.publishing = false;
+        this.$errorPlain(this.$t('Upload.FailToUploadDueTo') + err.message);
+      });
+  }
+}

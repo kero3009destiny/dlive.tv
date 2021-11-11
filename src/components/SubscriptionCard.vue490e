@@ -1,0 +1,137 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import MeMixin from '@/mixins/MeMixin';
+import VDliveAvatar from '@/components/VDliveAvatar.vue';
+import DBtn from '@/components/DBtn.vue';
+import DMenu from '@/components/DMenu.vue';
+import DMenuItem from '@/components/DMenuItem.vue';
+import UNSUBSCRIBE from '@/graphql/mutations/Unsubscribe.graphql';
+import MagicMqMixin from '@/mixins/MagicMqMixin';
+import dateFns from 'date-fns';
+import { MeSubscribingFrag, SubType } from '@/graphql/types';
+import { Component, Mixins, Prop } from 'vue-property-decorator';
+import SnackbarMixin from '@/mixins/SnackbarMixin';
+
+@Component({
+  components: {
+    VDliveAvatar,
+    DBtn,
+    DMenu,
+    DMenuItem
+  }
+})
+export default class SubscriptionCard extends Mixins(
+  MeMixin,
+  MagicMqMixin,
+  SnackbarMixin
+) {
+  @Prop({
+    required: true
+  })
+  public streamer!: MeSubscribingFrag.List;
+
+  public subCardMenuShow: boolean = false;
+
+  // Computed -----------------------------------------
+  get md() {
+    return dateFns.format(
+      dateFns.addMonths(
+        dateFns.parse(Number(this.streamer.subscribedAt as string)),
+        Number(this.streamer.month)
+      ),
+      'MMM DD, YYYY'
+    );
+  }
+  get isRecurring() {
+    return this.streamer.subType === SubType.Recurring;
+  }
+
+  // Function ---------------------------------------
+  public routeTo() {
+    if (!this.streamer.streamer) {
+      return;
+    }
+    this.$router.push({
+      name: 'Livestream',
+      params: { displayname: this.streamer.streamer.displayname }
+    });
+  }
+
+  public unsubscribeClicked(streamer: string) {
+    this.$apollo
+      .mutate({
+        mutation: UNSUBSCRIBE,
+        variables: {
+          streamer
+        }
+      })
+      .then(({ data }) => {
+        if (data.unsubscribe && data.unsubscribe.err) {
+          this.$errCode(data.unsubscribe.err.code);
+          return;
+        }
+        this.$success('subscribe.UnsubscribeSuccess');
+        this.$emit('refetch');
+      })
+      .catch(() => {
+        this.$error('subscribe.renewFail');
+      });
+  }
+}

@@ -1,0 +1,187 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// import { EVENTS } from '@/utils/constants';
+import { Component, Mixins } from 'vue-property-decorator';
+import { namespace } from 'vuex-class';
+import { CommunityUpdate } from '@/store/globalInfo/types';
+import GlobalEventBusMixin from '@/mixins/GlobalEventBusMixin';
+import { dataPoint } from '@/plugins/dataCollection';
+import MeMixin from '@/mixins/MeMixin';
+
+const globalInfoModule = namespace('globalInfo');
+
+@Component({})
+export default class AppSidebarLinks extends Mixins(
+  MeMixin,
+  GlobalEventBusMixin
+) {
+  @globalInfoModule.Getter('communityUpdates')
+  public communityUpdates!: CommunityUpdate[];
+
+  public hasImpressed: boolean = false;
+  public showSidebarImg: boolean = false;
+  public adsInterval: number = 0;
+
+  public mounted() {
+    const s1 = document.createElement('script');
+    s1.async = true;
+    s1.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js';
+    const s2 = document.createElement('script');
+    s2.innerHTML = '(adsbygoogle = window.adsbygoogle || []).push({});';
+    const container = document.getElementById('dlive-sidebar-img');
+    if (container === null) {
+      return;
+    }
+    container.appendChild(s1);
+    container.appendChild(s2);
+  }
+
+  get showCommunitySection() {
+    if (this.communityUpdates.length === 0) {
+      return false;
+    }
+    for (const update of this.communityUpdates) {
+      if (update.title !== '') {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  // public mounted() {
+  //   this.$_smartSubscribe(EVENTS.SIDEBAR_SCROLL_EVENT, this.impressionEvent);
+  //   this.checkAdsTimeInterval();
+  // }
+
+  public beforeDestroy() {
+    clearInterval(this.adsInterval);
+  }
+
+  public checkAdsTimeInterval() {
+    const startDate1 = new Date(Date.UTC(2019, 10, 8, 21, 0, 0));
+    const endDate1 = new Date(Date.UTC(2019, 10, 11, 8, 0, 0));
+    const startDate2 = new Date(Date.UTC(2019, 10, 11, 21, 0, 0));
+    const endDate2 = new Date(Date.UTC(2019, 10, 12, 10, 0, 0));
+    const startDate3 = new Date(Date.UTC(2019, 10, 12, 21, 0, 0));
+    const endDate3 = new Date(Date.UTC(2019, 11, 2, 10, 0, 0));
+
+    const date = new Date();
+
+    if (
+      (date >= startDate1 && date <= endDate1) ||
+      (date >= startDate2 && date <= endDate2) ||
+      (date >= startDate3 && date <= endDate3)
+    ) {
+      this.showSidebarImg = true;
+      this.$nextTick(() => {
+        this.impressionEvent();
+      });
+    }
+
+    this.adsInterval = window.setInterval(() => {
+      const dateNow = new Date();
+      if (
+        (dateNow >= startDate1 && dateNow <= endDate1) ||
+        (dateNow >= startDate2 && dateNow <= endDate2) ||
+        (dateNow >= startDate3 && dateNow <= endDate3)
+      ) {
+        this.showSidebarImg = true;
+        this.$nextTick(() => {
+          this.impressionEvent();
+        });
+      }
+    }, 5 * 60 * 1000);
+  }
+
+  public impressionEvent() {
+    if (this.hasImpressed) {
+      return;
+    }
+
+    const img = this.$refs.sidebarImg;
+    if (img) {
+      if (this.elementInViewport(img as HTMLElement)) {
+        dataPoint('impression_ads', {
+          eventCategory: 'sidebar',
+          eventLabel: 'sl-nov-2019-sidebar'
+        });
+      }
+    }
+  }
+
+  public elementInViewport(elem: HTMLElement) {
+    const bounding = elem.getBoundingClientRect();
+    return (
+      bounding.top >= 0 &&
+      bounding.left >= 0 &&
+      bounding.top + 30 <=
+        (window.innerHeight || document.documentElement.clientHeight) &&
+      bounding.right <=
+        (window.innerWidth || document.documentElement.clientWidth)
+    // bounding.bottom <=
+    //   (window.innerHeight || document.documentElement.clientHeight) &&
+    // bounding.right <=
+    //   (window.innerWidth || document.documentElement.clientWidth)
+    );
+  }
+
+  public openLink() {
+    dataPoint('click_ads', {
+      eventCategory: 'sidebar',
+      eventLabel: 'sl-nov-2019-sidebar'
+    });
+    window.open('https://go.dlive.tv/sl-nov-2019-sidebar', '_blank');
+  }
+}

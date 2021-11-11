@@ -1,0 +1,24 @@
+
+    var doc = {"kind":"Document","definitions":[{"kind":"FragmentDefinition","name":{"kind":"Name","value":"ActivityFeedSettingsFrag"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"User"}},"directives":[],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"private"},"arguments":[],"directives":[],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"activitySetting"},"arguments":[],"directives":[],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"lemon"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"icecream"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"diamond"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"ninjaghini"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"ninjet"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"follow"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"subscription"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"hosting"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"moderation"},"arguments":[],"directives":[]}]}}]}}]}}],"loc":{"start":0,"end":228}};
+    doc.loc.source = {"body":"fragment ActivityFeedSettingsFrag on User {\n  id\n  private {\n    activitySetting {\n      lemon\n      icecream\n      diamond\n      ninjaghini\n      ninjet\n      follow\n      subscription\n      hosting\n      moderation\n    }\n  }\n}","name":"GraphQL request","locationOffset":{"line":1,"column":1}};
+  
+
+    var names = {};
+    function unique(defs) {
+      return defs.filter(
+        function(def) {
+          if (def.kind !== 'FragmentDefinition') return true;
+          var name = def.name.value
+          if (names[name]) {
+            return false;
+          } else {
+            names[name] = true;
+            return true;
+          }
+        }
+      )
+    }
+  
+
+      module.exports = doc;
+    

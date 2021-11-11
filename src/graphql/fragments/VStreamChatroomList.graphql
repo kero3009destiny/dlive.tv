@@ -1,0 +1,29 @@
+
+    var doc = {"kind":"Document","definitions":[{"kind":"FragmentDefinition","name":{"kind":"Name","value":"VStreamChatroomListFrag"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"User"}},"directives":[],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"FragmentSpread","name":{"kind":"Name","value":"VStreamChatRowStreamerFrag"},"directives":[]},{"kind":"FragmentSpread","name":{"kind":"Name","value":"PinnedGiftsFrag"},"directives":[]},{"kind":"FragmentSpread","name":{"kind":"Name","value":"PinnedSubFrag"},"directives":[]},{"kind":"FragmentSpread","name":{"kind":"Name","value":"ChatDisabledFrag"},"directives":[]},{"kind":"FragmentSpread","name":{"kind":"Name","value":"PinnedStreakFrag"},"directives":[]}]}}],"loc":{"start":0,"end":337}};
+    doc.loc.source = {"body":"#import './VStreamChatRowStreamer.graphql'\n#import './PinnedGifts.graphql'\n#import './PinnedSub.graphql'\n#import './ChatDisabled.graphql'\n#import './PinnedStreakFrag.graphql'\n\nfragment VStreamChatroomListFrag on User {\n  ...VStreamChatRowStreamerFrag\n  ...PinnedGiftsFrag\n  ...PinnedSubFrag\n  ...ChatDisabledFrag\n  ...PinnedStreakFrag\n}\n","name":"GraphQL request","locationOffset":{"line":1,"column":1}};
+  
+
+    var names = {};
+    function unique(defs) {
+      return defs.filter(
+        function(def) {
+          if (def.kind !== 'FragmentDefinition') return true;
+          var name = def.name.value
+          if (names[name]) {
+            return false;
+          } else {
+            names[name] = true;
+            return true;
+          }
+        }
+      )
+    }
+  doc.definitions = doc.definitions.concat(unique(require('./VStreamChatRowStreamer.graphql').definitions));
+doc.definitions = doc.definitions.concat(unique(require('./PinnedGifts.graphql').definitions));
+doc.definitions = doc.definitions.concat(unique(require('./PinnedSub.graphql').definitions));
+doc.definitions = doc.definitions.concat(unique(require('./ChatDisabled.graphql').definitions));
+doc.definitions = doc.definitions.concat(unique(require('./PinnedStreakFrag.graphql').definitions));
+
+
+      module.exports = doc;
+    

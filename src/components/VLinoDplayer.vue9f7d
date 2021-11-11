@@ -1,0 +1,92 @@
+
+
+
+
+
+// FIXME: Remove eslint ignore
+/* eslint @typescript-eslint/no-explicit-any: 0 */
+import { Component, Prop, Vue, Watch } from 'vue-property-decorator';
+import { DPlayerOptions } from '@/models/dplayerOptionsHls';
+
+@Component
+export default class VLinoDplayer extends Vue {
+  // XXX(yumin): contains parent's ref, DO NOT deep watch.
+  @Prop({ required: true })
+  public options!: DPlayerOptions;
+
+  @Prop({ required: false })
+  public currentTime!: number;
+
+  @Prop({
+    required: false,
+    default: false
+  })
+  public adsEnabled!: boolean;
+
+  // player instance.
+  public dp: any | undefined = undefined;
+  public Dplayer: any | null = null;
+
+  public mounted() {
+    // if ((process as any).client) {
+    // TODO(@ryan): Why this?
+    if (this.adsEnabled) {
+      this.Dplayer = require('dplayer-ads');
+      require('dplayer-ads/dist/DPlayer.min.css');
+    } else {
+      this.Dplayer = require('dplayer');
+      require('dplayer/dist/DPlayer.min.css');
+    }
+    // }
+    this.constructPlayer();
+    if (this.currentTime && this.currentTime !== 0) {
+      this.dp.video.currentTime = this.currentTime;
+    }
+  }
+
+  public destroyed() {
+    this.destroyPlayer();
+  }
+
+  public constructPlayer() {
+    this.destroyPlayer();
+    this.options.container = this.$refs.dplayerContainer;
+    this.dp = new this.Dplayer(this.options);
+    const player = this.dp;
+    const events = player.events;
+    this.$emit('onPlayerCreate', this.dp);
+    Object.keys(events).forEach((item: any) => {
+      if (item === 'events') {
+        return false;
+      } else {
+        events[item].forEach((event: any) => {
+          // XXX(yumin): skip some event.
+          // timeupdate
+          if (event === 'timeupdate') {
+            // time update is too frequent, user can get time by
+            // calling the dp instance returned.
+          } else {
+            // for others, no parameter.
+            player.on(event, () => {
+              this.$emit(event);
+            });
+          }
+        });
+      }
+    });
+  }
+
+  public destroyPlayer() {
+    if (this.dp != null) {
+      this.dp.destroy();
+    }
+  }
+
+  // XXX(yumin): switchVideo API does not work in that the qualitySwitch menu
+  // is not re-rendered. We decide to reconstruct a player when video is switched.
+  // we can give it a try in the future.
+  @Watch('options.video', { deep: false })
+  public onVideoSourceChange() {
+    this.constructPlayer();
+  }
+}

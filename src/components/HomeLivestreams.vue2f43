@@ -1,0 +1,7 @@
+var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',{staticClass:"flex-box flex-wrap"},[_vm._l((_vm.homeLivestreams.list),function(livestream){return [(
+        !(!_vm.showAdultContent && livestream.ageRestriction) &&
+          !(!_vm.matureTagForViewer && livestream.earnRestriction)
+      )?_c('div',{key:livestream.permlink,staticClass:"livestream-wrapper"},[_c('v-snap-livestream',{staticStyle:{"margin-right":"22px","margin-bottom":"42px"},attrs:{"livestream":livestream,"from":"homeFeed"}})],1):_vm._e()]})],2)}
+var staticRenderFns = []
+
+export { render, staticRenderFns }

@@ -1,0 +1,108 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import DDialog from '@/components/DDialog.vue';
+import DBtn from '@/components/DBtn.vue';
+import DTextField from '@/components/DTextField.vue';
+import SnackbarMixin from '@/mixins/SnackbarMixin';
+import { loginRegisterNotification } from '@/web-notification';
+import { loginWithTwoFactor } from '@/apollo/mutation/twoFactor';
+import { namespace } from 'vuex-class';
+import { Component, Mixins, Prop } from 'vue-property-decorator';
+
+const accessTokenModule = namespace('accessToken');
+
+@Component({
+  components: {
+    DDialog,
+    DBtn,
+    DTextField
+  }
+})
+export default class TwoFAPopup extends Mixins(SnackbarMixin) {
+  @Prop({
+    type: String,
+    required: true
+  })
+  public twofactorToken!: string | null;
+
+  get canVerify() {
+    return this.verificationCode.length === 6;
+  }
+
+  @accessTokenModule.Mutation('setAccessToken')
+  public setAccessToken!: (token: string) => void;
+
+  public verificationCode: string = '';
+  public verifyLoading: boolean = false;
+
+  public changeState(state: boolean) {
+    this.$emit('input', state);
+  }
+
+  public async verify() {
+    if (this.twofactorToken) {
+      this.verifyLoading = true;
+      const resp = await loginWithTwoFactor(
+        this,
+        this.twofactorToken,
+        this.verificationCode
+      );
+      if (
+        resp.me === null ||
+        resp.me.private === null ||
+        resp.me.private.accessToken === ''
+      ) {
+        this.$error('No accessToken');
+        return;
+      }
+      this.verifyLoading = false;
+      this.setAccessToken(resp.me.private.accessToken);
+      loginRegisterNotification();
+      this.$emit('verifySuccess');
+    }
+  }
+}

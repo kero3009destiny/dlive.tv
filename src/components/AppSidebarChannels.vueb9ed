@@ -1,0 +1,233 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { Component, Mixins } from 'vue-property-decorator';
+import AppSidebarAvatar from '@/components/AppSidebarAvatar.vue';
+import VDliveName from '@/components/VDliveName.vue';
+import AppSidebarChannelsNoFollowing from '@/components/AppSidebarChannelsNoFollowing.vue';
+import DDivider from '@/components/DDivider.vue';
+import MeMixin from '@/mixins/MeMixin';
+import { ROUTE_LIVESTREAM } from '@/router';
+import { MeSidebarFrag } from '@/graphql/types';
+import { namespace } from 'vuex-class';
+import { dataPoint } from '@/plugins/dataCollection';
+
+const meModule = namespace('me');
+
+@Component({
+  components: {
+    AppSidebarAvatar,
+    VDliveName,
+    DDivider,
+    AppSidebarChannelsNoFollowing
+  }
+})
+export default class AppSidebarChannels extends Mixins(MeMixin) {
+  get lessChannels() {
+    if (this.allChannels !== null) {
+      return this.allChannels.slice(0, this.channelNumber);
+    }
+    return [];
+  }
+
+  get hasMoreChannels() {
+    if (
+      this.allChannels !== null &&
+      this.allChannels.length > this.channelNumber
+    ) {
+      return true;
+    }
+    return false;
+  }
+  get channelsToShow() {
+    if (!this.showMore) {
+      return this.lessChannels;
+    }
+    return this.allChannels;
+  }
+
+  get allChannels() {
+    const liveChannels: MeSidebarFrag.List[] = [];
+    const rerunChannels: MeSidebarFrag.List[] = [];
+    const hostingChannels: MeSidebarFrag.List[] = [];
+    const unliveChannels: MeSidebarFrag.List[] = [];
+    const first20Channels: MeSidebarFrag.List[] = this.channels.slice(0, 20);
+    for (const liveItem of first20Channels) {
+      if (liveItem !== null) {
+        if (this.isLive(liveItem)) {
+          liveChannels.push(liveItem);
+        } else if (this.isRerun(liveItem)) {
+          rerunChannels.push(liveItem);
+        } else if (this.isHosting(liveItem)) {
+          hostingChannels.push(liveItem);
+        } else {
+          unliveChannels.push(liveItem);
+        }
+      }
+    }
+    return liveChannels.concat(rerunChannels, hostingChannels, unliveChannels);
+  }
+  // local
+  public channelNumber: number = 5;
+
+  // local
+  public showMore: boolean = false;
+
+  @meModule.Getter('meFollowingLive')
+  private channels!: MeSidebarFrag.List[];
+
+  public toggleShowMore() {
+    this.showMore = !this.showMore;
+    this.$emit('toggleShowMore', this.showMore);
+  }
+
+  public routeTo(displayname: string) {
+    return { name: ROUTE_LIVESTREAM, params: { displayname } };
+  }
+
+  public goToChannel(followingLiveItem: MeSidebarFrag.List) {
+    if (followingLiveItem.livestream !== null) {
+      dataPoint('click_livestream', {
+        eventCategory: 'sidebar',
+        eventLabel:
+          followingLiveItem.username +
+          '&' +
+          followingLiveItem.livestream.permlink
+      });
+    }
+  }
+
+  public isLive(channel: MeSidebarFrag.List) {
+    return (
+      !(
+        channel.hostingLivestream !== null && channel.hostingLivestream.permlink
+      ) &&
+      (channel.livestream !== null && channel.livestream.permlink)
+    );
+  }
+
+  public isRerun(channel: MeSidebarFrag.List) {
+    return (
+      !(
+        channel.hostingLivestream !== null && channel.hostingLivestream.permlink
+      ) &&
+      !(channel.livestream !== null && channel.livestream.permlink) &&
+      channel.rerun !== null
+    );
+  }
+
+  public isHosting(channel: MeSidebarFrag.List) {
+    return (
+      channel.hostingLivestream !== null && channel.hostingLivestream.permlink
+    );
+  }
+}

@@ -1,0 +1,82 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import MeMixin from '@/mixins/MeMixin';
+import SnackbarMixin from '@/mixins/SnackbarMixin';
+import { Component, Mixins, Watch } from 'vue-property-decorator';
+import VSendCode from '@/components/VSendCode.vue';
+import DTextField from '@/components/DTextField.vue';
+import DBtn from '@/components/DBtn.vue';
+import { sendVerificationLinkToEmail } from '@/apollo/mutation/settings';
+import EmailValidationMixin from '@/mixins/EmailValidationMixin';
+
+@Component({
+  components: {
+    VSendCode,
+    DTextField,
+    DBtn
+  }
+})
+export default class SettingsEmailSendVerify extends Mixins(
+  SnackbarMixin,
+  MeMixin,
+  EmailValidationMixin
+) {
+  // computed
+  get emailCheck() {
+    return this.email !== '' && this.emailErrors.length === 0;
+  }
+  // local
+  public sendCodeLoading: boolean = false;
+
+  public mounted() {
+    if (this.me && this.me.private && this.me.private.email) {
+      this.email = this.me.private.email;
+    }
+  }
+
+  public async sendEmailLink() {
+    // FIXME(@ryanli): use email text field
+    // eslint-disable-next-line no-useless-escape
+    const re = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+    const validEmail = re.test(String(this.email).toLowerCase());
+    if (!validEmail) {
+      this.$error('LoginEmailRegisterCallback.EnterValidEmail');
+      return;
+    }
+    this.sendCodeLoading = true;
+    const resp = await sendVerificationLinkToEmail(this, this.email);
+    if (resp) {
+      // this.$success('LoginEmailRegisterCallback.MessageSent');
+      (this.$refs.vsendcode as VSendCode).countdownStart();
+    }
+    this.sendCodeLoading = false;
+  }
+
+  @Watch('me')
+  public onMeChanging() {
+    if (this.me && this.me.private && this.me.private.email) {
+      this.email = this.me.private.email;
+    }
+  }
+}

@@ -1,0 +1,139 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import {
+  StreamChatMessageFrag,
+  VStreamChatRowStreamerFrag,
+  VStreamChatNotificationEmoteRowFrag,
+  ChatType,
+  RoomRole
+} from '@/graphql/types';
+import { Component, Prop, Mixins } from 'vue-property-decorator';
+import VLinkify from '@/components/VLinkify.vue';
+import MeMixin from '@/mixins/MeMixin';
+
+@Component({
+  components: {
+    VLinkify
+  }
+})
+export default class VStreamChatNotificationRow extends Mixins(MeMixin) {
+  @Prop({
+    required: true,
+    type: Object
+  })
+  public chat!: StreamChatMessageFrag.Fragment;
+  @Prop({
+    required: true,
+    type: Object
+  })
+  public streamerInfo!: VStreamChatRowStreamerFrag.Fragment;
+
+  get isOwner() {
+    if (this.me !== null && this.streamerInfo !== undefined) {
+      return this.me.username === this.streamerInfo.username;
+    }
+    return false;
+  }
+
+  get shouldShowSenderName() {
+    if (this.chat !== undefined) {
+      const chat = this.chat as StreamChatMessageFrag.ChatBanInlineFragment;
+      return (
+        this.isOwner &&
+        (chat.bannedByRoomRole === RoomRole.Owner ||
+          chat.bannedByRoomRole === RoomRole.Moderator)
+      );
+    }
+    return false;
+  }
+
+  get bannedBy() {
+    if (
+      this.chat.type === ChatType.Ban ||
+      this.chat.type === ChatType.Timeout
+    ) {
+      if (this.shouldShowSenderName) {
+        return (this.chat as StreamChatMessageFrag.ChatBanInlineFragment)
+          .bannedBy.displayname;
+      } else if (this.isOwner) {
+        return 'staff/guardian';
+      } else {
+        return 'moderator/staff';
+      }
+    }
+    return '';
+  }
+
+  get isBanChat() {
+    return this.chat.type === ChatType.Ban;
+  }
+  get isModChat() {
+    return this.chat.type === ChatType.Mod;
+  }
+  get isEmoteChat() {
+    return this.chat.type === ChatType.Emote;
+  }
+  get isTimeoutChat() {
+    return this.chat.type === ChatType.Timeout;
+  }
+  get emoteString() {
+    return (
+      ':emote/channel/' +
+      this.streamerInfo.displayname +
+      '/' +
+      (this.chat as VStreamChatNotificationEmoteRowFrag.Fragment).emote +
+      ':'
+    );
+  }
+}

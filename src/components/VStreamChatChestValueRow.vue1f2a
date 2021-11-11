@@ -1,0 +1,25 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { VStreamChatChestValueRowFrag } from '@/graphql/types';
+import { Component, Vue, Prop } from 'vue-property-decorator';
+
+@Component
+export default class VStreamChatChestValueRow extends Vue {
+  @Prop({
+    required: true
+  })
+  public chatChestValueRow!: VStreamChatChestValueRowFrag.Fragment;
+}

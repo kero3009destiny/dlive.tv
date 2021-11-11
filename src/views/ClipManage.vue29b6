@@ -1,0 +1,330 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// import { UploadVideoResult } from '@/api/uploadVideo';
+import { ApolloQuery } from '@/decorators/apollo';
+import { Component, Mixins } from 'vue-property-decorator';
+import MeMixin from '@/mixins/MeMixin';
+import SnackbarMixin from '@/mixins/SnackbarMixin';
+import { ROUTE_HOME } from '@/router';
+import DASHBOARD_SEARCH_CATEGORIES from '@/graphql/queries/DashboardSearchCategories.graphql';
+import VCenteredContainer from '@/components/VCenteredContainer.vue';
+import VUploadClip from '@/components/VUploadClip.vue';
+import DTab from '@/components/DTab.vue';
+import DBtn from '@/components/DBtn.vue';
+import DDivider from '@/components/DDivider.vue';
+import ClipOfMeList from '@/components/ClipOfMeList.vue';
+import ClipByMeList from '@/components/ClipByMeList.vue';
+import { clipMomentAdd } from '@/apollo/mutation/clip';
+import { Language } from '@/store/globalInfo/types';
+import {
+  ClipMomentAdd,
+  DashboardStreamSettingsFrag,
+  DashboardSearchCategories
+} from '@/graphql/types';
+import { Tab } from '@/models/tab';
+import { namespace } from 'vuex-class';
+
+const globalInfoModule = namespace('globalInfo');
+
+@Component({
+  components: {
+    VCenteredContainer,
+    ClipOfMeList,
+    ClipByMeList,
+    DTab,
+    DBtn,
+    VUploadClip,
+    DDivider
+  }
+})
+export default class ClipManage extends Mixins(MeMixin, SnackbarMixin) {
+  @ApolloQuery({
+    query: DASHBOARD_SEARCH_CATEGORIES,
+    initDebounce: true,
+    debounce: 500,
+    variables(): DashboardSearchCategories.Variables {
+      return {
+        text: this.searchCategoryInput
+      };
+    },
+    skip() {
+      return (
+        this.searchCategoryInput === null || this.searchCategoryInput === ''
+      );
+    }
+  })
+  public search?: DashboardSearchCategories.Search;
+
+  get searchCategoryList() {
+    if (this.search !== undefined) {
+      return this.search.categories.list;
+    }
+    return [];
+  }
+
+  get tabs(): Tab[] {
+    return [
+      new Tab('ClipManage.ClipOfMe', null, 'tab-clipOfMe'),
+      new Tab('ClipManage.ClipByMe', null, 'tab-clipByMe')
+    ];
+  }
+
+  get canUploadClip() {
+    return (
+      this.clipUrl !== '' &&
+      this.clipDesc !== '' &&
+      this.selectedCategory !== null &&
+      this.selectedLanguage !== null &&
+      this.duration !== 0 &&
+      this.thumbnail !== ''
+    );
+  }
+
+  public activeTab: string = 'tab-clipOfMe';
+  public uploadClipDialogShow: boolean = false;
+  public selectedLanguage: DashboardStreamSettingsFrag.Language | null = null;
+  public selectedCategory: DashboardStreamSettingsFrag.Category | null = null;
+  public clipDesc: string = '';
+  public searchCategoryInput: string = '';
+  public clipUrl: string = '';
+  public duration: number = 0;
+  public uploadClipLoading: boolean = false;
+  public thumbnail: string = '';
+
+  @globalInfoModule.Getter('languages')
+  private languages!: Language[];
+
+  public mounted() {
+    if (!this.$store.getters['accessToken/token']) {
+      this.$router.push({ name: ROUTE_HOME });
+    }
+  }
+
+  public changeTab(tab: Tab) {
+    if (tab.href !== undefined) {
+      this.activeTab = tab.href;
+    }
+  }
+
+  public onClipDone(data: {
+    videoURL: string;
+    duration: number;
+    thumbnail: string;
+  }) {
+    this.clipUrl = data.videoURL;
+    this.duration = data.duration;
+    this.thumbnail = data.thumbnail;
+  }
+
+  public clearUploadData() {
+    this.clipUrl = '';
+    this.clipDesc = '';
+    this.duration = 0;
+    this.selectedCategory = null;
+    this.selectedLanguage = null;
+    this.thumbnail = '';
+    (this.$refs.uploadClip as VUploadClip).reset();
+  }
+
+  public async uploadClip() {
+    if (!this.clipUrl) {
+      this.$error('No Clip Found');
+      return;
+    }
+    if (this.selectedCategory === null) {
+      this.$error('Category required');
+      return;
+    }
+    if (this.selectedLanguage === null) {
+      this.$error('Language required');
+      return;
+    }
+    this.uploadClipLoading = true;
+    const variables: ClipMomentAdd.Variables = {
+      url: this.clipUrl,
+      description: this.clipDesc,
+      thumbnailUrl: this.thumbnail,
+      duration: Math.floor(this.duration),
+      languageID: this.selectedLanguage.backendID,
+      categoryID: this.selectedCategory.backendID
+    };
+    await clipMomentAdd(this, variables);
+    if (this.$refs.clipOfMeList) {
+      (this.$refs.clipOfMeList as ClipOfMeList).refetchClip();
+    }
+    this.uploadClipLoading = false;
+    this.uploadClipDialogShow = false;
+    this.clearUploadData();
+  }
+
+  public resetUploadClip() {
+    (this.$refs.uploadClip as VUploadClip).reset();
+    this.thumbnail = '';
+    this.clipUrl = '';
+    this.duration = 0;
+  }
+}

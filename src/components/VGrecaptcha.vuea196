@@ -1,0 +1,67 @@
+
+
+
+
+
+
+
+
+
+
+
+import { GRECAPTCHA_SITE_KEY } from '@/utils/constants.ts';
+import { setTimeout } from 'timers';
+import { Prop, Vue, Component } from 'vue-property-decorator';
+import VueRecaptcha from 'vue-recaptcha';
+
+@Component({
+  components: {
+    VueRecaptcha
+  }
+})
+export default class VGrecaptcha extends Vue {
+  @Prop({
+    required: false,
+    default: 200 * 1000
+  })
+  public timeout!: number; // timeout, unit: ms, default 200 seconds.
+
+  public siteKey = GRECAPTCHA_SITE_KEY;
+  public resolve:
+  | ((value?: string | PromiseLike<string | null> | null | undefined) => void)
+  | null = null;
+
+  // @returns a promise where null means recaptcha failed.
+  // while a string is the passed recaptcha token.
+  public execute() {
+    if (this.resolve !== null) {
+      throw new Error('recaptcha not resolved yet');
+    }
+    const rst = new Promise<string | null>(resolve => {
+      this.resolve = resolve;
+    });
+    (this.$refs.recaptcha as VueRecaptcha).execute();
+    setTimeout(() => {
+      if (this.resolve !== null) {
+        this.resolve(null);
+      }
+      this.resolve = null;
+    }, this.timeout); // XXX(yumin): if not verified in timeout, failed.
+    return rst;
+  }
+
+  public onVerify(token: string) {
+    if (this.resolve === null) {
+      // already failed due to timeout.
+      return;
+    }
+    this.resolve(token);
+    this.resolve = null;
+    (this.$refs.recaptcha as VueRecaptcha).reset();
+  }
+
+  // XXX(yumin): probably not useful.
+  public onExpire() {
+    (this.$refs.recaptcha as VueRecaptcha).reset();
+  }
+}

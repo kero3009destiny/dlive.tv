@@ -1,0 +1,226 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { uploadVideo } from '@/api/uploadVideo';
+import VDragDropInput from '@/components/VDragDropInput.vue';
+import CLIP_PRESIGN_URL_GENERATE from '@/graphql/mutations/ClipPresignURLGenerate.graphql';
+import { Component, Prop, Mixins } from 'vue-property-decorator';
+import { ClipPresignUrlGenerate } from '@/graphql/types';
+import SnackbarMixin from '@/mixins/SnackbarMixin';
+import uploadThumbnail from '@/api/uploadThumbnail';
+import { namespace } from 'vuex-class';
+
+const enum STATUS {
+  WAIT_LOADING = 0,
+  WAIT_UPLOADING,
+  DISPLAY_RESULT,
+  FAILED
+}
+
+const accessTokenModule = namespace('accessToken');
+
+// TODO(yumin): code duplication with UploadVideo, refactor later.
+@Component({
+  components: {
+    VDragDropInput
+  }
+})
+export default class VUploadClip extends Mixins(SnackbarMixin) {
+  @Prop({ default: 'auto' })
+  public height!: string;
+  @Prop({ default: 'auto' })
+  public width!: string;
+  @Prop({ default: 16 / 9 })
+  public aspectRatio!: number;
+  @Prop({ required: true })
+  public streamer!: string;
+
+  // Local
+  public clipSrc: string = '';
+  public status: STATUS = STATUS.WAIT_LOADING;
+  public uploadProgress: number = 0;
+  public generatePresignUrl: string = '';
+
+  @accessTokenModule.Getter('token')
+  private token!: string | null;
+
+  // Computed ---------------------------------------------------------------------------
+  get componentSize() {
+    return { height: this.height, width: this.width };
+  }
+  get isWaitLoading() {
+    return this.status === STATUS.WAIT_LOADING;
+  }
+  get isWaitUploading() {
+    return this.status === STATUS.WAIT_UPLOADING;
+  }
+  get isDisplayResult() {
+    return this.status === STATUS.DISPLAY_RESULT;
+  }
+  get isFailed() {
+    return this.status === STATUS.FAILED;
+  }
+
+  // Function ---------------------------------------------------------------------------
+  // TODO(yumin): error handling in await timeout and display failed.
+  public onDropOrSubmit(file: File) {
+    // upload
+    this.status = STATUS.WAIT_UPLOADING;
+    const vid: HTMLMediaElement = document.getElementById(
+      'clipUploadVideo'
+    ) as HTMLMediaElement;
+    vid.src = window.URL.createObjectURL(file);
+    this.clipSrc = vid.src;
+    if (vid !== null) {
+      vid.onloadeddata = () => {
+        if (vid.duration > 60) {
+          this.reset();
+          this.$error('Maximum length for clip is 60s');
+          return;
+        }
+
+        if (vid.duration < 5) {
+          this.reset();
+          this.$error('Minimum length for clip is 5s');
+          return;
+        }
+
+        return this.$apollo
+          .mutate<ClipPresignUrlGenerate.Mutation>({
+            mutation: CLIP_PRESIGN_URL_GENERATE,
+            variables: {
+              streamer: this.streamer,
+              format: file.type.split('/')[1]
+            }
+          })
+          .then(({ data }: { data: ClipPresignUrlGenerate.Mutation }) => {
+            if (data.clipPresignURLGenerate.err) {
+              this.$errCode(data.clipPresignURLGenerate.err.code);
+              return;
+            }
+            return uploadVideo(
+              data.clipPresignURLGenerate.presignURL,
+              file,
+              this.onUploadProgress
+            )
+              .then(result => {
+                if (result) {
+                  this.status = STATUS.DISPLAY_RESULT;
+                  window.setTimeout(() => {
+                    const canvas: HTMLCanvasElement | null = document.getElementById(
+                      'canvas'
+                    ) as HTMLCanvasElement | null;
+                    if (canvas !== null) {
+                      const context = canvas.getContext('2d');
+                      if (context === null) {
+                        return;
+                      }
+                      context.drawImage(
+                        vid as CanvasImageSource,
+                        0,
+                        0,
+                        256,
+                        144
+                      );
+                      canvas.toBlob(async (blob: Blob | null) => {
+                        if (blob === null) {
+                          return;
+                        }
+                        const newFile = new File([blob], 'clip-thumbnail', {
+                          type: 'image/png',
+                          lastModified: Date.now()
+                        });
+                        const formData = new FormData();
+                        formData.append('thumbnail', newFile);
+                        const uploadResult = await uploadThumbnail(
+                          formData,
+                          this.onUploadProgress,
+                          this.token
+                        );
+                        if (
+                          data !== null &&
+                          data.clipPresignURLGenerate &&
+                          data.clipPresignURLGenerate.presignURL &&
+                          uploadResult
+                        ) {
+                          const param = {
+                            videoURL:
+                              data.clipPresignURLGenerate.presignURL.videoURL,
+                            duration: (vid as HTMLMediaElement).duration,
+                            thumbnail: uploadResult.data.imgURL
+                          };
+                          this.$emit('done', param);
+                        }
+                      });
+                    }
+                    return this.clipSrc;
+                  }, 1000);
+                } else {
+                  return null;
+                }
+              })
+              .catch(() => {
+                this.status = STATUS.FAILED;
+              });
+          })
+          .catch(() => {
+            this.status = STATUS.FAILED;
+            return null;
+          });
+      };
+    }
+    return new Promise(() => true);
+  }
+
+  public onUploadProgress(progress: number) {
+    this.uploadProgress = progress;
+  }
+
+  public reset() {
+    this.clipSrc = '';
+    this.status = STATUS.WAIT_LOADING;
+    this.uploadProgress = 0;
+    (this.$refs.dragDropInput as VDragDropInput).reset();
+  }
+}

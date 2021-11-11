@@ -1,0 +1,4 @@
+var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',{on:{"click":_vm.addNewPanel}},[(!_vm.hasPanel)?_c('div',{staticClass:"about-panel flex-all-center marginb-4 marginr-4 clickable"},[_c('img',{attrs:{"width":"20px","src":require("@/assets/icon/profile-about-addnew.svg")}}),_c('div',{staticClass:"text-14-medium marginl-3"},[_vm._v(" "+_vm._s(_vm.$t('profileAbout.StartEditing'))+" ")])]):_c('div',{staticClass:"flex-box marginb-5"},[_c('d-btn',[_vm._v(" "+_vm._s(_vm.$t('profileAbout.AddNewPanel'))+" ")])],1)])}
+var staticRenderFns = []
+
+export { render, staticRenderFns }

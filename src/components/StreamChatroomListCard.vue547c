@@ -1,0 +1,591 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { ApolloQuery } from '@/decorators/apollo';
+import { EVENTS } from '@/utils/constants';
+import VDliveAvatar from '@/components/VDliveAvatar.vue';
+import VDliveName from '@/components/VDliveName.vue';
+import DBtn from '@/components/DBtn.vue';
+import DDialog from '@/components/DDialog.vue';
+import ALLOWED_ACTIONS from '@/graphql/queries/AllowedActions.graphql';
+import {
+  LivestreamPage,
+  VStreamChatProfileCardSenderFrag,
+  ChatType,
+  AddModerator,
+  AllowedActions,
+  Maybe,
+  ChannelAction,
+  StreamMessageSubscription,
+  VStreamChatTextRowFrag
+} from '@/graphql/types';
+import {
+  chatDelete,
+  moderatorAdd,
+  moderatorRemove,
+  streamChatUserBan,
+  streamChatUserUnban,
+  streamChatUserGlobalBan,
+  streamChatUserTimeoutSet
+} from '@/utils/mutations/chatroom';
+import { Component, Mixins, Prop } from 'vue-property-decorator';
+import SnackbarMixin from '@/mixins/SnackbarMixin';
+import GlobalEventBusMixin from '@/mixins/GlobalEventBusMixin';
+import { addGiftSub } from '@/apollo/mutation/giftSub';
+import VStreamChatRow from '@/components/VStreamChatRow.vue';
+import StreamChatroomListCardEmote from '@/components/StreamChatroomListCardEmote.vue';
+import { ChatText } from '@/models/chat';
+import { emoteRegex } from '@/utils/emote';
+import { CompleteMe } from '@/store/me/types';
+import { GIFT_USER_ONE_SUB } from '@/models/giftSub';
+import VSubCheckOut from '@/components/VSubCheckOut.vue';
+import { IPAPI } from '@/api/ip';
+import { namespace } from 'vuex-class';
+import RECEIVER_CAN_GET_GIFT_SUBSCRIPTION from '@/graphql/queries/ReceiverCanGetGiftSubscription.graphql';
+import { ReceiverCanGetGiftSubscription } from '@/graphql/types';
+const userMetaModule = namespace('userMeta');
+
+@Component({
+  components: {
+    VDliveAvatar,
+    VDliveName,
+    DBtn,
+    DDialog,
+    VStreamChatRow,
+    StreamChatroomListCardEmote,
+    VSubCheckOut
+  }
+})
+export default class StreamChatroomListCard extends Mixins(
+  SnackbarMixin,
+  GlobalEventBusMixin
+) {
+  @ApolloQuery({
+    query: ALLOWED_ACTIONS,
+    fetchPolicy: 'network-only',
+    variables(): AllowedActions.Variables {
+      return {
+        username: this.sender.username,
+        streamer: this.streamerInfo.username
+      };
+    },
+    skip() {
+      return this.me === null;
+    }
+  })
+  public user?: Maybe<AllowedActions.User>;
+
+  @Prop({
+    required: true
+  })
+  public senderInfo!: StreamMessageSubscription.StreamMessageReceived;
+
+  @Prop({
+    required: true
+  })
+  public streamerInfo!: LivestreamPage.UserByDisplayName;
+
+  @Prop({
+    required: true
+  })
+  public me!: CompleteMe | null;
+
+  public shouldShowDeleteDialog: boolean = false;
+  public shouldShowGiftSubDialog: boolean = false;
+  public shouldShowCreditVersion: boolean = false;
+  public showDeleteAndBanDialog: boolean = false;
+  @userMetaModule.Action('getIpStats')
+  private getIP!: () => Promise<IPAPI>;
+
+  get selectedEmote() {
+    if (this.senderInfo.type === ChatType.Message) {
+      const chatContent = (this.senderInfo as VStreamChatTextRowFrag.Fragment)
+        .content;
+      const strLocal = chatContent;
+      const emoteList = strLocal.match(emoteRegex);
+      if (emoteList !== null && emoteList.length === 1) {
+        const items = emoteList[0].split('/');
+        if (items.length === 4) {
+          const value =
+            process.env.VUE_APP_IMG_URL +
+            items[0].slice(1) +
+            '/' +
+            items[3].slice(0, items[3].length - 1);
+          return new ChatText(value, 'emote', value, items[1]);
+        }
+      }
+    }
+    return null;
+  }
+
+  get sender() {
+    return (this.senderInfo as VStreamChatProfileCardSenderFrag.Fragment)
+      .sender;
+  }
+
+  get allowedActions() {
+    if (
+      this.user !== undefined &&
+      this.user !== null &&
+      this.user.allowedActionsIn !== null
+    ) {
+      return this.user.allowedActionsIn;
+    }
+    return [];
+  }
+
+  get chatType() {
+    if (this.streamerInfo === undefined) {
+      return undefined;
+    }
+    return this.senderInfo.type;
+  }
+
+  get chatTypeIsMessage() {
+    return this.chatType === ChatType.Message;
+  }
+
+  get chatTypeIsGift() {
+    return this.chatType === ChatType.Gift;
+  }
+
+  get chatTypeIsClip() {
+    return this.chatType === ChatType.Clip;
+  }
+
+  get chatTypeIsChest() {
+    return this.chatType === ChatType.TcValue;
+  }
+
+  get chatTypeIsFollow() {
+    return this.chatType === ChatType.Follow;
+  }
+
+  get chatTypeIsSystemMessage() {
+    return (
+      this.chatType === ChatType.Ban ||
+      this.chatType === ChatType.Mod ||
+      this.chatType === ChatType.Emote ||
+      this.chatType === ChatType.Timeout
+    );
+  }
+
+  get canBanUser() {
+    return (
+      (this.chatTypeIsMessage ||
+        this.chatTypeIsClip ||
+        this.chatTypeIsGift ||
+        this.chatTypeIsFollow) &&
+      this.allowedActions.indexOf(ChannelAction.Ban) !== -1
+    );
+  }
+
+  get canDeleteChat() {
+    return (
+      !this.chatTypeIsChest &&
+      !this.chatTypeIsSystemMessage &&
+      this.allowedActions.indexOf(ChannelAction.Delete) !== -1
+    );
+  }
+
+  get canUnbanUser() {
+    return this.allowedActions.indexOf(ChannelAction.Unban) !== -1;
+  }
+
+  get canSetModerator() {
+    return this.allowedActions.indexOf(ChannelAction.SetModerator) !== -1;
+  }
+
+  get canRemoveModerator() {
+    return this.allowedActions.indexOf(ChannelAction.RemoveModerator) !== -1;
+  }
+
+  get canGlobalBan() {
+    return this.allowedActions.indexOf(ChannelAction.GlobalBan) !== -1;
+  }
+
+  get canUserTimeoutSet() {
+    return this.allowedActions.indexOf(ChannelAction.SetTimeout) !== -1;
+  }
+
+  get canGiftSub() {
+    if (this.me !== null) {
+      if (
+        this.streamerInfo.username === this.me.username ||
+        this.streamerInfo.subscribeDisabled
+      ) {
+        return false;
+      } else {
+        return (
+          this.sender.username !== this.me.username &&
+          this.sender.username !== this.streamerInfo.username
+        );
+      }
+    }
+    return false;
+  }
+
+  get canReport() {
+    if (this.me !== null) {
+      return (
+        (this.senderInfo as VStreamChatProfileCardSenderFrag.Fragment).sender
+          .username !== this.me.username
+      );
+    }
+    return true;
+  }
+  get giftUserSub() {
+    return GIFT_USER_ONE_SUB;
+  }
+
+  public mounted() {
+    this.getShouldShowCreditVersion();
+  }
+
+  public async clickGiftSubClicked() {
+    try {
+      const streamName =
+        this.streamerInfo.displayname || this.streamerInfo.username;
+      const variables: ReceiverCanGetGiftSubscription.Variables = {
+        streamer: streamName,
+        receiver: this.sender.displayname
+      };
+      const { data } = await this.$apollo.query<
+        ReceiverCanGetGiftSubscription.Query
+      >({
+        query: RECEIVER_CAN_GET_GIFT_SUBSCRIPTION,
+        fetchPolicy: 'network-only',
+        variables
+      });
+      const resp = data.receiverCanGetGiftSubscription;
+      if (resp.err !== null) {
+        this.$errCode(resp.err.code);
+        return;
+      }
+      this.shouldShowGiftSubDialog = true;
+    } catch (err) {
+      // this.$error('Error');
+    }
+  }
+
+  public async clickGiftSub() {
+    await addGiftSub(
+      this,
+      this.streamerInfo.username,
+      this.sender.username,
+      null
+    );
+    this.shouldShowGiftSubDialog = false;
+    this.closeProfileCard();
+  }
+
+  public getShouldShowCreditVersion() {
+    this.getIP()
+      .then(data => {
+        const country = data.country;
+        // TODO(@ryan): Should put unexpected errors in error handling instead of checking ourself
+        if (
+          country === 'LU' ||
+          country === 'CA' ||
+          country === 'AU' ||
+          country === 'IE' ||
+          country === 'GB' ||
+          country === 'DE' ||
+          country === 'AR' ||
+          country === 'BR' ||
+          country === 'US'
+        ) {
+          this.shouldShowCreditVersion = true;
+        }
+      })
+      .catch(() => {
+        // If network error
+      });
+  }
+
+  public async chatDelete() {
+    await chatDelete(
+      this,
+      this.streamerInfo.username,
+      (this.senderInfo as VStreamChatProfileCardSenderFrag.Fragment).id
+    );
+    // XXX(jiayi): TODO handle delete chat fail
+    this.$_smartPublish(
+      EVENTS.CHAT_DELETE,
+      (this.senderInfo as VStreamChatProfileCardSenderFrag.Fragment).id
+    );
+    this.closeProfileCard();
+  }
+
+  public async userBan() {
+    await streamChatUserBan(
+      this,
+      this.streamerInfo.username,
+      this.sender.username
+    );
+    this.closeProfileCard();
+  }
+
+  public async userUnban() {
+    await streamChatUserUnban(
+      this,
+      this.streamerInfo.username,
+      this.sender.username
+    );
+    this.closeProfileCard();
+  }
+
+  public async userGlobalBan() {
+    await streamChatUserGlobalBan(
+      this,
+      this.streamerInfo.username,
+      this.sender.username
+    );
+    this.closeProfileCard();
+  }
+
+  public async userTimeoutSet() {
+    await streamChatUserTimeoutSet(
+      this,
+      this.streamerInfo.username,
+      this.sender.username
+    );
+    this.closeProfileCard();
+  }
+
+  public async addModerator() {
+    const variables: AddModerator.Variables = {
+      username: this.sender.username,
+      streamer: this.streamerInfo.username
+    };
+    await moderatorAdd(this, variables);
+    this.closeProfileCard();
+  }
+
+  public async removeModerator() {
+    await moderatorRemove(
+      this,
+      this.sender.username,
+      this.streamerInfo.username
+    );
+    this.closeProfileCard();
+  }
+
+  public closeProfileCard() {
+    this.$emit('closeProfileCard');
+  }
+
+  public routeTo(displayname: string) {
+    window.open(`/${displayname}`, '_blank');
+    this.$emit('closeProfileCard');
+  }
+}

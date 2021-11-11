@@ -1,0 +1,114 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { Component, Vue } from 'vue-property-decorator';
+import VDliveName from '@/components/VDliveName.vue';
+import { ROUTE_LIVESTREAM } from '@/router';
+import { VCategoryLivestreamFrag } from '@/graphql/types';
+import { namespace } from 'vuex-class';
+import DDivider from '@/components/DDivider.vue';
+import VDliveAvatar from '@/components/VDliveAvatar.vue';
+
+const globalCategoryModule = namespace('globalCategory');
+
+@Component({
+  components: {
+    VDliveName,
+    DDivider,
+    VDliveAvatar
+  }
+})
+export default class AppSidebarCategorys extends Vue {
+  @globalCategoryModule.Getter('cryptoChannels')
+  private cryptoChannels!: VCategoryLivestreamFrag.List[];
+
+  @globalCategoryModule.Getter('blockchainChannels')
+  private blockchainChannels!: VCategoryLivestreamFrag.List[];
+
+  get categoryTotalChannels() {
+    let livestreamsCryptos: VCategoryLivestreamFrag.List[] = [];
+    let livestreamsBlockchains: VCategoryLivestreamFrag.List[] = [];
+
+    if (this.cryptoChannels) {
+      livestreamsCryptos = this.cryptoChannels;
+    }
+    if (this.blockchainChannels) {
+      livestreamsBlockchains = this.blockchainChannels;
+    }
+    return livestreamsCryptos.concat(livestreamsBlockchains);
+  }
+  get sidebarAvatarStyle() {
+    const color = 'rgb(255,59,0)';
+    return `border: 2px solid ${color}`;
+  }
+  get showChannels() {
+    return this.categoryTotalChannels.slice(0, 5);
+  }
+
+  get shouldShowCategorys() {
+    return this.showChannels.length > 0;
+  }
+
+  public routeTo(displayname: string) {
+    return { name: ROUTE_LIVESTREAM, params: { displayname } };
+  }
+}

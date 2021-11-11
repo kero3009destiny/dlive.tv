@@ -1,0 +1,4 @@
+var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',{staticClass:"address-input position-relative flex-box"},[_c('d-text-field',{attrs:{"placeholder":"Address","total-height":"40px","text-field-bg-color":"grey-darken-7"},model:{value:(_vm.addressInput),callback:function ($$v) {_vm.addressInput=(typeof $$v === 'string'? $$v.trim(): $$v)},expression:"addressInput"}}),_c('d-btn',{staticClass:"marginl-4 text-12-medium",staticStyle:{"padding":"5px 16px"},attrs:{"type":"btnC","disabled":_vm.addressVerifyCheck},on:{"click":_vm.clickSubmit}},[_vm._v(" "+_vm._s(_vm.$t('dashboard.Submit'))+" ")])],1)}
+var staticRenderFns = []
+
+export { render, staticRenderFns }

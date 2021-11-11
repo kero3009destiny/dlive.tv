@@ -1,0 +1,4 @@
+var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return (_vm.showBanner)?_c('div',[_c('div',{staticClass:"mobile-download-app flex-all-center text-black text-12-medium",on:{"click":_vm.downloadClicked}},[_c('img',{staticClass:"marginr-3",attrs:{"src":require("@/assets/icon/ninja-download.svg")}}),_c('span',[_vm._v(_vm._s(_vm.$t(_vm.textPath)))])])]):_vm._e()}
+var staticRenderFns = []
+
+export { render, staticRenderFns }

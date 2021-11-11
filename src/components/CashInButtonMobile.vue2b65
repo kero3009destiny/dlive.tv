@@ -1,0 +1,4 @@
+var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',{staticClass:"width-100 paddingtb-3"},[_c('div',{staticClass:"flex-all-center"},[_c('span',[_vm._v("You have")]),_c('d-token',{staticClass:"marginlr-2",attrs:{"type":"token"}},[_vm._v(" "+_vm._s(_vm._f("coinToLino")(_vm.balance))+" ")]),_c('cash-in-button',{staticClass:"marginl-3"})],1)])}
+var staticRenderFns = []
+
+export { render, staticRenderFns }

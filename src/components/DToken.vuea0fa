@@ -1,0 +1,4 @@
+var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',{staticClass:"flex-align-center text-12-regular"},[_c('img',{staticClass:"marginr-2",attrs:{"src":_vm.imgSrc,"width":_vm.size}}),_c('span',{staticClass:"overflow-ellipsis",style:(_vm.fontStyle)},[_vm._t("default")],2)])}
+var staticRenderFns = []
+
+export { render, staticRenderFns }

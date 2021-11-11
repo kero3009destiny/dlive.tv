@@ -1,0 +1,29 @@
+
+
+
+
+
+
+
+
+
+
+import { Component, Vue, Prop } from 'vue-property-decorator';
+import { StateChanger } from 'vue-infinite-loading';
+import VNoSsr from '@/components/VNoSsr.vue';
+
+@Component({
+  components: {
+    VNoSsr
+  }
+})
+export default class VInfiniteLoading extends Vue {
+  @Prop({
+    required: false
+  })
+  public identifier?: string | undefined;
+
+  public emitInfinite(state: StateChanger) {
+    this.$emit('infinite', state);
+  }
+}

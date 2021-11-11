@@ -1,0 +1,24 @@
+
+    var doc = {"kind":"Document","definitions":[{"kind":"FragmentDefinition","name":{"kind":"Name","value":"ReferralListItemFrag"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"Referral"}},"directives":[],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"referral"},"arguments":[],"directives":[],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"displayname"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"followers"},"arguments":[],"directives":[],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"},"arguments":[],"directives":[]}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"registrationDate"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"referralCloseDate"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"referralBonusCloseDate"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"streamCount"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"peakCCU"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"contentBonus"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"referBonus"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"paid"},"arguments":[],"directives":[]}]}}],"loc":{"start":0,"end":241}};
+    doc.loc.source = {"body":"fragment ReferralListItemFrag on Referral {\n  referral {\n    displayname\n    followers {\n      totalCount\n    }\n  }\n  registrationDate\n  referralCloseDate\n  referralBonusCloseDate\n  streamCount\n  peakCCU\n  contentBonus\n  referBonus\n  paid\n}\n","name":"GraphQL request","locationOffset":{"line":1,"column":1}};
+  
+
+    var names = {};
+    function unique(defs) {
+      return defs.filter(
+        function(def) {
+          if (def.kind !== 'FragmentDefinition') return true;
+          var name = def.name.value
+          if (names[name]) {
+            return false;
+          } else {
+            names[name] = true;
+            return true;
+          }
+        }
+      )
+    }
+  
+
+      module.exports = doc;
+    

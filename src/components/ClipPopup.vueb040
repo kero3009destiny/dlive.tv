@@ -1,0 +1,146 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { EVENTS } from '@/utils/constants';
+import { Component, Mixins } from 'vue-property-decorator';
+import ClipView from '@/components/ClipView.vue';
+import ClipComment from '@/components/ClipComment.vue';
+import ClipUpNext from '@/components/ClipUpNext.vue';
+import { VSnapClipFrag } from '@/graphql/types';
+import { namespace } from 'vuex-class';
+import GlobalEventBusMixin from '@/mixins/GlobalEventBusMixin';
+
+const uiModule = namespace('ui');
+const dialogModule = namespace('dialog');
+
+@Component({
+  components: {
+    ClipView,
+    ClipComment,
+    ClipUpNext
+  }
+})
+export default class ClipPop extends Mixins(GlobalEventBusMixin) {
+  get currentClipIndex() {
+    let idx = -1;
+    if (this.clipID === '') {
+      return idx;
+    }
+    this.clipList.map((clip: VSnapClipFrag.Fragment, index: number) => {
+      if (clip.id === this.clipID) {
+        idx = index;
+        return;
+      }
+    });
+    return idx;
+  }
+
+  get clipUpNext() {
+    const list = [];
+    if (this.currentClipIndex !== -1) {
+      for (let i = 1; i < 4; i++) {
+        if (i + this.currentClipIndex < this.clipList.length) {
+          list.push(this.clipList[i + this.currentClipIndex]);
+        }
+      }
+    }
+    return list;
+  }
+
+  get hasPrev() {
+    return this.currentClipIndex > 0;
+  }
+
+  get hasNext() {
+    return this.clipUpNext.length > 0;
+  }
+
+  public clipID: string = '';
+  public clipList: VSnapClipFrag.Fragment[] = [];
+
+  @uiModule.Getter('isMobile')
+  private isMobile!: boolean;
+  @dialogModule.Getter('clipPopup')
+  private clipPopupShow!: boolean;
+  @dialogModule.Mutation('setClipPopupDialog')
+  private setClipPopupDialog!: (state: boolean) => void;
+
+  public mounted() {
+    this.$_smartSubscribe(EVENTS.CLIP_CLICK, this.handleClipClick);
+  }
+
+  public handleClipClick(data: {
+    clipID: string;
+    clipList: VSnapClipFrag.Fragment[] | null;
+  }) {
+    this.clipID = data.clipID;
+    if (data.clipList !== null) {
+      this.clipList = data.clipList;
+    }
+  }
+
+  public stateChange(state: boolean) {
+    this.setClipPopupDialog(state);
+    this.$_smartPublish(EVENTS.CHANNEL_PLAYER_PLAY, null);
+    if (!state) {
+      window.history.back();
+      this.clipID = '';
+      this.clipList = [];
+    }
+  }
+
+  public goPrev() {
+    this.clipID = this.clipList[this.currentClipIndex - 1].id;
+  }
+
+  public goNext() {
+    this.clipID = this.clipList[this.currentClipIndex + 1].id;
+  }
+}

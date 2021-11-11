@@ -1,0 +1,52 @@
+
+
+
+
+
+
+
+
+import CashInSuccessPopup from '@/components/CashInSuccessPopup.vue';
+import CashInFailPopup from '@/components/CashInFailPopup.vue';
+import { Component, Vue } from 'vue-property-decorator';
+import {
+  CB_PAYMENT_SUCCESS,
+  CB_PAYMENT_FAIL,
+  CB_PAYMENT_EPIN_COMPLETE
+} from '@/router';
+import { namespace } from 'vuex-class';
+
+const dialogModule = namespace('dialog');
+
+@Component({
+  components: {
+    CashInSuccessPopup,
+    CashInFailPopup
+  }
+})
+export default class CashInResult extends Vue {
+  @dialogModule.Getter('cashInSuccess')
+  public cashInSuccessDialog!: boolean;
+  @dialogModule.Getter('cashInFail')
+  public cashInFailDialog!: boolean;
+  @dialogModule.Mutation('setCashInSuccessDialog')
+  private setCashInSuccessDialog!: (status: boolean) => void;
+  @dialogModule.Mutation('setCashInFailDialog')
+  private setCashInFailDialog!: (status: boolean) => void;
+
+  public mounted() {
+    if (this.$route.name === CB_PAYMENT_SUCCESS) {
+      this.setCashInSuccessDialog(true);
+    }
+    if (this.$route.name === CB_PAYMENT_FAIL) {
+      this.setCashInFailDialog(true);
+    }
+    if (this.$route.name === CB_PAYMENT_EPIN_COMPLETE) {
+      if (this.$route.query.PaymentStatus === 'failure') {
+        this.setCashInFailDialog(true);
+      } else {
+        this.setCashInSuccessDialog(true);
+      }
+    }
+  }
+}

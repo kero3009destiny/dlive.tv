@@ -1,0 +1,375 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import VDliveAvatar from '@/components/VDliveAvatar.vue';
+import VDliveName from '@/components/VDliveName.vue';
+// import HappyhourStreamerEntrance from '@/components/HappyhourStreamerEntrance.vue';
+import VFollow from '@/components/VFollow.vue';
+import VSubscription from '@/components/VSubscription.vue';
+import VPostInfoShare from '@/components/VPostInfoShare.vue';
+import DToken from '@/components/DToken.vue';
+import { LivestreamChannelHeaderFrag } from '@/graphql/types';
+import { Component, Mixins, Prop } from 'vue-property-decorator';
+import MeMixin from '@/mixins/MeMixin';
+import { ROUTE_LIVESTREAM } from '@/router';
+import { updateFolloweeNotification } from '@/apollo/mutation/notification';
+import SnackbarMixin from '@/mixins/SnackbarMixin';
+
+@Component({
+  components: {
+    VDliveAvatar,
+    VDliveName,
+    VFollow,
+    VSubscription,
+    DToken,
+    VPostInfoShare
+    // HappyhourStreamerEntrance
+  }
+})
+export default class LivestreamChannelHeader extends Mixins(
+  MeMixin,
+  SnackbarMixin
+) {
+  @Prop({
+    required: true
+  })
+  public streamerInfo!: LivestreamChannelHeaderFrag.Fragment;
+  @Prop({
+    required: false,
+    default: true
+  })
+  public isCloseNotice!: boolean;
+
+  // block week event
+  public date: Date = new Date();
+  public startDate: Date = new Date(Date.UTC(2019, 9, 28, 12, 0, 0));
+  public endDate: Date = new Date(Date.UTC(2019, 10, 16, 8, 0, 0));
+  public livingTimeInterval: number = 0;
+  public livingLength: number = 0;
+  public isCloseNoticeTemp: boolean = false;
+  get followerCount() {
+    if (this.streamerInfo !== undefined) {
+      return this.streamerInfo.followers.totalCount;
+    }
+    return 0;
+  }
+
+  get isFollowing() {
+    if (this.streamerInfo.isFollowing !== null) {
+      return this.streamerInfo.isFollowing;
+    }
+    return false;
+  }
+  get isLive() {
+    return (
+      this.streamerInfo !== undefined && this.streamerInfo.livestream !== null
+    );
+  }
+
+  get isRerun() {
+    return (
+      this.streamerInfo !== undefined &&
+      this.streamerInfo.hostingLivestream === null &&
+      this.streamerInfo.livestream === null &&
+      this.streamerInfo.rerun !== null
+    );
+  }
+  get canReport() {
+    if (this.me !== null) {
+      return this.streamerInfo.username !== this.me.username;
+    }
+    return true;
+  }
+  get totalReward() {
+    if (
+      this.streamerInfo !== undefined &&
+      this.streamerInfo.livestream !== null
+    ) {
+      return this.streamerInfo.livestream.totalReward;
+    }
+    return '0';
+  }
+
+  get watchingCount() {
+    if (
+      this.streamerInfo !== undefined &&
+      this.streamerInfo.livestream !== null
+    ) {
+      return this.streamerInfo.livestream.watchingCount;
+    }
+    return '0';
+  }
+
+  get rerunWatchingCount() {
+    if (this.streamerInfo !== undefined && this.streamerInfo.rerun !== null) {
+      return this.streamerInfo.rerun.watchingCount;
+    }
+    return '0';
+  }
+
+  get channelIsDlive() {
+    return (
+      this.streamerInfo !== undefined && this.streamerInfo.username === 'dlive'
+    );
+  }
+
+  get channelIsStage1() {
+    return (
+      this.streamerInfo !== undefined &&
+      this.streamerInfo.username === 'blockshow-stage1'
+    );
+  }
+
+  get channelIsStage2() {
+    return (
+      this.streamerInfo !== undefined &&
+      this.streamerInfo.username === 'blockshow-stage2'
+    );
+  }
+
+  get hasBanner() {
+    return (
+      this.date >= this.startDate &&
+      this.date <= this.endDate &&
+      (this.channelIsDlive || this.channelIsStage1 || this.channelIsStage2)
+    );
+  }
+
+  get bannerSrc1() {
+    if (this.channelIsDlive) {
+      return require('@/assets/icon/go-stage-one-banner.png');
+    }
+    if (this.channelIsStage1) {
+      return require('@/assets/icon/go-stage-two-banner.png');
+    }
+    if (this.channelIsStage2) {
+      return require('@/assets/icon/go-stage-one-banner.png');
+    }
+    return '';
+  }
+
+  get bannerSrc2() {
+    if (this.channelIsDlive) {
+      return require('@/assets/icon/go-stage-two-banner.png');
+    }
+    if (this.channelIsStage1) {
+      return require('@/assets/icon/go-dlive-banner.png');
+    }
+    if (this.channelIsStage2) {
+      return require('@/assets/icon/go-dlive-banner.png');
+    }
+    return '';
+  }
+
+  public mounted() {
+    this.livingTimeInterval = window.setInterval(() => {
+      if (this.streamerInfo.livestream) {
+        this.livingLength =
+          (Date.now() - parseInt(this.streamerInfo.livestream.createdAt, 10)) /
+          1000;
+      }
+    }, 1000);
+  }
+  public async closeNotice() {
+    this.isCloseNoticeTemp = true;
+    this.isCloseNotice = true;
+    await updateFolloweeNotification(this, this.streamerInfo.username, false);
+  }
+  public async openNotice() {
+    this.isCloseNoticeTemp = false;
+    this.isCloseNotice = false;
+    await updateFolloweeNotification(this, this.streamerInfo.username, true);
+  }
+  public beforeDestroy() {
+    clearInterval(this.livingTimeInterval);
+  }
+  public bannerRedirect(index: number) {
+    if (this.channelIsDlive) {
+      if (index === 1) {
+        this.$router.push({
+          name: ROUTE_LIVESTREAM,
+          params: { displayname: 'blockshow-stage-one' }
+        });
+      } else {
+        this.$router.push({
+          name: ROUTE_LIVESTREAM,
+          params: { displayname: 'blockshow-stage-two' }
+        });
+      }
+    }
+    if (this.channelIsStage1) {
+      if (index === 1) {
+        this.$router.push({
+          name: ROUTE_LIVESTREAM,
+          params: { displayname: 'blockshow-stage-two' }
+        });
+      } else {
+        this.$router.push({
+          name: ROUTE_LIVESTREAM,
+          params: { displayname: 'DLive' }
+        });
+      }
+    }
+    if (this.channelIsStage2) {
+      if (index === 1) {
+        this.$router.push({
+          name: ROUTE_LIVESTREAM,
+          params: { displayname: 'blockshow-stage-one' }
+        });
+      } else {
+        this.$router.push({
+          name: ROUTE_LIVESTREAM,
+          params: { displayname: 'DLive' }
+        });
+      }
+    }
+  }
+}

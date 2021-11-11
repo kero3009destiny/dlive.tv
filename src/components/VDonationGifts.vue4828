@@ -1,0 +1,73 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import VDonationGiftBtn from '@/components/VDonationGiftBtn.vue';
+import { Component, Vue, Prop } from 'vue-property-decorator';
+import USER_BTT_ADDRESS from '@/graphql/queries/UserBttAddress.graphql';
+import { VDonationGiftFrag, UserBttAddress } from '@/graphql/types';
+import { ApolloQuery } from '@/decorators/apollo';
+import { GIFTS } from '@/models/gift';
+import { namespace } from 'vuex-class';
+const uiModule = namespace('ui');
+
+@Component({
+  components: {
+    VDonationGiftBtn
+  }
+})
+export default class VDonationGifts extends Vue {
+  @ApolloQuery({
+    fetchPolicy: 'network-only',
+    variables(): UserBttAddress.Variables {
+      return {
+        displayname: this.post.creator.displayname
+      };
+    },
+    skip() {
+      return !this.post || !this.post.creator;
+    },
+    query: USER_BTT_ADDRESS
+  })
+  public userByDisplayName?: UserBttAddress.UserByDisplayName | null;
+
+  @Prop({
+    required: true
+  })
+  public post!: VDonationGiftFrag.Fragment | null;
+
+  get bttReceiverAddress(): string | null {
+    if (
+      this.userByDisplayName !== null &&
+      this.userByDisplayName !== undefined
+    ) {
+      return this.userByDisplayName.bttReceiverAddress;
+    } else {
+      return null;
+    }
+  }
+
+  @uiModule.Getter('theatreMode')
+  public theatreMode!: boolean;
+
+  get gifts() {
+    if (!this.bttReceiverAddress) {
+      const gifts = GIFTS;
+      return gifts.filter(item => item.label !== 'VDonationGifts.Btt');
+    }
+    return GIFTS;
+  }
+}

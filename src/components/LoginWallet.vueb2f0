@@ -1,0 +1,151 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { Component, Mixins, Prop, Emit } from 'vue-property-decorator';
+import LoginRegisterFinal from '@/components/LoginRegisterFinal.vue';
+import TwoFAPopup from '@/components/TwoFAPopup.vue';
+import SnackbarMixin from '@/mixins/SnackbarMixin';
+import { LoginWithWallet } from '@/graphql/types';
+import LOGIN_WITH_WALLET from '@/graphql/mutations/LoginWithWallet.graphql';
+import { namespace } from 'vuex-class';
+import { redirectToAndroid } from '@/utils/useragent';
+import { setTimeout } from 'timers';
+import { loginRegisterNotification } from '@/web-notification';
+const accessTokenModule = namespace('accessToken');
+@Component({
+  components: {
+    LoginRegisterFinal,
+    TwoFAPopup
+  }
+})
+export default class LoginWallet extends Mixins(SnackbarMixin) {
+  get stepOne() {
+    return this.step === 0;
+  }
+  get stepTwo() {
+    return this.step === 1;
+  }
+  @Prop({
+    required: true,
+    type: String,
+    default: '/'
+  })
+  public redirectUrl!: string;
+  @Prop({
+    required: true,
+    type: String
+  })
+  public payload!: string;
+
+  @Prop({
+    required: true,
+    type: String
+  })
+  public signedPayload!: string;
+
+  public step: 0 | 1 = 0;
+  public accessToken: string = '';
+  public twoFAShow: boolean = false;
+  public twofactorToken: string | null = '';
+
+  @accessTokenModule.Mutation('setAccessToken')
+  public setAccessToken!: (token: string) => void;
+
+  public mounted() {
+    if (
+      redirectToAndroid(
+        `dlive://dlive.tv/?payload=${this.$route.query.payload}&signature=${
+          this.$route.query.signature
+        }`,
+        !this.$route.query.gxc,
+        this.login
+      )
+    ) {
+      return;
+    }
+    this.login();
+  }
+
+  @Emit('finished')
+  public closing() {
+    // always go back if closed, otherwise this login dialog might be stuck in thirdparty login state
+    // this.backClicked();
+  }
+
+  private async login() {
+    try {
+      const variables: LoginWithWallet.Variables = {
+        payload: this.payload,
+        signedPayload: this.signedPayload
+      };
+      const { data } = await this.$apollo.mutate<LoginWithWallet.Mutation>({
+        mutation: LOGIN_WITH_WALLET,
+        variables
+      });
+      const resp = data.loginWithWallet;
+      if (resp.err && resp.err.code === 7101) {
+        this.twoFAShow = true;
+        this.twofactorToken = resp.twofactorToken;
+        return;
+      }
+      this.$handleError(resp.err, LOGIN_WITH_WALLET, variables);
+      if (resp.accessToken === null) {
+        this.$handleInconsistentError(
+          resp,
+          ['accessToken'],
+          LOGIN_WITH_WALLET,
+          variables
+        );
+        return; // XXX(@ryanli): This is only for typescript syntax, since the line above always throw error
+      }
+      if (resp.me === null) {
+        // new login, should register
+        this.accessToken = resp.accessToken;
+        this.step = 1;
+      } else {
+        if (resp.me.private === null || resp.me.private.accessToken === '') {
+          this.$handleInconsistentError(
+            resp,
+            ['private', 'private.accessToken'],
+            LOGIN_WITH_WALLET,
+            variables
+          );
+          return; // XXX(@ryanli): This is only for typescript syntax, since the line above always throw error
+        }
+        this.setAccessToken(resp.me.private.accessToken);
+        this.closing();
+        loginRegisterNotification();
+        this.$success('LoginEmailCallback.LoginSuccess');
+        setTimeout(() => {
+          this.$router.replace(this.redirectUrl);
+        }, 1000);
+      }
+    } catch (err) {
+      this.closing();
+      throw err;
+    }
+  }
+}

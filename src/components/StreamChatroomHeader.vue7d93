@@ -1,0 +1,74 @@
+
+
+
+
+
+
+
+
+
+
+import { ROUTE_POPUP_CHAT } from '@/router';
+import { RawLocation } from 'vue-router';
+import VTopContributors from '@/components/VTopContributors.vue';
+import { VStreamChatroomHeaderFrag } from '@/graphql/types';
+import { Component, Prop, Mixins } from 'vue-property-decorator';
+import MeMixin from '@/mixins/MeMixin';
+
+@Component({
+  components: {
+    VTopContributors
+  }
+})
+export default class StreamChatroomHeader extends Mixins(MeMixin) {
+  @Prop({
+    required: true
+  })
+  public streamChatroomHeader!: VStreamChatroomHeaderFrag.Fragment;
+
+  @Prop({
+    required: false,
+    default: false
+  })
+  public isPopped!: boolean;
+
+  @Prop({
+    required: true,
+    default: ''
+  })
+  public displayname!: string;
+
+  get isLive() {
+    if (
+      this.streamChatroomHeader !== undefined &&
+      this.streamChatroomHeader !== null
+    ) {
+      return this.streamChatroomHeader.livestream !== null;
+    }
+    return false;
+  }
+
+  public handlePopup() {
+    if (
+      this.streamChatroomHeader === undefined ||
+      this.streamChatroomHeader === null ||
+      this.streamChatroomHeader.livestream === null
+    ) {
+      return;
+    }
+    this.$emit('popped');
+    const to: RawLocation = {
+      name: ROUTE_POPUP_CHAT,
+      params: {
+        displayname: this.streamChatroomHeader.displayname,
+        permlink: this.streamChatroomHeader.livestream.permlink
+      }
+    };
+    const routeData = this.$router.resolve(to);
+    window.open(
+      routeData.href,
+      '_blank',
+      'location=yes,height=760,width=360,scrollbars=yes,status=yes'
+    );
+  }
+}

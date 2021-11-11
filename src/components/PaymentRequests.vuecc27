@@ -1,0 +1,487 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import DBtn from '@/components/DBtn.vue';
+import DInfo from '@/components/DInfo.vue';
+import { removeDigitsAfterDot } from '@/filters/filters';
+import {
+  PaymentRequestsFrag,
+  CashOutMethodType,
+  CashOutStatus
+} from '@/graphql/types';
+import MeMixin from '@/mixins/MeMixin';
+import { Component, Mixins } from 'vue-property-decorator';
+
+@Component({
+  components: {
+    DBtn,
+    DInfo
+  }
+})
+export default class PaymentRequests extends Mixins(MeMixin) {
+  get paymentHistory() {
+    if (
+      this.me !== null &&
+      this.me.private !== undefined &&
+      this.me.private !== null
+    ) {
+      return this.me.private.cashOutHistory;
+    }
+    return undefined;
+  }
+
+  get paymentRequestList() {
+    if (this.paymentHistory !== undefined) {
+      return this.paymentHistory.list;
+    }
+    return [];
+  }
+
+  get hasNextPage() {
+    if (this.paymentHistory !== undefined) {
+      return this.paymentHistory.pageInfo.hasNextPage;
+    }
+    return false;
+  }
+
+  get timeZone() {
+    const offset = new Date().getTimezoneOffset() / 60;
+    if (offset > 0) {
+      return `GMT-${offset}`;
+    } else {
+      return `GMT+${offset}`;
+    }
+  }
+
+  // local
+
+  public headers = [
+    { text: 'Request Time', value: 'createdAt', sortable: false },
+    { text: 'Requested Lemon', value: 'linoAmount', sortable: false },
+    { text: 'Received Amount', value: 'receivedAmount', sortable: false },
+    { text: 'Status', value: 'status', sortable: false }
+  ];
+
+  public cashOutRequestInvoiceFee(history: PaymentRequestsFrag.List) {
+    if (history.method === CashOutMethodType.Bank) {
+      return `${removeDigitsAfterDot(history.fee)} USD`;
+    }
+    if (
+      history.method === CashOutMethodType.Btc ||
+      history.method === CashOutMethodType.Btt ||
+      history.method === CashOutMethodType.Trx ||
+      history.method === CashOutMethodType.Usdt ||
+      history.method === CashOutMethodType.Tusd
+    ) {
+      return `${parseFloat(history.fee)} ${history.method.toUpperCase()}`;
+    }
+    if (history.method === CashOutMethodType.Tipalti) {
+      return `${parseFloat(history.fee)} USD`;
+    }
+    return '';
+  }
+
+  public fetchMoreCashOutHistory() {
+    this.$emit('fetchMoreCashOutHistory');
+  }
+
+  public btnColor(status: CashOutStatus) {
+    if (status) {
+      return status.toLowerCase();
+    }
+    return 'yellow';
+  }
+
+  public processTime(time: number) {
+    if (time < 0) {
+      return '';
+    } else if (time >= 24) {
+      return `${(time / 24).toFixed(0)} Business Day(s)`;
+    } else {
+      return `${time} Hour(s)`;
+    }
+  }
+
+  public statusText(status: CashOutStatus) {
+    if (status === CashOutStatus.Onhold) {
+      return 'On Hold';
+    } else if (status === CashOutStatus.Delivered) {
+      return 'Received';
+    } else {
+      return status;
+    }
+  }
+
+  public exchangeRate(item: PaymentRequestsFrag.List) {
+    if (item.currency === 'USD') {
+      return 'N/A';
+    } else if (item.rate) {
+      return `${parseFloat(item.rate)} USD/${item.currency}`;
+    } else {
+      return 'Exchange rate will be applied based on the time/date of the actual payment process';
+    }
+  }
+
+  public statusInfo(item: PaymentRequestsFrag.List) {
+    switch (item.status) {
+      case CashOutStatus.Pending:
+        return 'We’ve received your payment request. You will receive an email after your payment request is processed.';
+      case CashOutStatus.Cancelled:
+        return '';
+      case CashOutStatus.Processed:
+        return 'Your payment request has been processed. You should receive the payment soon.';
+      case CashOutStatus.Onhold:
+        return 'We need more time to process your payment request. See remark for details.';
+      case CashOutStatus.Rejected:
+        return 'Your payment request has been rejected. See remark for details.';
+      case CashOutStatus.Returned:
+        return 'Your Lemon are returned to your account. See remark for details.';
+      case CashOutStatus.Failed:
+        return 'We are unable to process your payment request. See remark for details.';
+      case CashOutStatus.Unverified:
+        return 'We are waiting for the verification of the Lemon transfer.';
+      default:
+        return '';
+    }
+  }
+
+  public transactionClick(method: CashOutMethodType, txID: string) {
+    if (method === CashOutMethodType.Btc) {
+      this.btcTransactionClick(txID);
+    }
+    if (
+      method === CashOutMethodType.Btt ||
+      method === CashOutMethodType.Trx ||
+      method === CashOutMethodType.Usdt
+    ) {
+      this.tronTransactionClick(txID);
+    }
+  }
+
+  public btcTransactionClick(txID: string) {
+    window.open(`https://www.blockchain.com/btc/tx/${txID}`, '_blank');
+  }
+
+  public tronTransactionClick(txID: string) {
+    window.open(`https://tronscan.org/#/transaction/${txID}`, '_blank');
+  }
+
+  public paymentMethodName(method: CashOutMethodType) {
+    if (method === CashOutMethodType.Bank) {
+      return 'Bank Transfer';
+    }
+    if (method === CashOutMethodType.Btc) {
+      return 'BTC';
+    }
+    if (method === CashOutMethodType.Btt) {
+      return 'BTT';
+    }
+    if (method === CashOutMethodType.Trx) {
+      return 'Trx';
+    }
+    if (method === CashOutMethodType.Usdt) {
+      return 'USDT (Tron)';
+    }
+    if (method === CashOutMethodType.Tusd) {
+      return 'TUSD (Tron)';
+    }
+    if (method === CashOutMethodType.Tipalti) {
+      return 'Tipalti';
+    }
+    return '';
+  }
+}

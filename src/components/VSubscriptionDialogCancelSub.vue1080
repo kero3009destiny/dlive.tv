@@ -1,0 +1,249 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { VSubscriptionFrag, CancelSubscriptionReason } from '@/graphql/types';
+import { Component, Mixins, Prop } from 'vue-property-decorator';
+import MeMixin from '@/mixins/MeMixin';
+import { namespace } from 'vuex-class';
+import VDliveAvatar from '@/components/VDliveAvatar.vue';
+import VDliveName from '@/components/VDliveName.vue';
+import DMenu from '@/components/DMenu.vue';
+import DBtn from '@/components/DBtn.vue';
+import DMenuItem from '@/components/DMenuItem.vue';
+import SubStreakProgress from '@/components/SubStreakProgress.vue';
+import { CANCEL_REASON } from '@/models/subscription';
+import CANCEL_SUBSCRIPTION_REASON from '@/graphql/mutations/CancelSubscriptionReason.graphql';
+import SnackbarMixin from '@/mixins/SnackbarMixin';
+import UNSUBSCRIBE from '@/graphql/mutations/Unsubscribe.graphql';
+import { formatTimeDays } from '@/filters/filters';
+
+const uiModule = namespace('ui');
+@Component({
+  components: {
+    VDliveAvatar,
+    VDliveName,
+    DMenu,
+    DMenuItem,
+    SubStreakProgress,
+    DBtn
+  }
+})
+export default class VSubscriptionDialogCancelSub extends Mixins(
+  MeMixin,
+  SnackbarMixin
+) {
+  @Prop({
+    required: true
+  })
+  public subscribee!: VSubscriptionFrag.Fragment;
+
+  @Prop({
+    required: false,
+    default: true
+  })
+  public shouldShowBack!: boolean;
+  public otherReason: string = '';
+  public cancleReasonChoosed: number | null = null;
+  @uiModule.Getter('isMobile')
+  private isMobile!: boolean;
+
+  get cancelReasons() {
+    return CANCEL_REASON;
+  }
+
+  get isOtherReason() {
+    return this.cancleReasonChoosed === this.cancelReasons.length - 1;
+  }
+  get subEndDate() {
+    if (
+      this.subscribee.mySubscription &&
+      this.subscribee.mySubscription.nextBillingAt
+    ) {
+      return formatTimeDays(this.subscribee.mySubscription.nextBillingAt);
+    } else {
+      return '';
+    }
+  }
+  get choosedReason() {
+    if (this.cancleReasonChoosed === null) {
+      return '';
+    } else if (this.isOtherReason) {
+      return this.otherReason;
+    } else {
+      return this.cancelReasons[this.cancleReasonChoosed];
+    }
+  }
+
+  get benefitList() {
+    return [
+      {
+        icon: require('@/assets/icon/sub-benefit-badge.svg')
+      },
+      {
+        icon: require('@/assets/icon/sub-benefit-chat.svg')
+      },
+      {
+        icon: require('@/assets/icon/sub-benefit-color.svg')
+      },
+      {
+        icon: require('@/assets/icon/sub-benefit-emote.svg')
+      }
+    ];
+  }
+  public closeSubDialog() {
+    this.$emit('closeSubDialog');
+  }
+  public backClicked() {
+    this.$emit('backClicked');
+  }
+  public unsubscribeClicked(streamer: string) {
+    this.$apollo
+      .mutate({
+        mutation: UNSUBSCRIBE,
+        variables: {
+          streamer
+        }
+      })
+      .then(({ data }) => {
+        if (data.unsubscribe && data.unsubscribe.err) {
+          this.$errCode(data.unsubscribe.err.code);
+          return;
+        }
+        this.$success('subscribe.UnsubscribeSuccess');
+        this.$emit('refetch');
+      })
+      .catch(() => {
+        this.$error('subscribe.renewFail');
+      });
+  }
+  public async cancelSub() {
+    try {
+      this.unsubscribeClicked(this.subscribee.username);
+      const { data } = await this.$apollo.mutate<
+        CancelSubscriptionReason.Mutation
+      >({
+        mutation: CANCEL_SUBSCRIPTION_REASON,
+        variables: {
+          reason: this.choosedReason,
+          streamer: this.subscribee.username
+        }
+      });
+      const resp = data.cancelSubscriptionReason;
+      if (resp.err !== null) {
+        this.$errCode(resp.err.code);
+        return;
+      }
+      this.$success('subscribe.CancelSubscription');
+      this.closeSubDialog();
+    } catch (err) {
+      // TODO(@ryan): error handling
+    }
+  }
+}

@@ -1,0 +1,2482 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import PaymentEmailVerify from '@/components/PaymentEmailVerify.vue';
+import DAddressCard from '@/components/DAddressCard.vue';
+import DDivider from '@/components/DDivider.vue';
+import DDialog from '@/components/DDialog.vue';
+import DInfo from '@/components/DInfo.vue';
+import DBtn from '@/components/DBtn.vue';
+import DMenu from '@/components/DMenu.vue';
+import DMenuItem from '@/components/DMenuItem.vue';
+import DTextField from '@/components/DTextField.vue';
+import DToken from '@/components/DToken.vue';
+import VSendCode from '@/components/VSendCode.vue';
+import IRSForm from '@/components/IRSForm.vue';
+import PaymentRequests from '@/components/PaymentRequests.vue';
+import ME_PAYMENT from '@/graphql/queries/MePayment.graphql';
+import PAYMENT_COUNTRY_RULE from '@/graphql/queries/PaymentCountryRule.graphql';
+import BANK_INFO_SEARCH from '@/graphql/queries/BankInfoSearch.graphql';
+import NEXT_PAYDAY from '@/graphql/queries/NextPayday.graphql';
+import IBAN_VALIDATE from '@/graphql/queries/IbanValidate.graphql';
+import {
+  MePayment,
+  Maybe,
+  PaymentCountryRule,
+  CashOutMethodType,
+  BankInfoSearch,
+  AddBankAddressInput,
+  DAddressCardFrag,
+  RequestCashOutInput,
+  CashOutRequest,
+  BankClassificationType,
+  BankAccountType,
+  PaymentRequestsFrag,
+  NextPayday,
+  IbanValidate,
+  KycStatus,
+  PartnerStatus,
+  BankAddressStatusType
+} from '@/graphql/types';
+import {
+  bankAddressAdd,
+  cashOutRequest,
+  cashOutCodeCheck,
+  verificationCodeResend,
+  tipaltiIFrameKey
+} from '@/apollo/mutation/payment';
+import MeMixin from '@/mixins/MeMixin';
+import SnackbarMixin from '@/mixins/SnackbarMixin';
+import { existsInStr } from '@/utils/search';
+import { removeDigitsAfterDot } from '@/filters/filters';
+import { ROUTE_HOME, ROUTE_KYC_VERIFY } from '@/router';
+import { allCountries, CountryCode } from '@/utils/countrycode';
+import { Component, Mixins, Watch } from 'vue-property-decorator';
+import { ApolloQuery } from '@/decorators/apollo';
+import { IPAPI } from '@/api/ip';
+import { paymentCheckMap } from '@/utils/payment';
+import { namespace } from 'vuex-class';
+import WAValidator from '@swyftx/api-crypto-address-validator';
+import { RawLocation } from 'vue-router';
+
+const userMetaModule = namespace('userMeta');
+const meModule = namespace('me');
+
+@Component({
+  components: {
+    DAddressCard,
+    DDivider,
+    DBtn,
+    DInfo,
+    DMenu,
+    DMenuItem,
+    DTextField,
+    DDialog,
+    DToken,
+    VSendCode,
+    IRSForm,
+    PaymentRequests,
+    PaymentEmailVerify
+  }
+})
+export default class Payment extends Mixins(MeMixin, SnackbarMixin) {
+  @ApolloQuery({
+    query: ME_PAYMENT,
+    fetchPolicy: 'network-only',
+    manual: true,
+    skip() {
+      return !this.isLoggedIn;
+    },
+    variables(): MePayment.Variables {
+      return {
+        paymentFirst: 20
+      };
+    },
+    result() {
+      return;
+    }
+  })
+  public mePayment?: Maybe<MePayment.Me>;
+
+  @ApolloQuery({
+    query: NEXT_PAYDAY,
+    manual: true,
+    skip() {
+      return !this.isLoggedIn;
+    },
+    result({ data }) {
+      if (data !== undefined) {
+        this.nextPayday = data.payment;
+      }
+    }
+  })
+  public nextPayday?: NextPayday.Payment;
+
+  @ApolloQuery({
+    query: IBAN_VALIDATE,
+    manual: true,
+    debounce: 500,
+    variables(): IbanValidate.Variables {
+      return {
+        iban: this.iban
+      };
+    },
+    skip() {
+      return !this.isLoggedIn || this.iban === '';
+    },
+    result({ data }) {
+      if (data !== undefined && data.payment !== undefined) {
+        this.ibanValid = data.payment.ibanValidate;
+      }
+    }
+  })
+  public notUse?: IbanValidate.Payment;
+
+  @ApolloQuery({
+    query: BANK_INFO_SEARCH,
+    manual: true,
+    debounce: 600,
+    variables(): BankInfoSearch.Variables {
+      return {
+        country: (this.inputCountry as CountryCode).iso2,
+        key: this.routingNumber,
+        first: 5
+      };
+    },
+    skip() {
+      return !this.isLoggedIn || this.routingNumberFormatError.length !== 0;
+    },
+    result({ data }) {
+      if (data !== undefined) {
+        this.isRoutingNumberSearching = false;
+        this.paymentBankInfoSearch = data.payment;
+      }
+    }
+  })
+  public paymentBankInfoSearch?: BankInfoSearch.Payment;
+
+  @ApolloQuery({
+    query: PAYMENT_COUNTRY_RULE,
+    manual: true,
+    skip() {
+      return !this.isLoggedIn || !this.inputCountry;
+    },
+    variables(): PaymentCountryRule.Variables {
+      return {
+        country: (this.inputCountry as CountryCode).iso2.toUpperCase()
+      };
+    },
+    result({ data }) {
+      if (data !== undefined) {
+        this.paymentCountryRule = data.payment;
+      }
+    }
+  })
+  public paymentCountryRule?: PaymentCountryRule.Payment;
+
+  get startTusd() {
+    const time = new Date();
+    const startTime = new Date(Date.UTC(2021, 7 - 1, 9, 10, 0, 0));
+    return time >= startTime;
+  }
+
+  get stopBank() {
+    const time = new Date();
+    const startTime = new Date(Date.UTC(2021, 2, 19, 21, 0, 0));
+    return time >= startTime;
+  }
+  get needVerify() {
+    if (!this.meEmail || !this.meEmailVerified) {
+      return true;
+    }
+    if (this.meCanCashout) {
+      return false;
+    }
+    return this.kycStatus !== KycStatus.Approved || !this.streamRequire;
+  }
+
+  get streamRequire() {
+    if (this.me !== null && this.me.private && this.me.private.streamStat) {
+      return (
+        this.me.private.streamStat.length / 3600 >= 8 &&
+        this.me.private.streamStat.day >= 3
+      );
+    }
+    return false;
+  }
+
+  get processTime() {
+    if (this.nextPayday !== undefined) {
+      return this.nextPayday.nextPayday.processTime;
+    }
+    return undefined;
+  }
+
+  get deadline() {
+    if (this.nextPayday !== undefined) {
+      return this.nextPayday.nextPayday.deadline;
+    }
+    return undefined;
+  }
+
+  get allCountries() {
+    return allCountries;
+  }
+
+  get paymentAddresses() {
+    if (this.me !== null && this.me.private) {
+      return this.me.private.bankAddresses;
+    }
+    return [];
+  }
+
+  get countryRule() {
+    if (this.paymentCountryRule !== undefined) {
+      return this.paymentCountryRule.countryRule;
+    }
+    return undefined;
+  }
+
+  get hasBTC() {
+    if (
+      this.countryRule !== undefined &&
+      this.countryRule.btc &&
+      this.ipCountryName
+    ) {
+      if (
+        this.ipCountryName !== 'US' ||
+        (process.client &&
+          localStorage.getItem('dlive_payment') === 'DLiveToTheMoon')
+      ) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  get hasBTCAccount() {
+    if (
+      this.paymentAddresses.filter(address => {
+        return address.method === CashOutMethodType.Btc;
+      }).length !== 0
+    ) {
+      return true;
+    }
+    return false;
+  }
+
+  get hasTipalti() {
+    return this.countryRule !== undefined && this.countryRule.tipalti;
+  }
+
+  get accountTypeOptions() {
+    const options = [];
+    for (const item of Object.keys(BankAccountType)) {
+      let text = '';
+      if (item.toUpperCase() === BankAccountType.Cacc) {
+        text = 'Checking';
+      } else if (item.toUpperCase() === BankAccountType.Svgs) {
+        text = 'Saving';
+      } else {
+        text = 'None';
+      }
+
+      options.push({
+        text,
+        value: item.toUpperCase()
+      });
+    }
+    return options;
+  }
+
+  get bankInfoSearch() {
+    if (
+      this.paymentBankInfoSearch !== undefined &&
+      this.paymentBankInfoSearch !== null
+    ) {
+      return this.paymentBankInfoSearch.bankInfoSearch;
+    }
+    return undefined;
+  }
+
+  get newMethodIsBank() {
+    return this.newPayoutMethod === CashOutMethodType.Bank;
+  }
+
+  get newMethodIsCryptocurrency() {
+    return (
+      this.newMethodIsBTC ||
+      this.newMethodIsBTT ||
+      this.newMethodIsTRX ||
+      this.newMethodIsUSDT ||
+      this.newMethodIsTUSD
+    );
+  }
+
+  get newMethodIsBTC() {
+    // return this.newPayoutMethod === CashOutMethodType.Btc;
+    return this.newPayoutMethod === CashOutMethodType.Btc;
+  }
+
+  get newMethodIsBTT() {
+    return this.newPayoutMethod === CashOutMethodType.Btt;
+  }
+
+  get newMethodIsTRX() {
+    return this.newPayoutMethod === CashOutMethodType.Trx;
+  }
+
+  get newMethodIsUSDT() {
+    return this.newPayoutMethod === CashOutMethodType.Usdt;
+  }
+  get newMethodIsTUSD() {
+    return this.newPayoutMethod === CashOutMethodType.Tusd;
+  }
+
+  get newMethodIsTipalti() {
+    return this.newPayoutMethod === CashOutMethodType.Tipalti;
+  }
+
+  get bankClassificationTypeIsIndividual() {
+    return this.bankClassificationType === BankClassificationType.Individual;
+  }
+
+  get bankClassificationTypeIsEntity() {
+    return this.bankClassificationType === BankClassificationType.Business;
+  }
+
+  get canCashOutRequest() {
+    return (
+      this.selectedAddress !== null &&
+      this.selectedAddress.status !== BankAddressStatusType.Incorrect &&
+      this.amount !== '' &&
+      this.amountErrors.length === 0
+    );
+  }
+
+  get canNewAddressSave() {
+    if (this.newMethodIsBank) {
+      if (
+        this.accountHolderNameError.length === 0 &&
+        this.bankClassificationType !== null &&
+        this.countryError.length === 0 &&
+        this.nickNameError.length === 0 &&
+        this.stateError.length === 0 &&
+        this.zipCodeError.length === 0 &&
+        this.cityError.length === 0 &&
+        this.accountTypeError.length === 0 &&
+        this.bankBranchError.length === 0 &&
+        this.contactNameError.length === 0
+      ) {
+        if (this.countryRule && this.countryRule.iban) {
+          if (this.ibanError.length === 0) {
+            return true;
+          }
+        } else {
+          if (
+            this.routingNumberError.length === 0 &&
+            this.accountNumberError.length === 0
+          ) {
+            return true;
+          }
+        }
+      }
+    } else if (this.newMethodIsCryptocurrency) {
+      if (
+        this.btcAddressErrors.length === 0 &&
+        this.nickNameError.length === 0
+      ) {
+        return true;
+      }
+    } else if (this.newMethodIsTipalti) {
+      if (this.nickNameError.length === 0) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  get cashOutRequestInvoiceFee() {
+    if (this.cashOutRequestInvoice !== null) {
+      if (
+        this.cashOutRequestInvoice.method === CashOutMethodType.Bank ||
+        this.cashOutRequestInvoice.method === CashOutMethodType.Tipalti
+      ) {
+        return `${removeDigitsAfterDot(this.cashOutRequestInvoice.fee)} USD`;
+      }
+      if (this.cashOutRequestInvoice.method === CashOutMethodType.Btc) {
+        return `${parseFloat(this.cashOutRequestInvoice.fee)} BTC`;
+      }
+    }
+    return '';
+  }
+
+  get paymentHistory() {
+    if (
+      this.me !== null &&
+      this.me.private !== undefined &&
+      this.me.private !== null
+    ) {
+      return this.me.private.cashOutHistory;
+    }
+    return undefined;
+  }
+
+  get paymentRequestList() {
+    if (this.paymentHistory !== undefined) {
+      return this.paymentHistory.list;
+    }
+    return [];
+  }
+
+  get needState() {
+    if (
+      this.country !== null &&
+      (this.country.iso2 === 'US' || this.country.iso2 === 'CA')
+    ) {
+      return true;
+    }
+    return false;
+  }
+
+  get actionRequireDesc() {
+    if (this.actionRequire === 'kyc') {
+      return this.$t('Payment.UploadIDSubTitile') as string;
+    } else if (this.actionRequire === 'tax') {
+      return `As a US user, if you request payment over 50,000 Lemon (600 USD) annually, we will require you to complete your taxpayer information to comply with the IRS regulation.`;
+    } else {
+      return '';
+    }
+  }
+
+  get kycStatus() {
+    if (this.me !== null && this.me.private !== null) {
+      return this.me.private.kycStatus;
+    }
+    return undefined;
+  }
+
+  get kycStatusDesc() {
+    switch (this.kycStatus) {
+      case KycStatus.Pending:
+        return 'Verifying';
+      case KycStatus.Failed:
+        return 'ID verification failed. Please try again';
+      case KycStatus.Denied:
+        return 'Denied';
+      case KycStatus.TooManyAttempts:
+        return 'You tried too many times. Please contact support';
+      default:
+        return '';
+    }
+  }
+
+  get kycActionRequireShow() {
+    return (
+      this.needKycShow ||
+      (this.kycStatus &&
+        (this.kycStatus === KycStatus.NoApplicant ||
+          this.kycStatus === KycStatus.Pending ||
+          this.kycStatus === KycStatus.Failed ||
+          this.kycStatus === KycStatus.Denied ||
+          this.kycStatus === KycStatus.TooManyAttempts))
+    );
+  }
+
+  get timeZone() {
+    const offset = new Date().getTimezoneOffset() / 60;
+    if (offset > 0) {
+      return `GMT-${offset}`;
+    } else {
+      return `GMT+${offset}`;
+    }
+  }
+
+  get isGlobalPartner() {
+    if (
+      this.me !== null &&
+      this.me.partnerStatus === PartnerStatus.GlobalPartner
+    ) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  get hasKycLink() {
+    if (
+      this.kycStatus === KycStatus.Ready ||
+      this.kycStatus === KycStatus.Failed ||
+      this.kycStatus === KycStatus.Pending ||
+      this.kycStatus === KycStatus.NoApplicant
+    ) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  get selectedBank() {
+    if (
+      this.routingNumberFormatError.length === 0 &&
+      this.bankInfoSearch &&
+      this.bankInfoSearch.list.length > 0
+    ) {
+      for (const bank of this.bankInfoSearch.list) {
+        if (bank.routingCode === this.routingNumber) {
+          return bank;
+        }
+      }
+    }
+    return null;
+  }
+
+  get hasSortCode() {
+    if (this.inputCountry !== null && this.inputCountry.iso2 === 'GB') {
+      return true;
+    }
+    return false;
+  }
+
+  get isCanada() {
+    if (this.inputCountry !== null) {
+      return this.inputCountry.iso2 === 'CA';
+    }
+    return false;
+  }
+
+  get isSouthAfrica() {
+    if (this.inputCountry !== null) {
+      return this.inputCountry.iso2 === 'ZA';
+    }
+    return false;
+  }
+
+  get isTurkey() {
+    if (this.inputCountry !== null) {
+      return this.inputCountry.iso2 === 'TR';
+    }
+    return false;
+  }
+
+  // Erro Check -----------
+  get routingNumberMaxLength() {
+    if (this.inputCountry !== null) {
+      const check = paymentCheckMap.get(this.inputCountry.iso2);
+      if (check !== undefined && check.routingDigits !== -1) {
+        return check.routingDigits;
+      }
+    }
+    return undefined;
+  }
+
+  get accountNumberMaxLength() {
+    if (this.inputCountry !== null) {
+      const check = paymentCheckMap.get(this.inputCountry.iso2);
+      if (check !== undefined && check.accountDigits !== -1) {
+        return check.accountDigits;
+      }
+    }
+    return undefined;
+  }
+
+  get amountErrors() {
+    if (existsInStr(this.amount, '.')) {
+      return ['Integer only'];
+    }
+    if (parseInt(this.amount, 10) < 4250) {
+      return ['The minimum amount is 4,250 Lemon'];
+    } else if (parseInt(this.amount, 10) > 2000000) {
+      return ['The maxmum amount is 2,000,000 Lemon'];
+    }
+    if (this.me && this.me.wallet && this.me.wallet.balance) {
+      if (
+        parseInt(this.amount, 10) >
+        parseFloat(this.me.wallet.balance) / 100000
+      ) {
+        return ['Not enough balance'];
+      }
+    }
+    return [];
+  }
+
+  get btcAddressErrors() {
+    const currency = this.newMethodIsBTC ? 'btc' : 'trx';
+    if (!WAValidator.validate(this.newPayoutBTCAddress, currency)) {
+      return [`Invalid ${this.newPayoutMethod} address`];
+    }
+    return [];
+  }
+
+  get accountHolderNameError() {
+    if (this.accountHolderName === '') {
+      return ['Required'];
+    }
+    return [];
+  }
+
+  get routingNumberFormatError() {
+    if (this.routingNumber === '') {
+      return [' '];
+    }
+
+    if (this.inputCountry !== null) {
+      const check = paymentCheckMap.get(this.inputCountry.iso2);
+      if (check !== undefined) {
+        if (!check.routingRegex.test(this.routingNumber)) {
+          return [check.routingErrorMsg];
+        }
+      }
+    }
+
+    return [];
+  }
+
+  get routingNumberError() {
+    if (this.routingNumberFormatError.length !== 0) {
+      return this.routingNumberFormatError;
+    }
+
+    if (this.inputCountry !== null) {
+      if (this.isRoutingNumberSearching) {
+        return [' '];
+      }
+      if (this.selectedBank === null) {
+        return ['Invalid, please try again'];
+      }
+
+      if (this.routingNumber !== this.selectedBank.routingCode) {
+        const check = paymentCheckMap.get(this.inputCountry.iso2);
+        return [check ? check.routingErrorMsg : 'Invalid Routing Number'];
+      }
+    }
+
+    return [];
+  }
+
+  get accountNumberError() {
+    if (this.accountNumber === '') {
+      return [' '];
+    }
+
+    if (this.inputCountry !== null) {
+      const check = paymentCheckMap.get(this.inputCountry.iso2);
+      if (check !== undefined) {
+        if (!check.accountRegex.test(this.accountNumber)) {
+          return ['Invalid Account Number'];
+        }
+      }
+    }
+    return [];
+  }
+
+  get nickNameError() {
+    if (this.newPayoutNickName === '') {
+      return ['Required'];
+    }
+    return [];
+  }
+
+  get countryError() {
+    if (this.country === null) {
+      return ['Required'];
+    }
+    return [];
+  }
+
+  get cityError() {
+    if (this.city === '') {
+      return ['Required'];
+    }
+    return [];
+  }
+
+  get stateError() {
+    if (this.needState && this.state === '') {
+      return ['Required'];
+    }
+    return [];
+  }
+
+  get zipCodeError() {
+    if (this.needState && this.zipCode === '') {
+      return ['Required'];
+    }
+    return [];
+  }
+
+  get accountTypeError() {
+    if (
+      this.countryRule &&
+      this.countryRule.accountType &&
+      this.accountType === BankAccountType.None
+    ) {
+      return ['Required'];
+    }
+    return [];
+  }
+
+  get bankBranchError() {
+    if (
+      this.countryRule &&
+      this.countryRule.bankBranchName &&
+      this.bankBranchName === ''
+    ) {
+      return ['Required'];
+    }
+    return [];
+  }
+
+  get contactNameError() {
+    if (
+      this.countryRule &&
+      this.countryRule.contactName &&
+      this.contactName === ''
+    ) {
+      return ['Required'];
+    }
+    return [];
+  }
+
+  get phoneNumberError() {
+    if (
+      this.isSouthAfrica &&
+      (this.phone === '' || !/^\d+$/.test(this.phone))
+    ) {
+      return ['Required'];
+    }
+    return [];
+  }
+
+  get ibanError() {
+    if (!this.ibanValid) {
+      return ['Invalid IBAN'];
+    }
+    return [];
+  }
+
+  get beneficiaryCPFError() {
+    if (this.beneficiaryCPF === '') {
+      return [' '];
+    }
+
+    if (this.inputCountry !== null) {
+      const check = paymentCheckMap.get(this.inputCountry.iso2);
+      if (check !== undefined && check.beneficiaryCPF !== undefined) {
+        if (!check.beneficiaryCPF.test(this.beneficiaryCPF)) {
+          return ['Invalid Cadastro de Pessoas Físicas'];
+        }
+      }
+    }
+
+    return [];
+  }
+
+  get agencyCodeError() {
+    if (this.agencyCode === '') {
+      return [' '];
+    }
+
+    if (this.inputCountry !== null) {
+      const check = paymentCheckMap.get(this.inputCountry.iso2);
+      if (check !== undefined && check.agencyCode !== undefined) {
+        if (!check.agencyCode.test(this.agencyCode)) {
+          return ['Invalid Agency Code'];
+        }
+      }
+    }
+
+    return [];
+  }
+
+  // local
+  public getPaidExpendShow: boolean = false;
+  public paymentAddressShow: boolean = true;
+  public cashOutRequestStepOne: boolean = true;
+  public cashOutRequestStepTwo: boolean = false;
+  public newAddressAddStepOneShow: boolean = false;
+  public newAddressAddStepTwoShow: boolean = false;
+  public needKycShow: boolean = false;
+  public needTaxShow: boolean = false;
+  public actionRequire: 'kyc' | 'tax' | '' = '';
+  public searchMeunShow: boolean = false;
+
+  public amount: string = '';
+  public cashOutRequestInvoice: CashOutRequest.Invoice | null = null;
+  public verificationCode: string = '';
+  public cashOutRequestId: string = '';
+
+  public inputCountry: CountryCode | null = null;
+  public newPayoutMethod: CashOutMethodType = CashOutMethodType.Bank;
+  public newPayoutBTCAddress: string = '';
+  public newPayoutNickName: string = '';
+
+  public bankSearchKey: string = '';
+  public bankClassificationType: BankClassificationType | null = null;
+  public accountHolderName = '';
+  public routingNumber: string = '';
+  public accountNumber: string = '';
+  public accountType: BankAccountType = BankAccountType.None;
+  public bankBranchName: string = '';
+  public contactName: string = '';
+  public phone: string = '';
+  public contactAddress1: string = '';
+  public contactAddress2: string = '';
+  public city: string = '';
+  public state: string = '';
+  public zipCode: string = '';
+  public country: CountryCode | null = null;
+  public iban: string = '';
+  public ibanValid: boolean = true;
+  public sortCode1: string = '';
+  public sortCode2: string = '';
+  public sortCode3: string = '';
+  public beneficiaryCPF: string = '';
+  public agencyCode: string = '';
+
+  public selectedAddress: DAddressCardFrag.Fragment | null = null;
+  public selectedAddAddress: boolean = false;
+  // public paymentBankInfoSearch: BankInfoSearch.Payment | null = null;
+  public kycUrl: string = '';
+
+  public IRSFormShow: boolean = false;
+  public actionRequireShow: boolean = false;
+  public transferConfirmationShow: boolean = false;
+
+  public searchLoading: boolean = false;
+  public newAddressSaveLoading: boolean = false;
+
+  public ipCountryName: string = '';
+  public isRoutingNumberSearching: boolean = false;
+
+  public bannerShow: boolean = true;
+  public removeBTC: boolean = true;
+  public checkBTCInterval: number = 0;
+
+  @meModule.Getter('meEmail')
+  private meEmail!: string | null;
+  @meModule.Getter('meEmailVerified')
+  private meEmailVerified!: boolean;
+  @meModule.Getter('meCanCashout')
+  private meCanCashout!: boolean;
+  @meModule.Getter('meTaxFormFilled')
+  private meTaxFormFilled!: boolean;
+
+  @userMetaModule.Action('fetchIpStats')
+  private getIP!: () => Promise<IPAPI>;
+
+  public mounted() {
+    if (!this.$store.getters['accessToken/token']) {
+      this.$router.push({ name: ROUTE_HOME });
+    }
+    this.ipCountry();
+  }
+
+  public beforeDestroy() {
+    clearInterval(this.checkBTCInterval);
+  }
+
+  public ipCountry() {
+    this.getIP().then(data => {
+      this.ipCountryName = data.country;
+    });
+  }
+
+  public bannerClose() {
+    this.bannerShow = false;
+  }
+
+  public openIRSForm() {
+    this.IRSFormShow = true;
+  }
+
+  public closeIRSForm() {
+    this.IRSFormShow = false;
+  }
+
+  public addressSelect(address: DAddressCardFrag.Fragment) {
+    this.selectedAddress = address;
+    this.selectedAddAddress = false;
+    this.newAddressAddStepOneShow = false;
+    this.newAddressAddStepTwoShow = false;
+    this.cashOutRequestStepOne = true;
+  }
+
+  public async cashOutRequest() {
+    if (this.selectedAddress === null) {
+      return;
+    }
+    const input: RequestCashOutInput = {
+      method: this.selectedAddress.method,
+      addressID: this.selectedAddress.id,
+      linoAmount: this.amount
+    };
+    const resp = await cashOutRequest(this, input);
+    if (resp !== undefined) {
+      this.cashOutRequestInvoice = resp.invoice;
+      if (resp.needKyc || resp.needTax) {
+        if (resp.needKyc) {
+          this.needKycShow = true;
+          this.actionRequire = 'kyc';
+          // this.kycAction();
+        }
+        if (resp.needTax) {
+          this.needTaxShow = true;
+          this.actionRequire = 'tax';
+        }
+        this.actionRequireShow = true;
+      } else {
+        this.actionRequire = '';
+        this.paymentAddressShow = false;
+        this.cashOutRequestStepOne = false;
+        this.cashOutRequestStepTwo = true;
+      }
+    }
+  }
+
+  public actionRequireComplete() {
+    if (this.actionRequire === 'kyc') {
+      if (this.kycUrl !== '') {
+        window.open(this.kycUrl, '_blank');
+      }
+    } else if (this.actionRequire === 'tax') {
+      this.IRSFormShow = true;
+    }
+    this.actionRequireShow = false;
+  }
+
+  public async kycLinkClick() {
+    const to: RawLocation = {
+      name: ROUTE_KYC_VERIFY
+    };
+    const routeData = this.$router.resolve(to);
+    window.open(routeData.href, '_blank');
+  }
+
+  public cashOutRequestStepTwoBack() {
+    this.cashOutRequestStepTwo = false;
+    this.cashOutRequestStepOne = true;
+    this.paymentAddressShow = true;
+  }
+
+  public async verificationCodeResend() {
+    const resp = verificationCodeResend(this);
+    if (resp) {
+      (this.$refs.vsendcode as VSendCode).countdownStart();
+    }
+  }
+
+  public async cashOutCodeCheck() {
+    const resp = await cashOutCodeCheck(this, this.verificationCode);
+    if (resp !== undefined && !resp.err) {
+      this.cashOutRequestId = resp.id;
+    } else {
+      return;
+    }
+    if (resp.viaWallet) {
+      this.transferConfirmationShow = true;
+    } else {
+      this.$success('submit success');
+      this.paymentRequestData();
+      if (this.$apollo.queries.mePayment) {
+        this.$apollo.queries.mePayment.refetch();
+      }
+    }
+    this.cashOutRequestStepTwo = false;
+    this.paymentAddressShow = true;
+    this.cashOutRequestStepOne = true;
+  }
+
+  public transferWallet() {
+    if (
+      this.me !== null &&
+      this.me.private !== null &&
+      !this.me.private.insecure
+    ) {
+      const left = (screen.width - 560) / 2;
+      const top = (screen.height - 560) / 2;
+      window.open(
+        `${process.env.VUE_APP_WALLET_URL}/payment?user=${
+          this.me.username
+        }&amount=${this.amount}&receiver=dlivebank&type=cashout&payment_id=${
+          this.cashOutRequestId
+        }`,
+        '_blank',
+        `location=yes,height=560,width=560,scrollbars=yes,status=yes,left=${left},top=${top}`
+      );
+    }
+    this.transferConfirmationShow = false;
+    this.paymentRequestData();
+    if (this.$apollo.queries.mePayment) {
+      this.$apollo.queries.mePayment.refetch();
+    }
+  }
+
+  public bankTransferRequest() {
+    window.open('https://forms.gle/KkqhoGvbRrgfvx3z8', '_blank');
+  }
+
+  public newAddressAdd() {
+    if (this.selectedAddAddress) {
+      this.cashOutRequestStepOne = true;
+      this.newAddressAddStepOneShow = false;
+    } else {
+      this.cashOutRequestStepOne = false;
+      this.newAddressAddStepOneShow = true;
+    }
+    this.selectedAddress = null;
+    this.newAddressAddStepTwoShow = false;
+    this.selectedAddAddress = !this.selectedAddAddress;
+  }
+
+  public async addressAddStepOneNext() {
+    if (this.newMethodIsTipalti) {
+      await this.bankAddressAdd();
+      this.newAddressAddStepOneShow = false;
+      this.cashOutRequestStepOne = true;
+    } else {
+      this.newAddressAddStepOneShow = false;
+      this.newAddressAddStepTwoShow = true;
+    }
+  }
+
+  public newAddressAddStepTwoBack() {
+    this.newAddressAddStepTwoShow = false;
+    this.newAddressAddStepOneShow = true;
+  }
+
+  public sortCodeChange() {
+    this.routingNumber = this.sortCode1 + this.sortCode2 + this.sortCode3;
+  }
+
+  public async bankAddressAdd() {
+    if (this.me === null || this.inputCountry === null) {
+      return;
+    }
+    this.newAddressSaveLoading = true;
+    let input: AddBankAddressInput;
+    if (this.newMethodIsBank) {
+      if (this.bankClassificationType === null || this.country === null) {
+        return;
+      }
+      const bank = this.selectedBank;
+      if (bank !== null) {
+        bank.__typename = undefined;
+      }
+      input = {
+        method: CashOutMethodType.Bank,
+        BankAddress: {
+          name: this.accountHolderName,
+          address1: this.contactAddress1,
+          address2: this.contactAddress2,
+          city: this.city,
+          country: this.country ? this.country.iso2 : '',
+          region: this.state,
+          postalCode: this.zipCode,
+          accountNumber: this.accountNumber,
+          routingNumber: this.routingNumber,
+          beneficiaryBankBranchName: this.bankBranchName,
+          contactName: this.contactName,
+          accountType: this.accountType,
+          bankInfo: this.selectedBank
+            ? {
+              address1: this.selectedBank.address1,
+              address2: this.selectedBank.address2,
+              bankName: this.selectedBank.bankName,
+              city: this.selectedBank.city,
+              country: this.selectedBank.country,
+              postalCode: this.selectedBank.postalCode,
+              region: this.selectedBank.region,
+              swiftBic: this.selectedBank.swiftBic
+            }
+            : null,
+          classification: this.bankClassificationType,
+          iban: this.iban,
+          phone: this.phone,
+          beneficiaryCPF: this.beneficiaryCPF,
+          agencyCode: this.agencyCode
+        },
+        nickname: this.newPayoutNickName
+      };
+    } else if (this.newMethodIsBTC) {
+      input = {
+        method: this.newPayoutMethod,
+        BTCAddress: {
+          address: this.newPayoutBTCAddress,
+          country: this.inputCountry.iso2.toUpperCase()
+        },
+        nickname: this.newPayoutNickName
+      };
+    } else if (this.newMethodIsBTT) {
+      input = {
+        method: this.newPayoutMethod,
+        BTTAddress: {
+          address: this.newPayoutBTCAddress,
+          country: this.inputCountry.iso2.toUpperCase()
+        },
+        nickname: this.newPayoutNickName
+      };
+    } else if (this.newMethodIsTRX) {
+      input = {
+        method: this.newPayoutMethod,
+        TRXAddress: {
+          address: this.newPayoutBTCAddress,
+          country: this.inputCountry.iso2.toUpperCase()
+        },
+        nickname: this.newPayoutNickName
+      };
+    } else if (this.newMethodIsUSDT) {
+      input = {
+        method: this.newPayoutMethod,
+        USDTAddress: {
+          address: this.newPayoutBTCAddress,
+          country: this.inputCountry.iso2.toUpperCase()
+        },
+        nickname: this.newPayoutNickName
+      };
+    } else if (this.newMethodIsTUSD) {
+      input = {
+        method: this.newPayoutMethod,
+        TUSDAddress: {
+          address: this.newPayoutBTCAddress,
+          country: this.inputCountry.iso2.toUpperCase()
+        },
+        nickname: this.newPayoutNickName
+      };
+    } else {
+      input = {
+        method: CashOutMethodType.Tipalti,
+        nickname: 'Tipalti'
+      };
+    }
+    try {
+      const resp = await bankAddressAdd(this, input, this.me.id);
+      if (resp !== undefined) {
+        this.newAddressAddStepTwoShow = false;
+        this.cashOutRequestStepOne = true;
+        if (this.newMethodIsTipalti) {
+          await this.tipaltiIFrameKey(resp.id);
+        }
+        this.cleanAddressData();
+      }
+    } catch (err) {
+      throw err;
+    } finally {
+      this.newAddressSaveLoading = false;
+    }
+  }
+
+  public async tipaltiIFrameKey(id: string) {
+    const newWindow = window.open('', '_blank');
+    const resp = await tipaltiIFrameKey(this, id);
+    if (newWindow) {
+      if (resp !== undefined) {
+        newWindow.location.href = `${
+          process.env.VUE_APP_TIPALTI_URL
+        }?${resp}&redirectto=${window.location.protocol}//${
+          window.location.host
+        }/cb/payment/address/success`;
+      } else {
+        newWindow.close();
+      }
+    }
+  }
+
+  public fetchMoreCashOutHistory() {
+    if (
+      this.paymentHistory === undefined ||
+      !this.paymentHistory.pageInfo.hasNextPage
+    ) {
+      return;
+    }
+    this.$apollo.queries.mePayment.fetchMore({
+      variables: {
+        first: 1,
+        after: this.paymentHistory.pageInfo.endCursor
+      },
+      updateQuery: (
+        previousResult: MePayment.Query,
+        { fetchMoreResult }: { fetchMoreResult?: MePayment.Query }
+      ) => {
+        if (
+          fetchMoreResult === undefined ||
+          fetchMoreResult.me === null ||
+          fetchMoreResult.me.private === null
+        ) {
+          return previousResult;
+        }
+        const moreTransactions: PaymentRequestsFrag.CashOutHistory =
+          fetchMoreResult.me.private.cashOutHistory;
+        let prevTransactions = previousResult.me;
+        if (prevTransactions === null || prevTransactions.private === null) {
+          prevTransactions = fetchMoreResult.me;
+        } else {
+          prevTransactions.private.cashOutHistory.pageInfo =
+            moreTransactions.pageInfo;
+          prevTransactions.private.cashOutHistory.list = [
+            ...prevTransactions.private.cashOutHistory.list,
+            ...moreTransactions.list
+          ];
+        }
+        return {
+          me: prevTransactions
+        };
+      }
+    });
+  }
+
+  public cleanAddressData() {
+    this.inputCountry = null;
+    this.newPayoutMethod = CashOutMethodType.Bank;
+    this.newPayoutBTCAddress = '';
+    this.newPayoutNickName = '';
+    this.accountHolderName = '';
+    this.contactAddress1 = '';
+    this.contactAddress2 = '';
+    this.city = '';
+    this.country = null;
+    this.state = '';
+    this.zipCode = '';
+    this.accountNumber = '';
+    this.routingNumber = '';
+    this.bankBranchName = '';
+    this.contactName = '';
+    this.accountType = BankAccountType.None;
+    // this.selectedBank = null;
+    this.bankClassificationType = null;
+    this.iban = '';
+    this.sortCode1 = '';
+    this.sortCode2 = '';
+    this.sortCode3 = '';
+    this.selectedAddAddress = false;
+  }
+
+  public paymentRequestData() {
+    this.amount = '';
+    this.selectedAddress = null;
+    this.cashOutRequestInvoice = null;
+    this.verificationCode = '';
+    this.cashOutRequestId = '';
+  }
+
+  public goMainnet() {
+    window.open('https://go.dlive.tv/dlive-lino-mainnet', '_blank');
+  }
+
+  @Watch('cashOutRequestStepTwo')
+  private onCashOutRequestStepTwo(val: boolean, oldVal: boolean) {
+    if (val && !oldVal) {
+      this.$nextTick(() => {
+        (this.$refs.vsendcode as VSendCode).countdownStart();
+      });
+    }
+  }
+
+  @Watch('newAddressAddStepTwoShow')
+  private onNewAddressAddStepTwoShow(val: boolean, oldVal: boolean) {
+    if (!val && oldVal) {
+      this.routingNumber = '';
+      this.sortCode1 = '';
+      this.sortCode2 = '';
+      this.sortCode3 = '';
+    }
+  }
+
+  @Watch('routingNumber')
+  private onRoutingNumber() {
+    this.isRoutingNumberSearching = true;
+  }
+}

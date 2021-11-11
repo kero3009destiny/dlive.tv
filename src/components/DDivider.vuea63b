@@ -1,0 +1,53 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { colorMap } from '@/utils/constants';
+import { Component, Vue, Prop } from 'vue-property-decorator';
+
+@Component
+export default class DDivider extends Vue {
+  @Prop({
+    type: String,
+    required: false,
+    default: '100%'
+  })
+  public width!: string;
+
+  @Prop({
+    type: String,
+    required: false,
+    default: '1px'
+  })
+  public height!: string;
+
+  @Prop({
+    type: String,
+    required: false,
+    default: 'grey-darken-2'
+  })
+  public color!: string;
+
+  get dividerStyle() {
+    return `width: ${this.width}`;
+  }
+
+  get dividerInnerStyle() {
+    if (this.color.charAt(0) === '#') {
+      return `background-color: ${this.color}; height: ${this.height}`;
+    } else {
+      return `background-color: rgba(${colorMap.get(
+        this.color
+      )},1.0); height: ${this.height}`;
+    }
+  }
+}

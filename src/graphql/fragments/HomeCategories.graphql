@@ -1,0 +1,25 @@
+
+    var doc = {"kind":"Document","definitions":[{"kind":"FragmentDefinition","name":{"kind":"Name","value":"HomeCategoriesFrag"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"CategoryConnection"}},"directives":[],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"pageInfo"},"arguments":[],"directives":[],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"endCursor"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"hasNextPage"},"arguments":[],"directives":[]}]}},{"kind":"Field","name":{"kind":"Name","value":"list"},"arguments":[],"directives":[],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"FragmentSpread","name":{"kind":"Name","value":"VCategoryCardFrag"},"directives":[]}]}}]}}],"loc":{"start":0,"end":185}};
+    doc.loc.source = {"body":"#import '../fragments/VCategoryCard.graphql'\n\nfragment HomeCategoriesFrag on CategoryConnection {\n  pageInfo {\n    endCursor\n    hasNextPage\n  }\n  list {\n    ...VCategoryCardFrag\n  }\n}\n","name":"GraphQL request","locationOffset":{"line":1,"column":1}};
+  
+
+    var names = {};
+    function unique(defs) {
+      return defs.filter(
+        function(def) {
+          if (def.kind !== 'FragmentDefinition') return true;
+          var name = def.name.value
+          if (names[name]) {
+            return false;
+          } else {
+            names[name] = true;
+            return true;
+          }
+        }
+      )
+    }
+  doc.definitions = doc.definitions.concat(unique(require('../fragments/VCategoryCard.graphql').definitions));
+
+
+      module.exports = doc;
+    

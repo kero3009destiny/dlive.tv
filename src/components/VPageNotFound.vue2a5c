@@ -1,0 +1,4 @@
+var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',{staticClass:"flex-align-center flex-column"},[_c('div',{staticClass:"flex-align-center",staticStyle:{"margin-top":"100px"}},[_vm._m(0),_c('div',{staticClass:"text-14-medium text-white"},[_vm._v(" "+_vm._s(_vm.text)+" ")])]),(_vm.isChannel)?_c('div',[_vm._v(" "+_vm._s(_vm.$t('VPageNotFound.DoubelCheckSpelling'))+" ")]):_vm._e(),(_vm.hasRedirect)?_c('div',{staticClass:"margint-2"},[_c('d-btn',{staticStyle:{"padding":"5px 16px"},attrs:{"type":"btnC"},on:{"click":_vm.routeTo}},[_vm._v(" "+_vm._s(_vm.$t('VPageNotFound.BackToHome'))+" ")])],1):_vm._e()])}
+var staticRenderFns = [function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',[_c('img',{attrs:{"src":require("@/assets/icon/ninja-magnifier.png"),"width":"120px"}})])}]
+
+export { render, staticRenderFns }

@@ -1,0 +1,172 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { Component, Mixins } from 'vue-property-decorator';
+import DDivider from '@/components/DDivider.vue';
+import MeMixin from '@/mixins/MeMixin';
+import { ROUTE_LIVESTREAM } from '@/router';
+import { MeSidebarFrag } from '@/graphql/types';
+import { namespace } from 'vuex-class';
+import { dataPoint } from '@/plugins/dataCollection';
+import AppSidebarAvatar from '@/components/AppSidebarAvatar.vue';
+
+const meModule = namespace('me');
+
+@Component({
+  components: {
+    DDivider,
+    AppSidebarAvatar
+  }
+})
+export default class AppSidebarChannelsClose extends Mixins(MeMixin) {
+  get lessChannels() {
+    if (this.allChannels !== null) {
+      return this.allChannels.slice(0, this.channelNumber);
+    }
+    return [];
+  }
+  get hasMoreChannels() {
+    if (
+      this.allChannels !== null &&
+      this.allChannels.length > this.channelNumber
+    ) {
+      return true;
+    }
+    return false;
+  }
+  get channelsToShow() {
+    if (!this.showMore) {
+      return this.lessChannels;
+    }
+    return this.allChannels;
+  }
+
+  get allChannels() {
+    const liveChannels: MeSidebarFrag.List[] = [];
+    const rerunChannels: MeSidebarFrag.List[] = [];
+    const unliveChannels: MeSidebarFrag.List[] = [];
+    for (const liveItem of this.channels) {
+      if (liveItem !== null) {
+        if (this.isLive(liveItem)) {
+          liveChannels.push(liveItem);
+        } else if (this.isRerun(liveItem)) {
+          rerunChannels.push(liveItem);
+        } else {
+          unliveChannels.push(liveItem);
+        }
+      }
+    }
+    return liveChannels.concat(rerunChannels, unliveChannels);
+  }
+  // local
+  public channelNumber: number = 9;
+
+  // local
+  public showMore: boolean = false;
+
+  @meModule.Getter('meFollowingLive')
+  private channels!: MeSidebarFrag.List[];
+
+  public toggleShowMore() {
+    this.showMore = !this.showMore;
+    this.$emit('toggleShowMore', this.showMore);
+  }
+
+  public routeTo(displayname: string) {
+    return { name: ROUTE_LIVESTREAM, params: { displayname } };
+  }
+
+  public goToChannel(followingLiveItem: MeSidebarFrag.List) {
+    if (followingLiveItem.livestream !== null) {
+      dataPoint('click_livestream', {
+        eventCategory: 'sidebar_close',
+        eventLabel:
+          followingLiveItem.username +
+          '&' +
+          followingLiveItem.livestream.permlink
+      });
+    }
+  }
+
+  public isLive(channel: MeSidebarFrag.List) {
+    return channel.hostingLivestream === null && channel.livestream !== null;
+  }
+
+  public isRerun(channel: MeSidebarFrag.List) {
+    return (
+      channel.hostingLivestream === null &&
+      channel.livestream === null &&
+      channel.rerun !== null
+    );
+  }
+}

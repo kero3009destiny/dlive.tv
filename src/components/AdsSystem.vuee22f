@@ -1,0 +1,34 @@
+
+
+
+
+
+import { Component, Mixins } from 'vue-property-decorator';
+import { namespace } from 'vuex-class';
+import MeMixin from '@/mixins/MeMixin';
+import { Ads } from '@/store/userMeta/types';
+import { dataPoint } from '@/plugins/dataCollection';
+
+const userMetaModule = namespace('userMeta');
+
+@Component
+export default class AdsSystem extends Mixins(MeMixin) {
+  @userMetaModule.Mutation('setAds')
+  private setAds!: (setAds: Ads) => void;
+
+  public mounted() {
+    this.setAdsRecord();
+  }
+
+  public setAdsRecord() {
+    const from: string = this.$route.query.ads as string;
+    const id: string = this.$route.query.id as string;
+    if (from !== undefined && id !== undefined) {
+      this.setAds({ from, id });
+      dataPoint('click_ads', {
+        eventCategory: from,
+        eventLabel: id
+      });
+    }
+  }
+}

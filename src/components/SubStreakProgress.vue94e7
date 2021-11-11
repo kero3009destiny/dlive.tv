@@ -1,0 +1,107 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { VSubscriptionFrag } from '@/graphql/types';
+import { Component, Mixins, Prop } from 'vue-property-decorator';
+import { SUB_STREAKS } from '@/models/subStreak';
+import MeMixin from '@/mixins/MeMixin';
+// import { parse } from 'date-fns';
+
+@Component
+export default class SubStreakProgress extends Mixins(MeMixin) {
+  @Prop({
+    required: false
+  })
+  public subscribee!: VSubscriptionFrag.Fragment;
+
+  get progressDays() {
+    if (
+      this.subscribee &&
+      this.subscribee.mySubscription &&
+      this.subscribee.mySubscription.subStreakStartedAt
+    ) {
+      return (
+        Math.floor(
+          (Date.now() -
+            Number(
+              new Date(
+                Number(this.subscribee.mySubscription.subStreakStartedAt)
+              )
+            )) /
+            60 /
+            60 /
+            24 /
+            1000
+        ) + 'days'
+      );
+    } else {
+      return 0;
+    }
+  }
+  get nowSubStreakWidth() {
+    if (
+      this.subscribee &&
+      this.subscribee.mySubscription &&
+      this.subscribee.mySubscription.subStreakStartedAt
+    ) {
+      return {
+        width:
+          ((Date.now() -
+            Number(
+              new Date(
+                Number(this.subscribee.mySubscription.subStreakStartedAt)
+              )
+            )) /
+            60 /
+            60 /
+            24 /
+            1000 /
+            60) *
+            100 +
+          '%'
+      };
+    } else {
+      return {};
+    }
+  }
+  get sreakLevels() {
+    return SUB_STREAKS;
+  }
+}

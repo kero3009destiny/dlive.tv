@@ -1,0 +1,297 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import SnackbarMixin from '@/mixins/SnackbarMixin';
+import { Component, Mixins, Prop } from 'vue-property-decorator';
+import DTextField from '@/components/DTextField.vue';
+import DBtn from '@/components/DBtn.vue';
+import { Contract } from '@/models/contract';
+import { countDown } from '@/utils/timerHelper';
+import { canClaimPendingStakeOut } from '@/utils/stake';
+import { BttMethod } from '@/graphql/types';
+@Component({
+  components: {
+    DTextField,
+    DBtn
+  }
+})
+export default class DStakeOutTab extends Mixins(SnackbarMixin) {
+  public stakeLoading: boolean = false;
+  public stakeOutNum: string = '';
+
+  @Prop({
+    required: true,
+    default: null
+  })
+  public contract!: Contract;
+
+  @Prop({
+    required: true,
+    default: null
+  })
+  public canStakeOut!: { _can: boolean; _errorMessage: string };
+
+  @Prop({
+    required: true,
+    default: null
+  })
+  public canClaimPendingStakeOut!: {
+    _can: boolean;
+    _errorMessage: string;
+    _hasPendingStakeOut: boolean;
+    _amount: number;
+    _stakeoutTimestamp: number;
+    _stakeoutAvailableTimestamp: number;
+  };
+
+  public claimPendingLoading: boolean = false;
+
+  @Prop({
+    required: true,
+    default: 0
+  })
+  public myStake!: number;
+
+  @Prop({
+    required: true,
+    default: false
+  })
+  public isStakeOutPaused!: boolean;
+
+  @Prop({
+    required: true,
+    default: false
+  })
+  public isClaimPendingStakeOutPaused!: boolean;
+
+  get rules() {
+    return [
+      () => {
+        return 'Staking out will take two weeks and you will not be able to stake in nor stake out during the 2-week stake out period.';
+      }
+    ];
+  }
+
+  get hasPendingReward() {
+    if (
+      this.canStakeOut !== null &&
+      !this.canStakeOut._can &&
+      this.canStakeOut._errorMessage ===
+        'Must claim previous rewards before stake out'
+    ) {
+      return true;
+    }
+    return false;
+  }
+
+  get hasPendingStakeOut() {
+    if (
+      this.canStakeOut !== null &&
+      this.canClaimPendingStakeOut !== null &&
+      !this.canStakeOut._can &&
+      (this.canStakeOut._errorMessage === 'There is an ongoing stake out' ||
+        this.canClaimPendingStakeOutClick ||
+        this.canClaimPendingStakeOut._errorMessage ===
+          'Your pending stake out is not ready for claim yet')
+    ) {
+      return true;
+    }
+    return false;
+  }
+
+  get canClaimPendingStakeOutClick() {
+    return (
+      this.canClaimPendingStakeOut !== null && this.canClaimPendingStakeOut._can
+    );
+  }
+
+  get claimStakeTip() {
+    if (this.canClaimPendingStakeOut === null) {
+      return '';
+    } else {
+      const remainingTime = countDown(
+        this.canClaimPendingStakeOut._stakeoutAvailableTimestamp,
+        'DHM'
+      ) as { day: string; hour: string; min: string };
+      if (Number(remainingTime.day) > 0) {
+        return `Claim Staked Out BTT in ${Number(remainingTime.day)} Days`;
+      } else if (Number(remainingTime.hour) > 0) {
+        return `Claim Staked Out BTT in ${Number(remainingTime.hour)} Hours`;
+      } else if (Number(remainingTime.min) > 0) {
+        return `Claim Staked Out BTT in ${Number(remainingTime.min)} Mins`;
+      } else {
+        return `Claim Staked Out BTT`;
+      }
+    }
+  }
+
+  get stakeVerifyCheck() {
+    if (!this.stakeOutNum.trim() || Number(this.stakeOutNum) > this.myStake) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  public clickDeal(name: string) {
+    this.$emit('clickDeal', name);
+  }
+
+  public async claimPendingStakeOut() {
+    if (this.contract === null) {
+      return this.$error('Error with contract');
+    }
+    try {
+      this.claimPendingLoading = true;
+      const res = await this.contract
+        .claimPendingStakeOut()
+        .send({ feeLimit: 100000000, shouldPollResponse: false });
+      this.claimPendingLoading = false;
+      this.$emit('callbackTxid', res, BttMethod.StakeOut);
+      this.$emit('updateStatus');
+      return;
+      // this.$success('Stake.ClaimStakeOutSuccess');
+    } catch (error) {
+      this.claimPendingLoading = false;
+      if (error.error === 'Cannot find result in solidity node') {
+        const resp = await canClaimPendingStakeOut(
+          this.contract,
+          window.tronWeb.defaultAddress.base58
+        );
+        if (resp && !resp._can) {
+          this.$emit('updateStatus');
+          this.$success('Stake.ClaimStakeOutSuccess');
+          return;
+        }
+      }
+      this.$emit('error', error);
+    }
+  }
+
+  public async dealStakeOut() {
+    if (this.contract === null) {
+      return this.$error('Error with contract');
+    }
+    this.stakeLoading = true;
+    try {
+      const res = await this.contract
+        .stakeOut(Number(this.stakeOutNum) * Math.pow(10, 6))
+        .send({ feeLimit: 100000000, shouldPollResponse: false });
+      this.stakeLoading = false;
+      this.$emit('callbackTxid', res, BttMethod.StakeOut);
+      this.$emit('updateStatus');
+      return;
+      // this.$success('Stake.StakeOutSuccess');
+    } catch (error) {
+      this.stakeLoading = false;
+      this.claimPendingLoading = false;
+      if (error.error === 'Cannot find result in solidity node') {
+        const myTotalStake = await this.contract
+          .stakeOf(window.tronWeb.defaultAddress.base58)
+          .call();
+        if (
+          this.myStake - myTotalStake.toNumber() * Math.pow(10, -6) ===
+          Number(this.stakeOutNum)
+        ) {
+          this.$emit('updateStatus');
+          this.$success('Stake.StakeOutSuccess');
+          return;
+        }
+      }
+      this.$emit('error', error);
+    }
+  }
+}

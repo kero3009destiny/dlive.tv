@@ -1,0 +1,307 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { ApolloQuery } from '@/decorators/apollo';
+import VInviteShare from '@/components/VInviteShare.vue';
+import { REF_KEY } from '@/utils/constants';
+import socialSharing from 'vue-social-sharing';
+import { Component, Mixins } from 'vue-property-decorator';
+import ME_USER_REFERRAL from '@/graphql/queries/MeUserReferral.graphql';
+import { MeUserReferral, MeUserReferralFrag, Maybe } from '@/graphql/types';
+import MeMixin from '@/mixins/MeMixin';
+import SnackbarMixin from '@/mixins/SnackbarMixin';
+
+@Component({
+  components: {
+    socialSharing,
+    VInviteShare
+  }
+})
+export default class UserReferral extends Mixins(MeMixin, SnackbarMixin) {
+  get commissionReferral() {
+    if (
+      this.userReferral !== undefined &&
+      this.userReferral !== null &&
+      this.userReferral.private !== null
+    ) {
+      return this.userReferral.private.commissionReferral;
+    }
+    return undefined;
+  }
+
+  get totalCommission() {
+    if (this.commissionReferral !== undefined) {
+      return this.commissionReferral.totalCommission;
+    }
+    return '0';
+  }
+
+  get referrals() {
+    if (this.commissionReferral !== undefined) {
+      return this.commissionReferral.referrals;
+    }
+    return undefined;
+  }
+
+  get totalUsers() {
+    if (this.referrals !== undefined) {
+      return this.referrals.totalCount;
+    }
+    return 0;
+  }
+
+  get referralList() {
+    if (this.referrals !== undefined) {
+      return this.referrals.list;
+    }
+    return [];
+  }
+
+  get hasNextPage() {
+    if (this.referrals !== undefined) {
+      return this.referrals.pageInfo.hasNextPage;
+    }
+    return false;
+  }
+
+  get shareUrl() {
+    if (this.me !== null) {
+      return `${window.location.protocol}//${window.location.host}?${REF_KEY}=${
+        this.me.username
+      }`;
+    }
+    return '';
+  }
+
+  get shareTitle() {
+    return `DLive - Rewarding Communities, Empowering Creators`;
+  }
+
+  get shareDescription() {
+    return `Welcome to DLive!`;
+  }
+
+  get hashtags() {
+    return `DLive`;
+  }
+  @ApolloQuery({
+    fetchPolicy: 'network-only',
+    manual: true,
+    query: ME_USER_REFERRAL,
+    skip() {
+      return !this.isLoggedIn;
+    },
+    variables(): MeUserReferral.Variables {
+      return {
+        first: this.numPerFetch
+      };
+    },
+    result({ data }) {
+      if (data && data.me) {
+        return (this.userReferral = data.me);
+      }
+    }
+  })
+  public userReferral?: Maybe<MeUserReferralFrag.Fragment>;
+
+  // // Local
+  private readonly numPerFetch: number = 20;
+  private tabNames: Array<{
+    text: string;
+    align?: string;
+    sortable?: boolean;
+  }> = [
+    {
+      text: 'DLive Username',
+      align: 'left',
+      sortable: false
+    },
+    { text: 'Registration Date', sortable: false },
+    { text: 'Total Donation', sortable: false },
+    { text: 'Cash Back Rate', sortable: false },
+    { text: 'Total Rewards', sortable: false }
+  ];
+
+  public onClickCopyUrl() {
+    this.$copyText(this.shareUrl).then(
+      () => {
+        this.$success('UserReferral.ReferralLinkCopied');
+      },
+      () => {
+        this.$error('UserReferral.ReferralLinkCopyFailed');
+      }
+    );
+  }
+
+  public fetchMoreUserReferral() {
+    if (this.referrals === undefined || !this.hasNextPage) {
+      return;
+    }
+    this.$apollo.queries.userReferral.fetchMore({
+      variables: {
+        first: this.numPerFetch,
+        after: this.referrals.pageInfo.endCursor
+      },
+      updateQuery: (
+        previousResult: MeUserReferral.Query,
+        { fetchMoreResult }: { fetchMoreResult?: MeUserReferral.Query }
+      ) => {
+        if (
+          fetchMoreResult === undefined ||
+          fetchMoreResult.me === null ||
+          fetchMoreResult.me.private === null
+        ) {
+          return previousResult;
+        }
+        const moreReferrals: MeUserReferralFrag.Referrals =
+          fetchMoreResult.me.private.commissionReferral.referrals;
+        let prevReferrals = previousResult.me;
+        if (prevReferrals === null || prevReferrals.private === null) {
+          prevReferrals = fetchMoreResult.me;
+        } else {
+          prevReferrals.private.commissionReferral.referrals.pageInfo =
+            moreReferrals.pageInfo;
+          prevReferrals.private.commissionReferral.referrals.list = [
+            ...prevReferrals.private.commissionReferral.referrals.list,
+            ...moreReferrals.list
+          ];
+        }
+        return {
+          me: prevReferrals
+        };
+      }
+    });
+  }
+}

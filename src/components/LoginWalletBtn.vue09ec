@@ -1,0 +1,4 @@
+var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',{staticClass:"login-wallet-btn flex-column flex-align-center clickable",on:{"click":_vm.loginClicked}},[_c('img',{attrs:{"src":require("@/assets/icon/wallet-login-icon.svg"),"width":"32px"}}),_c('span',{staticClass:"margint-3 text-12-regular"},[_vm._v("LINO")])])}
+var staticRenderFns = []
+
+export { render, staticRenderFns }

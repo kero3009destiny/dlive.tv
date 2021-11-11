@@ -1,0 +1,625 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { EVENTS } from '@/utils/constants';
+import { Component, Mixins, Prop, Watch } from 'vue-property-decorator';
+import VDliveAvatar from '@/components/VDliveAvatar.vue';
+import VDliveName from '@/components/VDliveName.vue';
+import VFollow from '@/components/VFollow.vue';
+import DToken from '@/components/DToken.vue';
+import DDialog from '@/components/DDialog.vue';
+import DShare from '@/components/DShare.vue';
+import DMenu from '@/components/DMenu.vue';
+import DMenuItem from '@/components/DMenuItem.vue';
+import VVideoPlayer from '@/components/VVideoPlayer.vue';
+import VPageNotFound from '@/components/VPageNotFound.vue';
+import MeMixin from '@/mixins/MeMixin';
+import SnackbarMixin from '@/mixins/SnackbarMixin';
+import VNoSsr from '@/components/VNoSsr.vue';
+import LivestreamChannelMobileApp from '@/components/LivestreamChannelMobileApp.vue';
+import { ApolloQuery } from '@/decorators/apollo';
+import CLIP_VIEW from '@/graphql/queries/ClipView.graphql';
+import { Maybe, ClipView as ClipViewComponent } from '@/graphql/types';
+import { namespace } from 'vuex-class';
+import { ROUTE_PAST_BROADCAST, ROUTE_LIVESTREAM } from '@/router';
+import GlobalEventBusMixin from '@/mixins/GlobalEventBusMixin';
+import {
+  clipUpvote,
+  clipUnvote,
+  clipShare,
+  clipPick,
+  clipUnpick,
+  clipDelete,
+  clipViewAdd
+} from '@/apollo/mutation/clip';
+import { VideoPage } from '@/graphql/types';
+import { MetaInfo } from 'vue-meta';
+import { Meta } from '@/decorators/meta.ts';
+import { numberToBMK } from '@/filters/filters';
+import { RawLocation } from 'vue-router';
+import { metaContentDefault } from '@/utils/meta';
+
+type ResolutionUrl = VideoPage.Resolution;
+
+const uiModule = namespace('ui');
+const dialogModule = namespace('dialog');
+
+@Component({
+  components: {
+    VDliveAvatar,
+    VDliveName,
+    VFollow,
+    DToken,
+    DShare,
+    DDialog,
+    DMenu,
+    DMenuItem,
+    VNoSsr,
+    LivestreamChannelMobileApp,
+    VVideoPlayer,
+    VPageNotFound
+  }
+})
+export default class ClipView extends Mixins(
+  MeMixin,
+  SnackbarMixin,
+  GlobalEventBusMixin
+) {
+  @Meta({
+    metaInfo(): MetaInfo {
+      return {
+        title: 'Clip · DLive',
+        meta: [
+          {
+            name: 'twitter:card',
+            content: 'player'
+          },
+          { property: 'fb:app_id', content: '2035237893356330' },
+          {
+            property: 'og:title',
+            content:
+              (this.streamer &&
+                `Clip of ${this.streamer.displayname} · DLive`) ||
+              'Clip on DLive'
+          },
+          {
+            name: 'twitter:title',
+            content:
+              (this.streamer &&
+                `Clip of ${this.streamer.displayname} · DLive`) ||
+              'Clip on DLive'
+          },
+          { property: 'og:site_name', content: 'DLive' },
+          { property: 'og:type', content: 'website' },
+          {
+            property: 'og:url',
+            content: 'https://dlive.tv' + this.$route.path
+          },
+          {
+            property: 'og:image',
+            content:
+              (this.clipView && this.clipView.thumbnailUrl) ||
+              'https://community.dlive.tv/wp-content/uploads/2019/06/Social_Icon-png.png'
+          },
+          {
+            name: 'twitter:image',
+            content:
+              (this.clipView && this.clipView.thumbnailUrl) ||
+              'https://community.dlive.tv/wp-content/uploads/2019/06/Social_Icon-png.png'
+          },
+          { property: 'og:image:width', content: '128' },
+          { property: 'og:image:height', content: '128' },
+          {
+            property: 'og:description',
+            content:
+              (this.clipView &&
+                this.streamer &&
+                this.clipView.views &&
+                `${numberToBMK(this.clipView.views)} Views - Clip of ${
+                  this.streamer.displayname
+                } on DLive. ${this.clipView.description}`) ||
+              metaContentDefault
+          },
+          {
+            vmid: 'description',
+            name: 'description',
+            content:
+              (this.clipView &&
+                this.streamer &&
+                this.clipView.views &&
+                `${numberToBMK(this.clipView.views)} Views - Clip of ${
+                  this.streamer.displayname
+                } on DLive. ${this.clipView.description}`) ||
+              metaContentDefault
+          },
+          {
+            name: 'twitter:description',
+            content:
+              (this.clipView &&
+                this.streamer &&
+                this.clipView.views &&
+                `${numberToBMK(this.clipView.views)} Views - Clip of ${
+                  this.streamer.displayname
+                } on DLive. ${this.clipView.description}`) ||
+              metaContentDefault
+          },
+          {
+            name: 'twitter:player',
+            content:
+              (this.clipID && `https://dlive.tv/embed/${this.clipID}`) || ''
+          },
+          {
+            name: 'twitter:player:width',
+            content: 566
+          },
+          {
+            name: 'twitter:player:height',
+            content: 319
+          },
+          {
+            property: 'og:video',
+            content: (this.clipView && this.clipView.url) || ''
+          },
+          {
+            property: 'og:video:width',
+            content: 400
+          },
+          {
+            property: 'og:video:height',
+            content: 300
+          }
+        ],
+        link: [
+          {
+            rel: 'canonical',
+            href:
+              (this.clipID && `https://dlive.tv/clip/${this.clipID}`) ||
+              'https://dlive.tv'
+          }
+        ]
+      };
+    }
+  })
+  public meta!: string;
+
+  @ApolloQuery({
+    prefetch: true,
+    query: CLIP_VIEW,
+    fetchPolicy: 'network-only',
+    skip() {
+      return !this.clipID;
+    },
+    variables() {
+      return {
+        id: this.clipID,
+        isLoggedIn: this.isLoggedIn
+      };
+    },
+    result() {
+      return;
+    }
+  })
+  public clip?: Maybe<ClipViewComponent.Clip>;
+
+  @Prop({
+    required: true,
+    type: String
+  })
+  public clipID!: string;
+
+  public clipShareShow: boolean = false;
+  public clipOptionMenuShow: boolean = false;
+
+  @uiModule.Getter('isMobile')
+  private isMobile!: boolean;
+  @dialogModule.Mutation('setClipPopupDialog')
+  private setClipPopupDialog!: (state: boolean) => void;
+
+  get clipView() {
+    if (this.clip !== undefined && this.clip !== null) {
+      return this.clip;
+    }
+    return undefined;
+  }
+
+  get videoPlayerSrc() {
+    const rst: ResolutionUrl[] = [
+      {
+        resolution: 'SOURCE',
+        url: this.clipView ? this.clipView.url : ''
+      }
+    ];
+    return rst;
+  }
+
+  get clippedBy() {
+    if (this.clipView !== undefined) {
+      return this.clipView.clippedBy;
+    }
+    return null;
+  }
+
+  get streamer() {
+    if (this.clipView !== undefined) {
+      return this.clipView.streamer;
+    }
+    return null;
+  }
+
+  get isClippedBy() {
+    if (this.me !== null && this.clippedBy !== null) {
+      return this.me.username === this.clippedBy.username;
+    }
+    return false;
+  }
+
+  get isStreamer() {
+    if (this.me !== null && this.streamer !== null) {
+      return this.me.username === this.streamer.username;
+    }
+    return false;
+  }
+
+  get voteIcon() {
+    if (this.clipView && this.clipView.hasUpvoted) {
+      return require('@/assets/icon/heart-red.svg');
+    }
+    return require('@/assets/icon/heart-white.svg');
+  }
+
+  get pickIcon() {
+    if (this.clipView && this.clipView.picked) {
+      return require('@/assets/icon/star-yellow.svg');
+    }
+    return require('@/assets/icon/star-white.svg');
+  }
+
+  get hasClipOption() {
+    return this.isClippedBy || this.isStreamer;
+  }
+
+  get toFullReplay() {
+    if (this.clipView) {
+      return {
+        name: ROUTE_PAST_BROADCAST,
+        params: { permlink: this.clipView.permlink }
+      };
+    }
+    return '';
+  }
+
+  get shareUrl() {
+    if (process.client) {
+      return `${window.location.href}`;
+    }
+    return 'https://dlive.tv';
+  }
+
+  get shareTitle() {
+    if (this.clippedBy && this.streamer) {
+      // if (this.me && this.me.username === this.clippedBy.username) {
+      //   return `Checkout the clip I made for ${
+      //     this.streamer.displayname
+      //   } streaming on DLive`;
+      // }
+      return `Checkout the clip of ${
+        this.streamer.displayname
+      } streaming on DLive`;
+    }
+    return '';
+  }
+
+  get shareDescription() {
+    return '';
+  }
+
+  get hashtags() {
+    return 'DLiveClips';
+  }
+
+  get twitterUser() {
+    return 'OfficialDLive';
+  }
+
+  public open() {
+    // TODO
+  }
+
+  public clipOptionMenuClose() {
+    this.clipOptionMenuShow = false;
+  }
+
+  public handleVote() {
+    if (this.requireLogin()) {
+      return;
+    }
+    if (this.clipView) {
+      if (this.clipView.hasUpvoted) {
+        clipUnvote(this, this.clipView.id);
+      } else {
+        clipUpvote(this, this.clipView.id);
+      }
+    }
+  }
+
+  public clipShareOpen() {
+    this.clipShareShow = true;
+    if (this.clipView) {
+      clipShare(this, this.clipView.id);
+    }
+  }
+
+  public handlePick() {
+    if (this.clipView) {
+      if (this.clipView.picked) {
+        clipUnpick(this, this.clipView.id);
+      } else {
+        clipPick(this, this.clipView.id);
+      }
+    }
+  }
+
+  public async clipDelete() {
+    if (this.clipView) {
+      await clipDelete(this, this.clipView.id);
+      this.closeClipPopup();
+      if (this.streamer !== null) {
+        this.$router.push({
+          name: ROUTE_LIVESTREAM,
+          params: { displayname: this.streamer.displayname }
+        });
+      }
+    }
+  }
+
+  public closeClipPopup() {
+    // window.history.back();
+    this.setClipPopupDialog(false);
+  }
+
+  public chatClick() {
+    if (this.requireLogin()) {
+      return;
+    }
+    this.$_smartPublish(EVENTS.CLIP_INPUT_FOCUS, null);
+  }
+
+  public goChannel(displayname: string) {
+    const to: RawLocation = {
+      name: ROUTE_LIVESTREAM,
+      params: {
+        displayname
+      }
+    };
+    const routeData = this.$router.resolve(to);
+    window.open(routeData.href, '_blank');
+  }
+
+  @Watch('clipID', { immediate: true })
+  public onClipID(val: string) {
+    if (val) {
+      clipViewAdd(this, val);
+    }
+  }
+}

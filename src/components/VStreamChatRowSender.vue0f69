@@ -1,0 +1,277 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import VDliveAvatar from '@/components/VDliveAvatar.vue';
+import VDliveName from '@/components/VDliveName.vue';
+import { ROLES } from '@/models/role';
+import {
+  VStreamChatRowSenderFrag,
+  VStreamChatRowSenderInfoStreamerFrag,
+  RoomRole,
+  Role,
+  BadgeType
+} from '@/graphql/types';
+import { Component, Prop, Vue } from 'vue-property-decorator';
+
+@Component({
+  components: {
+    VDliveAvatar,
+    VDliveName
+  }
+})
+export default class VStreamChatRowSender extends Vue {
+  @Prop({ required: true })
+  public senderInfo!: VStreamChatRowSenderFrag.Fragment;
+
+  @Prop({ required: true })
+  public streamerInfo!: VStreamChatRowSenderInfoStreamerFrag.Fragment;
+
+  @Prop({
+    required: false,
+    default: false
+  })
+  public withColon!: boolean;
+
+  get isSubscriber() {
+    if (this.senderInfo !== undefined) {
+      return this.senderInfo.subscribing;
+    }
+    return false;
+  }
+
+  get hasWarriorBadge() {
+    if (this.senderInfo !== undefined) {
+      const badges = this.senderInfo.sender.badges;
+      return badges.length !== 0 && badges.includes(BadgeType.EngagementBadge);
+    }
+    return false;
+  }
+
+  get hasFoundingMemberBadge() {
+    if (this.senderInfo !== undefined) {
+      const badges = this.senderInfo.sender.badges;
+      return badges.length !== 0 && badges.includes(BadgeType.FoundingMember);
+    }
+    return false;
+  }
+
+  get hasCryptoSuperstarBadge() {
+    if (this.senderInfo !== undefined) {
+      const badges = this.senderInfo.sender.badges;
+      return badges.length !== 0 && badges.includes(BadgeType.CryptoSuperstar);
+    }
+    return false;
+  }
+  get hasValentineBadge() {
+    if (this.senderInfo !== undefined) {
+      const badges = this.senderInfo.sender.badges;
+      return badges.length !== 0 && badges.includes(BadgeType.ValentineBadge);
+    }
+    return false;
+  }
+  get hasChristmasTreeBadge() {
+    if (this.senderInfo !== undefined) {
+      const badges = this.senderInfo.sender.badges;
+      return badges.length !== 0 && badges.includes(BadgeType.ChristmasTree);
+    }
+    return false;
+  }
+  get hasSantaBadge() {
+    if (this.senderInfo !== undefined) {
+      const badges = this.senderInfo.sender.badges;
+      return badges.length !== 0 && badges.includes(BadgeType.Santa);
+    }
+    return false;
+  }
+
+  get subscriptionSetting() {
+    if (this.streamerInfo !== undefined) {
+      return this.streamerInfo.subSetting;
+    }
+    return null;
+  }
+
+  get getRole() {
+    if (this.senderInfo.roomRole === RoomRole.Owner) {
+      return RoomRole.Owner;
+    }
+    if (this.senderInfo.role === Role.Staff) {
+      return Role.Staff;
+    }
+    if (this.senderInfo.roomRole === RoomRole.Moderator) {
+      return RoomRole.Moderator;
+    }
+    if (this.senderInfo.role === Role.Guardian) {
+      return Role.Guardian;
+    }
+    if (this.senderInfo.role === Role.Bot) {
+      return Role.Bot;
+    }
+    return RoomRole.Member;
+  }
+
+  get roleIcon() {
+    return { avatar: ROLES[this.getRole].img };
+  }
+
+  get roleTooltip() {
+    return ROLES[this.getRole].label;
+  }
+
+  get badgeStyle() {
+    if (
+      this.subscriptionSetting === undefined ||
+      this.subscriptionSetting === null
+    ) {
+      return '';
+    }
+    const style = `background: ${this.subscriptionSetting.badgeColor}; color: ${
+      this.subscriptionSetting.textColor
+    }`;
+    return style;
+  }
+
+  get darkMode() {
+    return this.$store.getters['userMeta/darkMode'];
+  }
+}

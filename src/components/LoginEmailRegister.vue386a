@@ -1,0 +1,233 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import VGrecaptcha from '@/components/VGrecaptcha.vue';
+import DDivider from '@/components/DDivider.vue';
+import DBtn from '@/components/DBtn.vue';
+import DTextField from '@/components/DTextField.vue';
+import VTextFieldDisplayName from '@/components/VTextFieldDisplayName.vue';
+import SnackbarMixin from '@/mixins/SnackbarMixin';
+import { DeviceType } from '@/graphql/types';
+import { Component, Mixins } from 'vue-property-decorator';
+import REGISTER_WITH_EMAIL from '@/graphql/mutations/RegisterWithEmail.graphql';
+import { RegisterWithEmail } from '@/graphql/types';
+import EmailValidationMixin from '@/mixins/EmailValidationMixin';
+import GlobalEventBusMixin from '@/mixins/GlobalEventBusMixin';
+import { ReferrerGQL } from '@/store/userMeta/types';
+import { passwordValidation } from '@/utils/passwordValidation';
+import LoginWalletBtn from '@/components/LoginWalletBtn.vue';
+import LoginThirdPartyBtn from '@/components/LoginThirdPartyBtn.vue';
+import { dataPoint } from '@/plugins/dataCollection';
+import { EVENTS } from '@/utils/constants';
+import { Ads } from '@/store/userMeta/types';
+
+import { namespace } from 'vuex-class';
+
+const userMetaModule = namespace('userMeta');
+const accessTokenModule = namespace('accessToken');
+const bannerModule = namespace('banner');
+
+@Component({
+  components: {
+    VGrecaptcha,
+    LoginWalletBtn,
+    LoginThirdPartyBtn,
+    DDivider,
+    DBtn,
+    DTextField,
+    VTextFieldDisplayName
+  }
+})
+export default class LoginEmailRegister extends Mixins(
+  SnackbarMixin,
+  EmailValidationMixin, // FIXME: use VTextFieldEmail
+  GlobalEventBusMixin
+) {
+  get registerCheck() {
+    if (
+      this.email &&
+      this.pwd &&
+      this.displayname &&
+      (this.$refs.displaynameTextfield as VTextFieldDisplayName).valid &&
+      // this.emailVerificationCode &&
+      this.emailErrors.length === 0 &&
+      this.passErrors.length === 0 &&
+      this.verifyCodeErrors.length === 0
+    ) {
+      return false;
+    } else {
+      return true;
+    }
+  }
+  @accessTokenModule.Mutation('setAccessToken')
+  public setAccessToken!: (token: string) => void;
+
+  @userMetaModule.Getter('referrer')
+  private referrer!: ReferrerGQL | null;
+  @userMetaModule.Getter('langCode')
+  private langCode!: string;
+  @userMetaModule.Action('fetchFingerprint')
+  private getFingerprint!: () => Promise<string>;
+  @userMetaModule.Getter('ads')
+  private ads!: Ads;
+  @bannerModule.Mutation('setEmailConfirm')
+  private setEmailConfirm!: (status: boolean) => void;
+
+  private pwd: string = '';
+  private displayname: string = '';
+  private passErrors: string[] = [];
+
+  private pwdMinLength: number = 8;
+  private pwdMaxLength: number = 20;
+  private signupLoading: boolean = false;
+
+  public onPwdInput(pwd: string) {
+    this.pwd = pwd;
+    const passwordError = passwordValidation(pwd);
+    if (passwordError !== '') {
+      this.passErrors = [this.$t(passwordError) as string];
+    } else {
+      this.passErrors = [];
+    }
+  }
+
+  public async emailRegisterClicked() {
+    this.signupLoading = true;
+    try {
+      // TODO(@ryan):  Fingerprint in vuex action
+      // const fingerprint = await this.getFingerprint();
+      await this.getFingerprint();
+      const token = await (this.$refs.grecaptcha as VGrecaptcha).execute();
+      if (token === null) {
+        this.signupLoading = false;
+        this.$error('LoginEmailRegisterCallback.RecaptchaFailed');
+        return;
+      }
+      const variables: RegisterWithEmail.Variables = {
+        email: this.email,
+        password: this.pwd,
+        recaptchaToken: token,
+        deviceType: DeviceType.Web,
+        displayname: this.displayname,
+        referrer: this.referrer !== null ? this.referrer.referrer : undefined,
+        referralSource:
+          this.referrer !== null ? this.referrer.source : undefined,
+        language: this.langCode
+      };
+      const mutation = REGISTER_WITH_EMAIL;
+      const { data } = await this.$apollo.mutate<RegisterWithEmail.Mutation>({
+        mutation,
+        variables
+      });
+      this.signupLoading = false;
+      const resp = data.registerWithEmail;
+      this.$handleError(resp.err, mutation, variables);
+      if (resp.me !== null && resp.me.private !== null) {
+        this.setAccessToken(resp.me.private.accessToken);
+      }
+      this.email = '';
+      this.pwd = '';
+      this.dataTrack();
+      this.$successPlain(this.displayname + ' Welcome to DLive!');
+      this.$emit('closeDialog');
+      this.setEmailConfirm(true);
+      this.$_smartPublish(EVENTS.TOGGLE_REGISTER_RECOMMEND, true);
+      this.reportGoogleAWSignup();
+    } catch (err) {
+      this.signupLoading = false;
+      dataPoint('register_sign_up', {
+        eventCategory: 'email',
+        eventLabel: 'err'
+      });
+      throw err;
+    }
+  }
+
+  public dataTrack() {
+    dataPoint('register_sign_up', {
+      eventCategory: 'email',
+      eventLabel: 'success'
+    });
+
+    fbq('track', 'CompleteRegistration');
+    if (this.ads) {
+      dataPoint('register_ads', {
+        eventCategory: this.ads.from,
+        eventLabel: this.ads.id
+      });
+    }
+  }
+
+  private reportGoogleAWSignup() {
+    /*global gtag_report_conversion */
+    /*eslint no-undef: "error"*/
+    // @ts-ignore
+    gtag_report_conversion();
+  }
+}

@@ -1,0 +1,38 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { Component, Vue } from 'vue-property-decorator';
+import { LANGUAGE_ITEMS } from '@/models/languageItem';
+import { namespace } from 'vuex-class';
+import { LangObj } from '@/store/userMeta/types';
+import DMenuItem from '@/components/DMenuItem.vue';
+
+const userMetaModule = namespace('userMeta');
+
+@Component({
+  components: {
+    DMenuItem
+  }
+})
+export default class NavLoginLegalLanguages extends Vue {
+  get languageItems() {
+    return LANGUAGE_ITEMS;
+  }
+
+  @userMetaModule.Action('loadLanguage')
+  private loadLanguage!: (lang: LangObj) => void;
+
+  public changeChatMode(langCode: string) {
+    this.loadLanguage({ langCode, context: this });
+  }
+}

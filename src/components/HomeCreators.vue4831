@@ -1,0 +1,208 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { LINO_TOP_CREATORS_DUMMY_DELTA } from '@/utils/constants';
+import VDliveAvatar from '@/components/VDliveAvatar.vue';
+import VDliveName from '@/components/VDliveName.vue';
+import DToken from '@/components/DToken.vue';
+import DDivider from '@/components/DDivider.vue';
+import { LeaderboardFrag } from '@/graphql/types';
+import { Component, Prop, Vue } from 'vue-property-decorator';
+import { ROUTE_LIVESTREAM } from '@/router';
+
+@Component({
+  components: {
+    VDliveAvatar,
+    VDliveName,
+    DToken,
+    DDivider
+  }
+})
+export default class HomeCreators extends Vue {
+  @Prop({
+    required: true
+  })
+  public leaderboard!: LeaderboardFrag.Fragment;
+
+  get leaderList() {
+    if (this.leaderboard !== undefined && this.leaderboard.list !== undefined) {
+      return this.leaderboard.list;
+    }
+    return [];
+  }
+
+  get tableSize() {
+    return 10;
+  }
+
+  public routeTo(displayname: string) {
+    return { name: ROUTE_LIVESTREAM, params: { displayname } };
+  }
+
+  public shouldShowChange(change: number) {
+    return change !== 0 && change !== LINO_TOP_CREATORS_DUMMY_DELTA;
+  }
+}

@@ -1,0 +1,26 @@
+
+    var doc = {"kind":"Document","definitions":[{"kind":"FragmentDefinition","name":{"kind":"Name","value":"VStreamChatroomHeaderFrag"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"User"}},"directives":[],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"username"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"displayname"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"donateDisabled"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"subscribeDisabled"},"arguments":[],"directives":[]},{"kind":"FragmentSpread","name":{"kind":"Name","value":"EmojiFrag"},"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"livestream"},"arguments":[],"directives":[],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"permlink"},"arguments":[],"directives":[]}]}},{"kind":"FragmentSpread","name":{"kind":"Name","value":"VTopContributorsFrag"},"directives":[]}]}}],"loc":{"start":0,"end":265}};
+    doc.loc.source = {"body":"#import './VTopContributors.graphql'\n#import './EmojiFrag.graphql'\n\nfragment VStreamChatroomHeaderFrag on User {\n  id\n  username\n  displayname\n    donateDisabled\n    subscribeDisabled\n  ...EmojiFrag\n  livestream {\n    id\n    permlink\n  }\n  ...VTopContributorsFrag\n}","name":"GraphQL request","locationOffset":{"line":1,"column":1}};
+  
+
+    var names = {};
+    function unique(defs) {
+      return defs.filter(
+        function(def) {
+          if (def.kind !== 'FragmentDefinition') return true;
+          var name = def.name.value
+          if (names[name]) {
+            return false;
+          } else {
+            names[name] = true;
+            return true;
+          }
+        }
+      )
+    }
+  doc.definitions = doc.definitions.concat(unique(require('./VTopContributors.graphql').definitions));
+doc.definitions = doc.definitions.concat(unique(require('./EmojiFrag.graphql').definitions));
+
+
+      module.exports = doc;
+    

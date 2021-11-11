@@ -1,0 +1,4 @@
+var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return (_vm.showPinnenStreak)?_c('div',{staticClass:"width-100 paddinglr-4"},[_c('d-divider'),_c('div',{staticClass:"margint-4"},[_c('i18n',{attrs:{"path":"PinnedStreak.CelebrateText"}},[_c('span',{attrs:{"place":"length"}},[_vm._v(" "+_vm._s(_vm.streamerInfo.mySubscription.subStreak))])])],1),_c('div',{staticClass:"flex-justify-end flex-wrap margintb-4"},[_c('d-btn',{staticClass:"text-12-medium",attrs:{"type":"btnB"},on:{"click":_vm.dismissClicked}},[_vm._v(" "+_vm._s(_vm.$t('GiftSub.DismissButton'))+" ")]),_c('d-btn',{staticClass:"text-12-medium marginl-4",attrs:{"type":"btnC"},on:{"click":_vm.subStreakCheer}},[_vm._v(" "+_vm._s(_vm.$t('PinnedStreak.CelebrateNow'))+" ")])],1)],1):_vm._e()}
+var staticRenderFns = []
+
+export { render, staticRenderFns }

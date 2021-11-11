@@ -1,0 +1,137 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// FIXME: remove eslint ignore
+/* eslint @typescript-eslint/no-explicit-any: 0 */
+import VueCropper from 'vue-cropperjs';
+import { Component, Prop, Vue } from 'vue-property-decorator';
+import DBtn from '@/components/DBtn.vue';
+
+interface CropperJSParam {
+  fillColor?: string;
+}
+
+@Component({
+  components: {
+    VueCropper,
+    DBtn
+  }
+})
+export default class VImageCropper extends Vue {
+  @Prop({ default: 'auto' })
+  public height!: string;
+  @Prop({ default: 'auto' })
+  public width!: string;
+  @Prop({ default: 16 / 9 })
+  public aspectRatio!: number;
+  @Prop({ default: false })
+  public allowTransparent!: boolean;
+
+  @Prop({
+    default: ''
+  })
+  public fileType!: 'video' | 'image' | 'emote' | 'clip' | 'emoji' | '';
+  get componentSize() {
+    return { height: this.height, width: this.width };
+  }
+
+  public imgSrc: string = '';
+  public showCropper: boolean = false;
+  public resolve: any = null;
+  public cropImgCanvas: any; // The canvas object.
+
+  public cropImage(file: any) {
+    if (!file.type.includes('image/')) {
+      throw new Error('VImageCropper: image type error');
+    }
+    // XXX(yumin): do we need to make sure FileReader exists?
+    const reader = new FileReader();
+    reader.onload = event => {
+      if (event.target !== null) {
+        // https://stackoverflow.com/questions/35789498/new-typescript-1-8-4-build-error-build-property-result-does-not-exist-on-t
+        const target: any = event.target;
+        this.imgSrc = target.result;
+        // rebuild cropperjs with the updated source
+        (this.$refs.cropper as any).replace(target.result);
+      }
+    };
+    reader.readAsDataURL(file);
+    const croppedImg = new Promise<any>(resolve => {
+      this.resolve = resolve;
+    });
+    this.showCropper = true;
+    return croppedImg;
+  }
+
+  public async onClickCropImage() {
+    const params: CropperJSParam = {};
+    if (!this.allowTransparent) {
+      params.fillColor = '#fff';
+    }
+    this.cropImgCanvas = (this.$refs.cropper as any).getCroppedCanvas(params);
+    // polyfill for blob.
+    if (!HTMLCanvasElement.prototype.toBlob) {
+      Object.defineProperty(HTMLCanvasElement.prototype, 'toBlob', {
+        value(callback: (blob: Blob) => void, type: string, quality: any) {
+          const canvas = this as HTMLCanvasElement;
+          setTimeout(() => {
+            const binStr = atob(canvas.toDataURL(type, quality).split(',')[1]);
+            const len = binStr.length;
+            const arr = new Uint8Array(len);
+            for (let i = 0; i < len; i++) {
+              arr[i] = binStr.charCodeAt(i);
+            }
+            callback(new Blob([arr], { type: type || 'image/png' }));
+          });
+        }
+      });
+    }
+
+    this.cropImgCanvas.toBlob(
+      (blob: Blob) => {
+        this.resolve(blob);
+      },
+      'image/png',
+      1
+    );
+  }
+
+  public onClickCancel() {
+    this.resolve(null);
+  }
+}

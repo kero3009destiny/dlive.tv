@@ -1,0 +1,410 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { Component, Mixins, Prop } from 'vue-property-decorator';
+import VDliveAvatar from '@/components/VDliveAvatar.vue';
+import VDliveName from '@/components/VDliveName.vue';
+import DMenu from '@/components/DMenu.vue';
+import DMenuItem from '@/components/DMenuItem.vue';
+import DTextField from '@/components/DTextField.vue';
+import ClipCommentReply from '@/components/ClipCommentReply.vue';
+import {
+  Maybe,
+  ClipComment,
+  ClipCommentItemFrag,
+  ClipCommentLikeAction,
+  ClipCommentReplies
+} from '@/graphql/types';
+import MeMixin from '@/mixins/MeMixin';
+import SnackbarMixin from '@/mixins/SnackbarMixin';
+import CLIP_COMMENT_REPLIES from '@/graphql/queries/ClipCommentReplies.graphql';
+import {
+  clipCommentLike,
+  clipComment,
+  clipCommentDelete,
+  clipCommentDeleteAndMute
+} from '@/apollo/mutation/clip';
+import { ApolloQuery } from '@/decorators/apollo';
+import { ROUTE_LIVESTREAM } from '@/router';
+import { RawLocation } from 'vue-router';
+
+@Component({
+  components: {
+    VDliveAvatar,
+    VDliveName,
+    DTextField,
+    ClipCommentReply,
+    DMenu,
+    DMenuItem
+  }
+})
+export default class ClipCommentItem extends Mixins(MeMixin, SnackbarMixin) {
+  @ApolloQuery({
+    query: CLIP_COMMENT_REPLIES,
+    skip() {
+      return !this.comment || !this.replyShow;
+    },
+    variables() {
+      return {
+        id: this.comment.id,
+        first: this.numPerFetch
+      };
+    },
+    result() {
+      return;
+    }
+  })
+  public clipCommentReplies?: Maybe<ClipCommentReplies.ClipCommentReplies>;
+
+  @Prop({
+    required: true,
+    type: Object
+  })
+  public comment!: ClipCommentItemFrag.Fragment;
+
+  @Prop({
+    required: true,
+    type: String
+  })
+  public clipID!: string;
+
+  @Prop({
+    required: true,
+    type: Object
+  })
+  public streamerInfo!: ClipComment.Streamer;
+
+  @Prop({
+    required: true,
+    type: String
+  })
+  public from!: 'latest' | 'mostLike';
+
+  get hasClipCommentOption() {
+    return this.isStreamer || this.isCommenter;
+  }
+
+  get isMyComment() {
+    if (this.me !== null && this.comment !== undefined) {
+      return this.me.username === this.comment.author.username;
+    }
+    return false;
+  }
+
+  get isStreamer() {
+    if (this.me !== null && this.streamerInfo !== undefined) {
+      return this.me.username === this.streamerInfo.username;
+    }
+    return false;
+  }
+
+  get isCommenter() {
+    if (this.me !== null && this.comment !== undefined) {
+      return this.me.username === this.comment.author.username;
+    }
+    return false;
+  }
+
+  get commentReplyList() {
+    if (
+      this.clipCommentReplies !== undefined &&
+      this.clipCommentReplies !== null
+    ) {
+      return this.clipCommentReplies.list;
+    }
+    return [];
+  }
+
+  get likeIcon() {
+    if (this.comment && this.comment.liked) {
+      return require('@/assets/icon/heart-red.svg');
+    }
+    return require('@/assets/icon/heart-white.svg');
+  }
+
+  get hasMoreReply() {
+    if (
+      this.clipCommentReplies !== undefined &&
+      this.clipCommentReplies !== null
+    ) {
+      return this.clipCommentReplies.pageInfo.hasNextPage;
+    }
+    return false;
+  }
+
+  public replyShow: boolean = false;
+  public replyInputShow: boolean = false;
+  public replyInput: string = '';
+  public clipCommentOptionMenuShow: boolean = false;
+  public newReplyList: ClipCommentItemFrag.Fragment[] = [];
+  public numPerFetch: number = 10;
+
+  public toggleReplyShow() {
+    this.replyShow = !this.replyShow;
+  }
+
+  public goChannel() {
+    const to: RawLocation = {
+      name: ROUTE_LIVESTREAM,
+      params: {
+        displayname: this.comment.author.displayname
+      }
+    };
+    const routeData = this.$router.resolve(to);
+    window.open(routeData.href, '_blank');
+  }
+
+  public async commentReply() {
+    const resp = await clipComment(
+      this,
+      this.replyInput,
+      this.clipID,
+      this.from === 'latest' ? 10 : 3,
+      this.comment.id,
+      undefined,
+      this.clipCommentReplies !== undefined
+    );
+    if (resp) {
+      this.newReplyList.push(resp);
+    }
+    this.replyInput = '';
+    this.replyInputShow = false;
+  }
+
+  public clipCommentLike() {
+    if (this.requireLogin()) {
+      return;
+    }
+    clipCommentLike(
+      this,
+      this.comment.id,
+      this.comment.liked
+        ? ClipCommentLikeAction.Unlike
+        : ClipCommentLikeAction.Like
+    );
+  }
+
+  public replyLike(data: { replyID: string; state: boolean }) {
+    this.newReplyList.forEach(reply => {
+      if (reply.id === data.replyID) {
+        reply.liked = data.state;
+        reply.likeCount += data.state ? 1 : -1;
+      }
+    });
+  }
+
+  public newReplyDelete(replyID: string) {
+    this.newReplyList = this.newReplyList.filter(reply => {
+      return reply.id !== replyID;
+    });
+  }
+
+  public replyInputOpen() {
+    if (this.requireLogin()) {
+      return;
+    }
+    this.replyInputShow = true;
+  }
+
+  public async clipCommentDelete() {
+    await clipCommentDelete(this, this.comment.id, this.clipID, this.from);
+  }
+
+  public async clipCommentDeleteAndMute() {
+    await clipCommentDeleteAndMute(
+      this,
+      this.comment.id,
+      this.clipID,
+      this.from
+    );
+  }
+
+  public clipCommentOptionMenuClose() {
+    this.clipCommentOptionMenuShow = false;
+  }
+
+  public commentReplySubmit(resp: ClipCommentItemFrag.Fragment) {
+    this.newReplyList.push(resp);
+  }
+
+  public fetchMoreClipReply() {
+    if (!this.clipCommentReplies || !this.hasMoreReply) {
+      return;
+    }
+    this.$apollo.queries.clipCommentReplies.fetchMore({
+      variables: {
+        displayname: this.comment.id,
+        first: this.numPerFetch,
+        after: this.clipCommentReplies.pageInfo.endCursor
+      },
+      updateQuery: (
+        previousResult: ClipCommentReplies.Query,
+        { fetchMoreResult }: { fetchMoreResult?: ClipCommentReplies.Query }
+      ) => {
+        if (
+          fetchMoreResult === undefined ||
+          fetchMoreResult.clipCommentReplies === null
+        ) {
+          return previousResult;
+        }
+        const moreReplies: ClipCommentReplies.ClipCommentReplies =
+          fetchMoreResult.clipCommentReplies;
+        let prevReplies = previousResult.clipCommentReplies;
+        if (prevReplies === null) {
+          prevReplies = fetchMoreResult.clipCommentReplies;
+        } else {
+          prevReplies.pageInfo = moreReplies.pageInfo;
+          prevReplies.list = [...prevReplies.list, ...moreReplies.list];
+        }
+        return {
+          clipCommentReplies: prevReplies
+        };
+      }
+    });
+  }
+}

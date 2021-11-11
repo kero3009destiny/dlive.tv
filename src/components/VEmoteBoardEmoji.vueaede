@@ -1,0 +1,123 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { EVENTS } from '@/utils/constants';
+import {
+  EmojiVipFrag,
+  EmoteBoardStreamerFrag,
+  EmoteLevel
+} from '../graphql/types';
+import GlobalEventBusMixin from '@/mixins/GlobalEventBusMixin';
+import MeMixin from '@/mixins/MeMixin';
+
+import { Component, Prop, Mixins } from 'vue-property-decorator';
+
+@Component
+export default class VEmoteBoardEmoji extends Mixins(
+  GlobalEventBusMixin,
+  MeMixin
+) {
+  get deleteIcon() {
+    return require('@/assets/icon/delete-emote-darkmode.svg');
+  }
+  get needSub() {
+    if (
+      (this.streamerInfo &&
+        this.streamerInfo.mySubscription &&
+        this.streamerInfo.mySubscription.isSubscribing) ||
+      this.emoji.level !== EmoteLevel.VipLevel ||
+      this.emoji.username !== this.streamerInfo.username ||
+      (this.me && this.emoji.username === this.me.username)
+    ) {
+      return false;
+    } else {
+      return true;
+    }
+  }
+  @Prop({
+    required: true
+  })
+  public emoji!: EmojiVipFrag.List;
+
+  @Prop({
+    required: false,
+    default: false
+  })
+  public showOperate!: boolean;
+
+  @Prop({
+    required: true
+  })
+  public streamerInfo!: EmoteBoardStreamerFrag.Fragment;
+
+  get isBanned() {
+    if (this.streamerInfo.chatBannedEmoji) {
+      return this.streamerInfo.chatBannedEmoji.includes(this.emoji.name);
+    } else {
+      return false;
+    }
+  }
+  public clickEmoji() {
+    if (this.needSub) {
+      this.$_smartPublish(EVENTS.EMOTE_BOARD_SUB, true);
+    } else {
+      this.$emit('clickEmoji', this.emoji);
+    }
+  }
+  public deleteEmote() {
+    this.$emit('delete', this.emoji);
+  }
+}

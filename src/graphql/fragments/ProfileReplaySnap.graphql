@@ -1,0 +1,24 @@
+
+    var doc = {"kind":"Document","definitions":[{"kind":"FragmentDefinition","name":{"kind":"Name","value":"ProfileReplaySnapFrag"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"PastBroadcast"}},"directives":[],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"permlink"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"thumbnailUrl"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"title"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"length"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"totalReward"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"createdAt"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"viewCount"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"playbackUrl"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"creator"},"arguments":[],"directives":[],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"displayname"},"arguments":[],"directives":[]}]}},{"kind":"Field","name":{"kind":"Name","value":"resolution"},"arguments":[],"directives":[],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"resolution"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"url"},"arguments":[],"directives":[]}]}}]}}],"loc":{"start":0,"end":228}};
+    doc.loc.source = {"body":"fragment ProfileReplaySnapFrag on PastBroadcast {\n  permlink\n  thumbnailUrl\n  title\n  length\n  totalReward\n  createdAt\n  viewCount\n  playbackUrl\n  creator {\n    id\n    displayname\n  }\n  resolution {\n    resolution\n    url\n  }\n}\n","name":"GraphQL request","locationOffset":{"line":1,"column":1}};
+  
+
+    var names = {};
+    function unique(defs) {
+      return defs.filter(
+        function(def) {
+          if (def.kind !== 'FragmentDefinition') return true;
+          var name = def.name.value
+          if (names[name]) {
+            return false;
+          } else {
+            names[name] = true;
+            return true;
+          }
+        }
+      )
+    }
+  
+
+      module.exports = doc;
+    

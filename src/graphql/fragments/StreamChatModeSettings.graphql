@@ -1,0 +1,24 @@
+
+    var doc = {"kind":"Document","definitions":[{"kind":"FragmentDefinition","name":{"kind":"Name","value":"StreamChatModeSettingsFrag"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"User"}},"directives":[],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"chatMode"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"emoteMode"},"arguments":[],"directives":[],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"NoMineEmote"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"NoGlobalEmote"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"NoAllEmote"},"arguments":[],"directives":[]}]}},{"kind":"Field","name":{"kind":"Name","value":"chatVerifiedOnly"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"chatLinkDisabled"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"chatInterval"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"followChatDelay"},"arguments":[],"directives":[]}]}}],"loc":{"start":0,"end":202}};
+    doc.loc.source = {"body":"fragment StreamChatModeSettingsFrag on User {\n  id\n  chatMode\n  emoteMode {\n    NoMineEmote\n    NoGlobalEmote\n    NoAllEmote\n  }\n  chatVerifiedOnly\n  chatLinkDisabled\n  chatInterval\n  followChatDelay\n}\n","name":"GraphQL request","locationOffset":{"line":1,"column":1}};
+  
+
+    var names = {};
+    function unique(defs) {
+      return defs.filter(
+        function(def) {
+          if (def.kind !== 'FragmentDefinition') return true;
+          var name = def.name.value
+          if (names[name]) {
+            return false;
+          } else {
+            names[name] = true;
+            return true;
+          }
+        }
+      )
+    }
+  
+
+      module.exports = doc;
+    

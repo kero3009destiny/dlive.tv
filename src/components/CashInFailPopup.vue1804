@@ -1,0 +1,53 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import DDialog from '@/components/DDialog.vue';
+import { Component, Vue, Watch } from 'vue-property-decorator';
+import { namespace } from 'vuex-class';
+
+const dialogModule = namespace('dialog');
+
+@Component({
+  components: {
+    DDialog
+  }
+})
+export default class CashInFailPopup extends Vue {
+  public showCashinFailDialog: boolean = true;
+
+  @dialogModule.Mutation('setCashInFaliDialog')
+  private setCashInFaliDialog!: (status: boolean) => void;
+
+  @Watch('showCashinFailDialog')
+  public onShowCashinFailDialog(val: boolean, oldVal: boolean) {
+    if (!val && oldVal) {
+      this.setCashInFaliDialog(false);
+    }
+  }
+}

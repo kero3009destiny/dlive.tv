@@ -1,0 +1,384 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { ApolloQuery } from '@/decorators/apollo';
+import VDliveAvatar from '@/components/VDliveAvatar.vue';
+import VDliveName from '@/components/VDliveName.vue';
+import DMenu from '@/components/DMenu.vue';
+import DToken from '@/components/DToken.vue';
+import DDivider from '@/components/DDivider.vue';
+import DMenuItem from '@/components/DMenuItem.vue';
+import {
+  Maybe,
+  VTopContributorsFrag,
+  TopContributors,
+  ContributionSummaryRule,
+  TopContributorsOfStreamerFrag
+} from '@/graphql/types';
+import TOP_CONTRIBUTORS from '@/graphql/queries/TopContributors.graphql';
+import { throttle } from 'throttle-debounce';
+import { Component, Prop, Mixins, Watch } from 'vue-property-decorator';
+import clickaway from 'vue-clickaway';
+
+@Component({
+  components: {
+    VDliveAvatar,
+    VDliveName,
+    DMenu,
+    DMenuItem,
+    DToken,
+    DDivider
+  }
+})
+export default class VTopContributors extends Mixins(clickaway.mixin) {
+  @ApolloQuery({
+    query: TOP_CONTRIBUTORS,
+    fetchPolicy: 'network-only',
+    variables(): TopContributors.Variables {
+      return {
+        displayname: this.displayname,
+        first: 3,
+        rule: this.selectedOption.rule,
+        queryStream:
+          this.selectedOption.rule !== ContributionSummaryRule.ThisMonth &&
+          this.selectedOption.rule !== ContributionSummaryRule.AllTime
+      };
+    },
+    skip() {
+      return this.displayname === undefined || this.displayname === '';
+    }
+  })
+  public userByDisplayName?: Maybe<TopContributors.UserByDisplayName>;
+
+  @Prop({
+    required: true
+  })
+  public streamerInfo!: VTopContributorsFrag.Fragment;
+
+  @Prop({
+    required: false,
+    default: ''
+  })
+  public displayname!: string;
+
+  // Local -------------------------------------------------------
+  public shouldShowMore: boolean = false;
+  public offlineOptions: Array<{
+    rule: ContributionSummaryRule | string;
+    label: string;
+  }> = [
+    { rule: ContributionSummaryRule.ThisMonth, label: 'This month' },
+    { rule: ContributionSummaryRule.AllTime, label: 'All time' }
+  ];
+  public onlineOptions: {
+    rule: ContributionSummaryRule | string;
+    label: string;
+  } = {
+    rule: 'THIS_STREAM',
+    label: 'This stream'
+  };
+  public selectedOption = this.topContributorsOptions[0];
+  public contributorOptionMenuShow: boolean = false;
+  public throttleFetchMoreTopContributors: () => void = throttle(
+    500,
+    this.fetchMoreTopContributors,
+    false
+  );
+
+  // Computed ----------------------------------------------------
+  get isLive() {
+    if (this.streamerInfo !== undefined && this.streamerInfo !== null) {
+      return this.streamerInfo.livestream !== null;
+    }
+    return false;
+  }
+
+  get topContributorsOptions() {
+    if (this.isLive) {
+      return [this.onlineOptions, ...this.offlineOptions];
+    }
+    return this.offlineOptions;
+  }
+
+  get topContributors() {
+    if (
+      this.userByDisplayName === undefined ||
+      this.userByDisplayName === null
+    ) {
+      return null;
+    }
+    if (this.userByDisplayName.topContributions !== undefined) {
+      return this.userByDisplayName.topContributions;
+    } else if (this.userByDisplayName.livestream !== null) {
+      return this.userByDisplayName.livestream.topContributions;
+    } else {
+      return null;
+    }
+  }
+
+  get topContributorList() {
+    if (this.topContributors !== null) {
+      return this.topContributors.list;
+    } else {
+      return [];
+    }
+  }
+
+  get top3contributors() {
+    return this.topContributorList.slice(0, 3);
+  }
+
+  get top10contributors() {
+    return this.topContributorList.slice(3);
+  }
+
+  get hasShowMoreIcon() {
+    return this.top3contributors.length === 3;
+  }
+
+  // Function ----------------------------------------------------------------------------------
+  // public routeTo(displayname: string) {
+  //   window.open(`/${displayname}`);
+  // }
+
+  public crownIcon(index: number) {
+    switch (index) {
+      case 0:
+        return require(`@/assets/icon/crown-gold-icon.svg`);
+      case 1:
+        return require(`@/assets/icon/crown-silver-icon.svg`);
+      case 2:
+        return require(`@/assets/icon/crown-copper-icon.svg`);
+      default:
+        return '';
+    }
+  }
+
+  public outlineColor(index: number) {
+    switch (index) {
+      case 0:
+        return '#ffd300';
+      case 1:
+        return '#aaaaaa';
+      case 2:
+        return '#856f4e';
+      default:
+        return '';
+    }
+  }
+
+  public selectOption(option: {
+    rule: ContributionSummaryRule | string;
+    label: string;
+  }) {
+    this.selectedOption = option;
+  }
+
+  public toggleMoreContributor() {
+    this.shouldShowMore = !this.shouldShowMore;
+    if (this.shouldShowMore) {
+      this.throttleFetchMoreTopContributors();
+    }
+  }
+
+  public closeMoreContributor() {
+    this.shouldShowMore = false;
+  }
+
+  public fetchMoreTopContributors() {
+    if (
+      this.topContributors === null ||
+      !this.topContributors.pageInfo.hasNextPage
+    ) {
+      return;
+    }
+    this.$apollo.queries.userByDisplayName.fetchMore({
+      variables: {
+        displayname: this.displayname,
+        first: 10,
+        rule: this.selectedOption.rule,
+        queryStream: this.selectedOption.rule === 'THIS_STREAM'
+      },
+      updateQuery: (
+        previousResult: TopContributors.Query,
+        { fetchMoreResult }: { fetchMoreResult?: TopContributors.Query }
+      ) => {
+        if (
+          fetchMoreResult === undefined ||
+          fetchMoreResult.userByDisplayName === null
+        ) {
+          return previousResult;
+        }
+        return {
+          userByDisplayName: fetchMoreResult.userByDisplayName
+        };
+      }
+    });
+  }
+
+  // XXX(jiayi): close top 10 list when top 3 updated
+  @Watch('top10contributors')
+  public onTop3contributors(val: TopContributorsOfStreamerFrag.List[]) {
+    if (val.length === 0) {
+      this.closeMoreContributor();
+    }
+  }
+
+  @Watch('isLive')
+  public onIsLive(val: boolean) {
+    if (val) {
+      this.selectedOption = this.onlineOptions;
+    }
+  }
+}

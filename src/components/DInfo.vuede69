@@ -1,0 +1,6 @@
+var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',{staticClass:"flex-align-center"},[_c('v-tooltip',{attrs:{"top":_vm.top,"bottom":_vm.bottom,"left":_vm.left,"right":_vm.right,"max-width":300},scopedSlots:_vm._u([{key:"activator",fn:function(ref){
+var on = ref.on;
+return [_c('div',_vm._g({staticClass:"info-icon clickable"},on))]}}])},[_c('span',[_vm._t("default")],2)])],1)}
+var staticRenderFns = []
+
+export { render, staticRenderFns }

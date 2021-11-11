@@ -1,0 +1,4 @@
+var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',{staticClass:"position-relative",style:(_vm.avatarStyle)},[_c('v-dlive-avatar-shared',{attrs:{"src":_vm.imgSrc,"size":_vm.avatarSize,"outline-color":_vm.outlineColor}}),(_vm.effect)?_c('img',{staticClass:"effect-icon",style:(_vm.effectStyle),attrs:{"src":_vm.effect}}):_vm._e()],1)}
+var staticRenderFns = []
+
+export { render, staticRenderFns }

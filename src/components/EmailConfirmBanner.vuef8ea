@@ -1,0 +1,69 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { sendVerificationLinkToEmail } from '@/apollo/mutation/settings';
+import { namespace } from 'vuex-class';
+import MeMixin from '@/mixins/MeMixin';
+import SnackbarMixin from '@/mixins/SnackbarMixin';
+import { Component, Mixins, Watch } from 'vue-property-decorator';
+
+const bannerModule = namespace('banner');
+const meModule = namespace('me');
+const uiModule = namespace('ui');
+
+@Component({
+  components: {}
+})
+export default class EmailConfirmBanner extends Mixins(MeMixin, SnackbarMixin) {
+  @uiModule.Getter('isMobile')
+  private isMobile!: boolean;
+  @meModule.Getter('meEmail')
+  private meEmail!: string | null;
+  @meModule.Getter('requireEmailVerify')
+  private requireEmailVerify!: boolean;
+  @bannerModule.Getter('emailConfirm')
+  private emailConfirm!: boolean;
+  @bannerModule.Mutation('setEmailConfirm')
+  private setEmailConfirm!: (status: boolean) => void;
+
+  public sendVerificationLinkToEmail() {
+    if (this.meEmail) {
+      sendVerificationLinkToEmail(this, this.meEmail);
+    }
+  }
+
+  public closeBanner() {
+    this.setEmailConfirm(false);
+  }
+
+  @Watch('requireEmailVerify', { immediate: true })
+  public onRequireEmailVerify(val: boolean, oldVal: boolean) {
+    if (val && !oldVal) {
+      this.setEmailConfirm(true);
+    }
+    if (!val && oldVal) {
+      this.setEmailConfirm(false);
+    }
+  }
+}

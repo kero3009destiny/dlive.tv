@@ -1,0 +1,119 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// import { userUpdateAbout } from '@/apollo/mutation/livestreamProfile';
+// import { writeProfileAboutCache } from '@/apollo/cache/livestreamProfile';
+// import PROFILE_ABOUT_FRAG from '@/graphql/fragments/ProfileAbout.graphql';
+import { Component, Mixins, Prop } from 'vue-property-decorator';
+import { LivestreamAboutFrag } from '@/graphql/types';
+import SnackbarMixin from '@/mixins/SnackbarMixin';
+import ProfileAboutPanel from '@/components/ProfileAboutPanel.vue';
+import ProfileAboutEdit from '@/components/ProfileAboutEdit.vue';
+import DBtn from '@/components/DBtn.vue';
+import { namespace } from 'vuex-class';
+const uiModule = namespace('ui');
+
+@Component({
+  components: {
+    DBtn,
+    ProfileAboutPanel,
+    ProfileAboutEdit
+  }
+})
+export default class ProfileAbout extends Mixins(SnackbarMixin) {
+  @Prop({
+    required: true
+  })
+  public userAbout!: LivestreamAboutFrag.Fragment;
+  @Prop({
+    required: true
+  })
+  public enableEdit!: boolean;
+
+  // Local
+  public isEditing = false;
+
+  // Computed -------------------------------------------------------
+  @uiModule.Getter('isMobile')
+  private isMobile!: boolean;
+
+  get hasAbout() {
+    if (this.userAbout.panels.length > 0) {
+      return true;
+    }
+    return false;
+  }
+
+  public editClick(status: boolean) {
+    this.isEditing = status;
+  }
+
+  public onCancelEdit() {
+    this.isEditing = false;
+  }
+}

@@ -1,0 +1,192 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import TreasureChestMobile from '@/components/TreasureChestMobile.vue';
+import LivestreamProfileMobileStreamer from '@/components/LivestreamProfileMobileStreamer.vue';
+import GlobalEventBusMixin from '@/mixins/GlobalEventBusMixin';
+import { EVENTS } from '@/utils/constants';
+import VFollow from '@/components/VFollow.vue';
+import ProfileAbout from '@/components/ProfileAbout.vue';
+import VLivestreamChatroom from '@/components/VLivestreamChatroom.vue';
+import ProfileVideo from '@/components/ProfileVideo.vue';
+import ProfileReplay from '@/components/ProfileReplay.vue';
+import VSubscription from '@/components/VSubscription.vue';
+import VDliveAvatar from '@/components/VDliveAvatar.vue';
+import VDliveName from '@/components/VDliveName.vue';
+import DTab from '@/components/DTab.vue';
+import DToken from '@/components/DToken.vue';
+import MeMixin from '@/mixins/MeMixin';
+import { LivestreamPage } from '@/graphql/types';
+import { Component, Mixins, Prop } from 'vue-property-decorator';
+import { Tab } from '@/models/tab';
+import { namespace } from 'vuex-class';
+
+Component.registerHooks(['beforeRouteUpdate']);
+const tabsModule = namespace('tabs');
+
+@Component({
+  components: {
+    VFollow,
+    ProfileAbout,
+    VLivestreamChatroom,
+    LivestreamProfileMobileStreamer,
+    VDliveAvatar,
+    VDliveName,
+    ProfileVideo,
+    ProfileReplay,
+    VSubscription,
+    TreasureChestMobile,
+    DTab,
+    DToken
+  }
+})
+export default class LivestreamProfileMobile extends Mixins(
+  MeMixin,
+  GlobalEventBusMixin
+) {
+  @tabsModule.Getter('livestreamMobileActiveTab')
+  public livestreamMobileActiveTab!: string;
+  @tabsModule.Mutation('setLivestreamMobileProfileTab')
+  public setLivestreamMobileProfileTab!: (activeTab: string) => void;
+
+  @Prop({
+    required: true
+  })
+  public livestreamProfileMobile!: LivestreamPage.UserByDisplayName;
+
+  // local
+  public showTreasureBox = true;
+
+  // lifecycle
+  public mounted() {
+    this.$_smartSubscribe(EVENTS.SHOW_TREASURE_BOX, (data: boolean) => {
+      this.showTreasureBox = data;
+    });
+  }
+
+  // Computed ---------------------------------------------------------------------
+  get tabs(): Tab[] {
+    const result = [
+      new Tab('LiveStreamProfile.Chat', null, 'tab-chat'),
+      new Tab('LiveStreamProfile.About', null, 'tab-about'),
+      new Tab('LiveStreamProfile.Videos', null, 'tab-videos'),
+      new Tab('LiveStreamProfile.Replays', null, 'tab-replays')
+    ];
+    return result;
+  }
+
+  get isMe() {
+    if (this.me !== null && this.livestreamProfileMobile !== null) {
+      return this.me.username === this.livestreamProfileMobile.username;
+    }
+    return false;
+  }
+
+  get livestream() {
+    if (this.livestreamProfileMobile !== null) {
+      return this.livestreamProfileMobile.livestream;
+    }
+    return null;
+  }
+
+  get hostingLivestream() {
+    if (this.livestreamProfileMobile !== null) {
+      return this.livestreamProfileMobile.hostingLivestream;
+    }
+    return null;
+  }
+
+  get curTabIsReplay() {
+    return this.livestreamMobileActiveTab === 'tab-replays';
+  }
+
+  public changeTab(tab: string) {
+    this.setLivestreamMobileProfileTab(tab);
+  }
+}

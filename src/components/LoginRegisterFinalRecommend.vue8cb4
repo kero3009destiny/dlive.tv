@@ -1,0 +1,111 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import LoginRegisterFinalRecommendCard from '@/components/LoginRegisterFinalRecommendCard.vue';
+import DBtn from '@/components/DBtn.vue';
+import { Component, Mixins, Prop } from 'vue-property-decorator';
+import {
+  RegisterRecommendation,
+  GlobalInformationRegisterRecommend
+} from '@/graphql/types';
+import GLOBAL_INFORMATION_REGISTER_RECOMMEND from '@/graphql/queries/GlobalInformationRegisterRecommend.graphql';
+import { ApolloQuery } from '@/decorators/apollo';
+import MeMixin from '../mixins/MeMixin';
+import GlobalEventBusMixin from '@/mixins/GlobalEventBusMixin';
+import { EVENTS } from '@/utils/constants';
+
+@Component({
+  components: {
+    LoginRegisterFinalRecommendCard,
+    DBtn
+  }
+})
+export default class LoginRegisterFinalRecommend extends Mixins(
+  MeMixin,
+  GlobalEventBusMixin
+) {
+  @Prop({
+    required: true,
+    type: Boolean
+  })
+  public showSuggestion!: boolean;
+
+  @ApolloQuery({
+    query: GLOBAL_INFORMATION_REGISTER_RECOMMEND,
+    manual: true,
+    variables() {
+      return {
+        limit: 4,
+        isLoggedIn: this.isLoggedIn
+      };
+    },
+    result({ data }: { data: GlobalInformationRegisterRecommend.Query }) {
+      if (data !== undefined && data.globalInfo !== undefined) {
+        this.registerRecommendChannels = data.globalInfo.recommendChannels;
+      }
+    }
+  })
+  public registerRecommendChannels?: RegisterRecommendation.RecommendChannels[];
+
+  get hasFollowed() {
+    if (this.registerRecommendChannels !== undefined) {
+      for (const channel of this.registerRecommendChannels) {
+        if (channel.user.isFollowing === true) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  public closeDialog() {
+    this.$_smartPublish(EVENTS.TOGGLE_REGISTER_RECOMMEND, false);
+  }
+}

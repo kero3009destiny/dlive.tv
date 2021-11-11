@@ -1,0 +1,245 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { chestUserTransfer } from '@/apollo/mutation/chest';
+import DBtn from '@/components/DBtn.vue';
+import MeMixin from '@/mixins/MeMixin';
+import SnackbarMixin from '@/mixins/SnackbarMixin';
+import { namespace } from 'vuex-class';
+import {
+  TreasureChestPopupFrag,
+  TreasureChestAddPointsFrag,
+  LivestreamTreasureChestAddCheck,
+  ChestUserTransfer,
+  TcUserTransferResultType
+} from '@/graphql/types';
+import { Component, Mixins, Prop } from 'vue-property-decorator';
+import { ApolloQuery } from '@/decorators/apollo';
+import LIVESTREAM_TREASURE_CHEST_ADD_POINTS from '@/graphql/queries/LivestreamTreasureChestAddPoints.graphql';
+import LIVESTREAM_TREASURE_CHEST_ADD_CHECK from '@/graphql/queries/LivestreamTreasureChestAddCheck.graphql';
+import DTextField from '@/components/DTextField.vue';
+
+const dialogModule = namespace('dialog');
+
+const enum Amount {
+  AMOUNT_50 = '50',
+  AMOUNT_500 = '500',
+  AMOUNT_5000 = '5000'
+}
+
+@Component({
+  components: {
+    DBtn,
+    DTextField
+  }
+})
+export default class TreasureChestPopupAddPoints extends Mixins(
+  MeMixin,
+  SnackbarMixin
+) {
+  @ApolloQuery({
+    query: LIVESTREAM_TREASURE_CHEST_ADD_POINTS,
+    fetchPolicy: 'network-only',
+    manual: true,
+    variables() {
+      return {
+        displayname: this.me.displayname
+      };
+    },
+    skip() {
+      return !this.isLoggedIn;
+    },
+    result({ data }) {
+      if (data !== undefined && data !== null) {
+        this.addPointsLeft = data.userByDisplayName;
+      }
+    }
+  })
+  public addPointsLeft?: TreasureChestAddPointsFrag.Fragment;
+
+  get pointsLeft() {
+    if (this.addPointsLeft !== undefined) {
+      return this.addPointsLeft.treasureChest.userTransferSetting
+        .weeklyTransferQuotaLeft;
+    }
+    return '0';
+  }
+  get pointsTotalLimit() {
+    if (this.addPointsLeft !== undefined) {
+      return this.addPointsLeft.treasureChest.userTransferSetting
+        .weeklyTransferTotalQuota;
+    }
+    return '0';
+  }
+
+  get canAddLino() {
+    return (
+      this.linoAddAmount !== '' &&
+      this.linoAddAmount !== '0' &&
+      this.pointsLeft !== '0'
+    );
+  }
+
+  get linoAddLink() {
+    return `${process.env.VUE_APP_WALLET_URL}/payment?user=${
+      this.streamerInfo.username
+    }&amount=${this.linoAddAmount}&receiver=dlivechest&type=giveaway`;
+  }
+
+  @Prop({
+    required: true
+  })
+  public streamerInfo!: TreasureChestPopupFrag.Fragment;
+
+  public linoAddAmount: string = '50';
+  public linoAddCustom: string = '';
+  public amountOptions: Amount[] = [
+    Amount.AMOUNT_50,
+    Amount.AMOUNT_500,
+    Amount.AMOUNT_5000
+  ];
+
+  @dialogModule.Mutation('setChestDialog')
+  private setChestDialog!: (status: boolean) => void;
+
+  public async checkAddPoints() {
+    // second condition is only for lint.
+    if (this.me !== null) {
+      try {
+        const { data } = await this.$apollo.query<
+          LivestreamTreasureChestAddCheck.Query
+        >({
+          query: LIVESTREAM_TREASURE_CHEST_ADD_CHECK,
+          fetchPolicy: 'network-only',
+          variables: {
+            displayname: this.me.displayname,
+            amount: this.linoAddAmount
+          }
+        });
+        if (data.userByDisplayName === null) {
+          this.$error('TreasureChest.TransferError');
+          return;
+        }
+        if (data.userByDisplayName.wallet) {
+          const balanceLino =
+            Number(data.userByDisplayName.wallet.balance) / 100000;
+          if (balanceLino - Number(this.linoAddAmount) < 0.5) {
+            this.$error('TreasureChest.NetwordFeed');
+            return;
+          }
+        }
+        switch (data.userByDisplayName.treasureChest.validUserTransfer) {
+          case TcUserTransferResultType.InvalidAmount: {
+            this.$error('TreasureChest.TransferInvalidAmount');
+            break;
+          }
+          case TcUserTransferResultType.ExceedWeeklyLimit: {
+            this.$error('TreasureChest.TransferExceedWeeklyLimit');
+            break;
+          }
+          case TcUserTransferResultType.InternalError: {
+            this.$error('TreasureChest.TransferError');
+            break;
+          }
+          case TcUserTransferResultType.Success: {
+            this.linoPointsAdd();
+            break;
+          }
+        }
+      } catch (err) {
+        // error handling
+      }
+    }
+  }
+
+  public async linoPointsAdd() {
+    // if (this.me !== null && this.me.private !== null) {
+    //   if (!this.me.private.insecure) {
+    //     // open wallet
+    //     const left = (screen.width - 560) / 2;
+    //     const top = (screen.height - 560) / 2;
+    //     window.open(
+    //       this.linoAddLink,
+    //       '_blank',
+    //       `location=yes,height=560,width=560,scrollbars=yes,status=yes,left=${left},top=${top}`
+    //     );
+    //   } else {
+    //     // no wallet
+
+    //   }
+
+    // }
+    const variables: ChestUserTransfer.Variables = {
+      amount: this.linoAddAmount
+    };
+    await chestUserTransfer(this, variables);
+    this.closeChestPopup();
+  }
+
+  public changeAddAmout(amount: string) {
+    this.linoAddAmount = amount;
+  }
+
+  public closeChestPopup() {
+    this.setChestDialog(false);
+  }
+}

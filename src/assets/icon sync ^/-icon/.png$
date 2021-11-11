@@ -1,0 +1,36 @@
+var map = {
+	"./amex-icon.png": "2264",
+	"./android-icon.png": "c470",
+	"./btfs-icon.png": "8dcd",
+	"./close-icon.png": "08e5",
+	"./d-info-hover-icon.png": "39b1",
+	"./d-info-icon.png": "2df1",
+	"./dci-icon.png": "4554",
+	"./discover-icon.png": "9446",
+	"./ios-icon.png": "e70d",
+	"./jcb-icon.png": "c3fe",
+	"./mastercard-icon.png": "ad73",
+	"./smile-icon.png": "c762",
+	"./visa-icon.png": "f63a"
+};
+
+
+function webpackContext(req) {
+	var id = webpackContextResolve(req);
+	return __webpack_require__(id);
+}
+function webpackContextResolve(req) {
+	var id = map[req];
+	if(!(id + 1)) { // check for number or string
+		var e = new Error("Cannot find module '" + req + "'");
+		e.code = 'MODULE_NOT_FOUND';
+		throw e;
+	}
+	return id;
+}
+webpackContext.keys = function webpackContextKeys() {
+	return Object.keys(map);
+};
+webpackContext.resolve = webpackContextResolve;
+module.exports = webpackContext;
+webpackContext.id = "dc5f";

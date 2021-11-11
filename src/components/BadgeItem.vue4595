@@ -1,0 +1,64 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { MeGlobalFrag } from '@/graphql/types';
+import { BADGES } from '@/models/badge';
+import { Component, Prop, Vue } from 'vue-property-decorator';
+@Component({})
+export default class BadgeItem extends Vue {
+  @Prop({
+    required: true,
+    default: ''
+  })
+  public badge!: MeGlobalFrag.Badges;
+  @Prop({
+    required: false,
+    default: 18
+  })
+  public badgeSize!: number;
+  @Prop({
+    required: false,
+    default: false
+  })
+  public showNewSpot!: boolean;
+
+  get badgeMain() {
+    const current = BADGES.find(item => item.type === this.badge.badge);
+    if (current) {
+      current.newBadge = this.badge.newBadge;
+      return current;
+    } else {
+      return null;
+    }
+  }
+
+  get iconUrl() {
+    return this.badgeMain ? this.badgeMain.img : '';
+  }
+}

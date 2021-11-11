@@ -1,0 +1,853 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { EVENTS } from '@/utils/constants';
+// import EmoteBoardAdd from '@/components/EmoteBoardAdd.vue';
+import DTab from '@/components/DTab.vue';
+import {
+  Role,
+  EmoteLevel,
+  RoomRole,
+  EmoteBoardStreamerFrag,
+  StreamChatroomInputFrag,
+  EmoteDelete,
+  EmojiGroupFrag,
+  EmoteItemFrag,
+  EmoteGlobalFrag,
+  EmoteMineFrag,
+  LivestreamPage
+} from '@/graphql/types';
+import { emoteDelete, emoteUnban } from '@/utils/mutations/chatroom';
+import { writeEmoteDeleteCache } from '@/utils/cache/chatroom';
+import { emoteMessageFormat, parseEmote } from '@/utils/emote';
+import SnackbarMixin from '@/mixins/SnackbarMixin';
+import GlobalEventBusMixin from '@/mixins/GlobalEventBusMixin';
+import MeMixin from '@/mixins/MeMixin';
+import { Tab } from '@/models/tab';
+import { PERMISSION_EVENTS, partnerPermissionCheck } from '@/utils/permission';
+import { Component, Mixins, Prop, Vue } from 'vue-property-decorator';
+import { namespace } from 'vuex-class';
+import EMOTE_USER_FRAG from '@/graphql/fragments/EmoteUser.graphql';
+import EMOTE_STREAMER_FRAG from '@/graphql/fragments/EmoteStreamerFrag.graphql';
+import VEmoteBoardEmoji from '@/components/VEmoteBoardEmoji.vue';
+import DDivider from '@/components/DDivider.vue';
+import DBtn from '@/components/DBtn.vue';
+const enum EmoteTypes {
+  EMOTE = 'Emote',
+  STICKER = 'Sticker'
+}
+
+const enum ScrollViewTypes {
+  CHANNEL = 'Channel',
+  GLOBAL = 'Global',
+  FAVORITE = 'Favorite',
+  START = 'start'
+}
+
+interface EmoteGroupItem extends EmojiGroupFrag.List {
+  streamer: {
+    displayname: string;
+    avatar: string;
+    username: string;
+    type?: EmoteLevel;
+  };
+}
+const meModule = namespace('me');
+
+@Component({
+  components: {
+    DTab,
+    VEmoteBoardEmoji,
+    DDivider,
+    DBtn
+  }
+})
+export default class EmoteBoard extends Mixins(
+  MeMixin,
+  SnackbarMixin,
+  GlobalEventBusMixin
+) {
+  get meSubedStreamerEmojis() {
+    if (
+      this.me &&
+      this.me.private &&
+      this.me.private.subedStreamerEmojis &&
+      this.me.private.subedStreamerEmojis.list &&
+      this.me.private.subedStreamerEmojis.list.length > 0
+    ) {
+      return this.me.private.subedStreamerEmojis.list.filter(
+        item => item.streamer.username !== this.streamerInfo.username
+      );
+    } else {
+      return [];
+    }
+  }
+  get favoriteIcon() {
+    return this.currentEle === ScrollViewTypes.FAVORITE
+      ? 'favorite-act-icon'
+      : 'favorite-icon';
+  }
+  get channelIcon() {
+    return this.currentEle === ScrollViewTypes.CHANNEL
+      ? 'channel-act-icon'
+      : 'channel-icon';
+  }
+  get globalIcon() {
+    return this.currentEle === ScrollViewTypes.GLOBAL
+      ? 'global-act-icon'
+      : 'global-icon';
+  }
+  get streamerEmojis() {
+    if (
+      this.streamerInfo &&
+      this.streamerInfo.emoji &&
+      this.streamerInfo.emoji.vip &&
+      this.streamerInfo.emoji.vip.list &&
+      this.streamerInfo.emoji.vip.list.length > 0 &&
+      this.streamerInfo.myRoomRole !== RoomRole.Owner
+    ) {
+      const streamer: EmojiGroupFrag.List[] = [
+        {
+          streamer: {
+            username: this.streamerInfo.username,
+            displayname: this.streamerInfo.displayname,
+            avatar: ''
+          },
+          emotes: this.streamerInfo.emoji.vip.list
+        }
+      ];
+      return streamer;
+    } else {
+      return [];
+    }
+  }
+  get mineEmojis() {
+    if (
+      this.me &&
+      this.me.emoji &&
+      this.me.emoji.vip &&
+      this.me.emoji.vip.list &&
+      this.me.emoji.vip.list.length > 0
+    ) {
+      const mine: EmojiGroupFrag.List[] = [
+        {
+          streamer: {
+            username: this.me.username,
+            displayname: this.me.displayname,
+            avatar: this.me.avatar
+          },
+          emotes: this.me.emoji.vip.list
+        }
+      ];
+      return mine;
+    } else {
+      return [];
+    }
+  }
+  get globalEmoji() {
+    if (
+      this.me &&
+      this.me.emoji &&
+      this.me.emoji.global &&
+      this.me.emoji.global.list &&
+      this.me.emoji.global.list.length > 0
+    ) {
+      const global: EmoteGroupItem[] = [
+        {
+          streamer: {
+            username: 'Global',
+            displayname: 'Global',
+            avatar: '',
+            type: EmoteLevel.GlobalLevel
+          },
+          emotes: this.me.emoji.global.list
+        }
+      ];
+      return global;
+    } else {
+      return [];
+    }
+  }
+  get channelEmoji() {
+    return [
+      ...this.mineEmojis,
+      ...this.streamerEmojis,
+      ...this.meSubedStreamerEmojis
+    ];
+  }
+
+  @Prop({
+    required: true
+  })
+  public streamerInfo!: StreamChatroomInputFrag.Fragment;
+
+  @Prop({
+    required: true
+  })
+  public channelInfo!: LivestreamPage.UserByDisplayName;
+
+  // Local
+  public activeTab: EmoteTypes = EmoteTypes.EMOTE;
+  public showEmojiSubBox: boolean = false;
+  public showStickerSubBox: boolean = false;
+  public currentEle: ScrollViewTypes = ScrollViewTypes.START;
+  @meModule.Getter('meGlobalEmote')
+  private meGlobalEmote!: EmoteGlobalFrag.Global;
+  @meModule.Getter('meMineEmote')
+  private meMineEmote!: EmoteMineFrag.Mine;
+
+  get emojiTabs() {
+    const tabs: Tab[] = [
+      new Tab('Emote', null, EmoteTypes.EMOTE),
+      new Tab('Sticker', null, EmoteTypes.STICKER)
+    ];
+    return tabs;
+  }
+
+  get usefulInfo() {
+    if (this.channelInfo) {
+      return this.channelInfo;
+    } else {
+      return this.streamerInfo;
+    }
+  }
+
+  get vipEmoteCount() {
+    return this.vipEmotes.length;
+  }
+
+  get deleteIcon() {
+    return require('@/assets/icon/delete-emote-darkmode.svg');
+  }
+
+  get globalEmotes() {
+    if (this.meGlobalEmote !== null) {
+      return this.meGlobalEmote.list;
+    }
+    return [];
+  }
+
+  get channelEmotes() {
+    if (
+      this.streamerInfo !== undefined &&
+      this.streamerInfo !== null &&
+      this.streamerInfo.emote !== undefined &&
+      this.streamerInfo.emote.channel !== undefined
+    ) {
+      return [...this.streamerInfo.emote.channel.list, ...this.vipEmotes];
+    }
+    return [];
+  }
+
+  get vipEmotes() {
+    if (
+      this.streamerInfo !== undefined &&
+      this.streamerInfo !== null &&
+      this.streamerInfo.emote !== undefined &&
+      this.streamerInfo.emote.vip !== undefined
+    ) {
+      return this.streamerInfo.emote.vip.list;
+    }
+    return [];
+  }
+
+  get mineEmotes() {
+    if (this.meMineEmote !== null) {
+      return this.meMineEmote.list;
+    }
+    return [];
+  }
+
+  get hasChannelEmote() {
+    if (this.usefulInfo !== undefined && this.usefulInfo !== null) {
+      return partnerPermissionCheck(
+        PERMISSION_EVENTS.CHANNEL_STICKER,
+        this.usefulInfo.partnerStatus
+      );
+    }
+    return false;
+  }
+
+  get canUploadPersonalEmote() {
+    if (this.me !== null) {
+      return this.me.role !== Role.None;
+    }
+    return false;
+  }
+
+  get canOperateChannelEmote() {
+    if (this.usefulInfo !== undefined && this.usefulInfo !== null) {
+      return this.usefulInfo.myRoomRole !== RoomRole.Member;
+    }
+    return false;
+  }
+
+  get canOperateVipEmote() {
+    if (this.usefulInfo !== undefined && this.usefulInfo !== null) {
+      return this.usefulInfo.myRoomRole === RoomRole.Owner;
+    }
+    return false;
+  }
+
+  get canSendVipEmote() {
+    if (this.canOperateVipEmote) {
+      return true;
+    }
+    if (
+      this.usefulInfo !== undefined &&
+      this.usefulInfo !== null &&
+      this.usefulInfo.mySubscription !== null
+    ) {
+      return this.usefulInfo.mySubscription.isSubscribing;
+    }
+    return false;
+  }
+
+  get banFavSticker() {
+    if (
+      this.streamerInfo.emoteMode.NoMineEmote ||
+      this.streamerInfo.emoteMode.NoAllEmote
+    ) {
+      return true;
+    }
+    return false;
+  }
+  get banChannelSticker() {
+    if (this.streamerInfo.emoteMode.NoAllEmote) {
+      return true;
+    }
+    return false;
+  }
+  get banGlobalSticker() {
+    if (
+      this.streamerInfo.emoteMode.NoGlobalEmote ||
+      this.streamerInfo.emoteMode.NoAllEmote
+    ) {
+      return true;
+    }
+    return false;
+  }
+
+  public mounted() {
+    this.$_smartSubscribe(EVENTS.EMOTE_BOARD_SUB, this.goEmojiSubBox);
+  }
+
+  public goEmojiSubBox() {
+    this.showEmojiSubBox = true;
+  }
+  public goStickerSubBox() {
+    this.showStickerSubBox = true;
+  }
+  public chooseTab(tab: EmoteTypes) {
+    this.activeTab = tab;
+    const element = document.getElementById(`${this.activeTab}-Container`);
+    if (element) {
+      element.scrollTop = 0;
+      this.currentEle = ScrollViewTypes.START;
+    }
+  }
+
+  public clickTabTwo(level: ScrollViewTypes) {
+    let id = this.activeTab + '-' + level;
+    if (level === ScrollViewTypes.CHANNEL && this.channelEmoji[0]) {
+      id = this.activeTab + '-' + this.channelEmoji[0].streamer.displayname;
+    }
+    this.currentEle = level;
+    const element = document.getElementById(id);
+    if (element) {
+      element.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+        inline: 'nearest'
+      });
+    }
+  }
+
+  public closeEmoteBoard() {
+    this.$emit('closeEmoteBoard');
+  }
+
+  public async deleteEmote(emote: EmoteBoardStreamerFrag.List) {
+    const variables: EmoteDelete.Variables = {
+      input: {
+        name: emote.name,
+        level: emote.level,
+        type: emote.type
+      }
+    };
+    if (emote.level === EmoteLevel.ChannelLevel) {
+      Vue.set(variables.input, 'streamer', this.streamerInfo.displayname);
+    }
+    const resp = await emoteDelete(this, variables);
+    if (resp === undefined || resp.err !== null) {
+      return;
+    }
+    const err = this.EmoteDeleteToCache(emote);
+    if (err !== undefined) {
+      throw err;
+    }
+  }
+
+  public cacheParameter(emote: EmoteBoardStreamerFrag.List) {
+    if (emote.level === EmoteLevel.UserLevel && this.me !== null) {
+      return {
+        id: this.me.id,
+        fragment: EMOTE_USER_FRAG,
+        fragmentName: 'EmoteUserFrag'
+      };
+    }
+    if (
+      emote.level === EmoteLevel.ChannelLevel ||
+      emote.level === EmoteLevel.VipLevel
+    ) {
+      return {
+        id: this.streamerInfo.id,
+        fragment: EMOTE_STREAMER_FRAG
+      };
+    }
+    return null;
+  }
+
+  public EmoteDeleteToCache(emote: EmoteBoardStreamerFrag.List) {
+    const param = this.cacheParameter(emote);
+    return writeEmoteDeleteCache(
+      this.$apollo.provider.defaultClient,
+      emote,
+      param
+    );
+  }
+
+  public vipStickerClicked(emote: EmoteItemFrag.Fragment) {
+    if (this.canSendVipEmote) {
+      this.handleTypeEmote(emote);
+    } else {
+      this.goStickerSubBox();
+    }
+  }
+  public subscribeButtonClicked() {
+    this.$_smartPublish(EVENTS.SUB_CLICKED, null);
+  }
+  public handleTypeEmoji(emote: EmoteItemFrag.Fragment) {
+    const message = ' ' + emote.name + ' ';
+    this.$emit('addEmoji', message);
+  }
+  public handleTypeEmote(emote: EmoteItemFrag.Fragment) {
+    const message = emoteMessageFormat(emote);
+    this.$_smartPublish(EVENTS.CHAT_SEND, message);
+    this.closeEmoteBoard();
+  }
+
+  public parseBannedEmote(emoteStr: string) {
+    return parseEmote(emoteStr);
+  }
+
+  public emoteUnban(emoteStr: string) {
+    emoteUnban(
+      this,
+      emoteStr,
+      this.streamerInfo.username,
+      this.streamerInfo.id
+    );
+  }
+}

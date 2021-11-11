@@ -1,0 +1,4 @@
+var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('span',[_c('span',{attrs:{"id":_vm.emoji.value}},[_c('span',{on:{"click":_vm.clickEmoji}},[_c('v-tooltip',{attrs:{"top":"","content-class":"top","color":"#333333"}},[_c('span',{staticClass:"emoji",attrs:{"slot":"activator"},slot:"activator"},[_c('img',{staticClass:"emoji-img clickable",attrs:{"src":_vm._f("emojiUrl")(_vm.emoji.value)}})]),_c('span',[_vm._v(_vm._s(_vm.emoji.value))])])],1),(_vm.showEmojiInfo)?_c('VEmojiDialog',{directives:[{name:"on-clickaway",rawName:"v-on-clickaway",value:(_vm.closeInfoDialog),expression:"closeInfoDialog"}],attrs:{"emoji-info":_vm.emojiInfo,"streamer-info":_vm.streamerInfo},on:{"close":_vm.closeInfoDialog}}):_vm._e()],1)])}
+var staticRenderFns = []
+
+export { render, staticRenderFns }

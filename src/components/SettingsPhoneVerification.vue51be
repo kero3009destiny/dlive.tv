@@ -1,0 +1,75 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// import CLAIM_WALLET_ACCOUNT from '@/graphql/mutations/ClaimWalletAccountNew.graphql';
+import DTextField from '@/components/DTextField.vue';
+import DBtn from '@/components/DBtn.vue';
+import SettingsPhoneVerificationInput from '@/components/SettingsPhoneVerificationInput.vue';
+import VSendCode from '@/components/VSendCode.vue';
+
+import MeMixin from '@/mixins/MeMixin';
+
+import VueCountdown from '@chenfengyuan/vue-countdown';
+import { Component, Mixins } from 'vue-property-decorator';
+
+@Component({
+  components: {
+    VueCountdown,
+    DBtn,
+    DTextField,
+    VSendCode,
+    SettingsPhoneVerificationInput
+  }
+})
+export default class SettingsPhoneVerification extends Mixins(MeMixin) {
+  get phoneNumber() {
+    if (this.me && this.me.private && this.me.private.phone) {
+      return this.me.private.phone;
+    }
+    return '';
+  }
+  public changingPhone: boolean = false;
+
+  // FormValidationMixin
+  public phone: string = '';
+  public changePhone() {
+    this.changingPhone = true;
+  }
+  public closeChanging() {
+    this.changingPhone = false;
+  }
+}

@@ -1,0 +1,293 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import DDivider from '@/components/DDivider.vue';
+import DBtn from '@/components/DBtn.vue';
+import DTextField from '@/components/DTextField.vue';
+import { NextPayday, PartnerStatus, KycStatus } from '@/graphql/types';
+import MeMixin from '@/mixins/MeMixin';
+import SnackbarMixin from '@/mixins/SnackbarMixin';
+import { Component, Prop, Mixins } from 'vue-property-decorator';
+import { ROUTE_SETTINGS, ROUTE_KYC_VERIFY } from '@/router';
+import { namespace } from 'vuex-class';
+import { RawLocation } from 'vue-router';
+
+const meModule = namespace('me');
+
+@Component({
+  components: {
+    DDivider,
+    DBtn,
+    DTextField
+  }
+})
+export default class PaymentEmailVerify extends Mixins(MeMixin, SnackbarMixin) {
+  @Prop({
+    required: false,
+    type: Object
+  })
+  public nextPayday!: NextPayday.Payment;
+
+  get processTime() {
+    if (this.nextPayday !== undefined) {
+      return this.nextPayday.nextPayday.processTime;
+    }
+    return undefined;
+  }
+
+  get deadline() {
+    if (this.nextPayday !== undefined) {
+      return this.nextPayday.nextPayday.deadline;
+    }
+    return undefined;
+  }
+
+  get timeZone() {
+    const offset = new Date().getTimezoneOffset() / 60;
+    if (offset > 0) {
+      return `GMT-${offset}`;
+    } else {
+      return `GMT+${offset}`;
+    }
+  }
+
+  get isGlobalPartner() {
+    if (
+      this.me !== null &&
+      this.me.partnerStatus === PartnerStatus.GlobalPartner
+    ) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  get kycStatus() {
+    if (this.me !== null && this.me.private !== null) {
+      return this.me.private.kycStatus;
+    }
+    return undefined;
+  }
+
+  get hasKycLink() {
+    if (
+      this.kycStatus === KycStatus.Ready ||
+      this.kycStatus === KycStatus.Failed ||
+      this.kycStatus === KycStatus.NoApplicant
+    ) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  get canSubmit() {
+    if (this.hasKycLink) {
+      return true;
+    }
+    return false;
+  }
+
+  get kycStatusDesc() {
+    switch (this.kycStatus) {
+      case KycStatus.Pending:
+        return 'Verifying';
+      case KycStatus.Failed:
+        return 'ID verification failed. Please try again';
+      case KycStatus.Denied:
+        return 'Denied';
+      case KycStatus.TooManyAttempts:
+        return 'You tried too many times. Please contact support';
+      default:
+        return '';
+    }
+  }
+
+  get streamDay() {
+    if (this.me !== null && this.me.private && this.me.private.streamStat) {
+      return this.me.private.streamStat.day;
+    }
+    return 0;
+  }
+
+  get streamHour() {
+    if (this.me !== null && this.me.private && this.me.private.streamStat) {
+      return Math.floor(this.me.private.streamStat.length / 3600);
+    }
+    return 0;
+  }
+
+  get satisfiedStreamRequire() {
+    return this.streamDay >= 3 && this.streamHour >= 8;
+  }
+
+  @meModule.Getter('meEmailVerified')
+  private meEmailVerified!: boolean;
+  @meModule.Getter('meCanCashout')
+  private meCanCashout!: boolean;
+
+  public verifyEmailClicked() {
+    this.$router.push({ name: ROUTE_SETTINGS, query: { open: 'email' } });
+  }
+
+  public async kycLinkClick() {
+    const to: RawLocation = {
+      name: ROUTE_KYC_VERIFY
+    };
+    const routeData = this.$router.resolve(to);
+    window.open(routeData.href, '_blank');
+  }
+}

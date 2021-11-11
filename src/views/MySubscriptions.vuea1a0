@@ -1,0 +1,158 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import MeMixin from '@/mixins/MeMixin';
+import { ApolloQuery } from '@/decorators/apollo';
+import SubscriptionCard from '@/components/SubscriptionCard.vue';
+import SUBSCRIBING from '@/graphql/queries/MeSubscribing.graphql';
+import MagicMqMixin from '@/mixins/MagicMqMixin';
+import SnackbarMixin from '@/mixins/SnackbarMixin';
+import { MeSubscribing, Maybe, MeSubscribingFrag } from '@/graphql/types';
+import { Component, Mixins } from 'vue-property-decorator';
+import { ROUTE_HOME } from '@/router';
+
+@Component({
+  components: {
+    SubscriptionCard
+  }
+})
+export default class MySubscription extends Mixins(
+  MeMixin,
+  MagicMqMixin,
+  SnackbarMixin
+) {
+  @ApolloQuery({
+    query: SUBSCRIBING,
+    manual: true,
+    fetchPolicy: 'network-only',
+    skip() {
+      return this.me === null;
+    },
+    // TODO(NING) check if it will be called with fetchmore
+    result({ data }) {
+      const resp = data as MeSubscribing.Query;
+      if (resp && resp.me && resp.me.private && resp.me.private.subscribing) {
+        this.subscribing = resp.me.private.subscribing;
+        if (
+          resp.me.private.subscribing.list &&
+          resp.me.private.subscribing.list.length < this.fetchNum
+        ) {
+          this.canFetchMore = false;
+        }
+      }
+    },
+    variables(): MeSubscribing.Variables {
+      return {
+        first: this.fetchNum
+      };
+    }
+  })
+  public subscribing?: Maybe<MeSubscribingFrag.Subscribing>;
+
+  private canFetchMore: boolean = true;
+  private fetchNum: number = 20;
+
+  public mounted() {
+    if (!this.$store.getters['accessToken/token']) {
+      this.$router.push({ name: ROUTE_HOME });
+    }
+  }
+
+  public refetchStreamer() {
+    this.$apollo.queries.subscribing.refetch();
+  }
+
+  get hasNoSubscribe() {
+    return (
+      this.subscribing &&
+      this.subscribing.list &&
+      this.subscribing.list.length === 0
+    );
+  }
+
+  public fetchMoreSubscribedStreamers() {
+    if (
+      this.subscribing === undefined ||
+      this.subscribing === null ||
+      !this.subscribing.pageInfo.hasNextPage
+    ) {
+      return;
+    }
+    this.$apollo.queries.subscribing.fetchMore({
+      variables: {
+        first: this.fetchNum,
+        after: this.subscribing ? this.subscribing.pageInfo.endCursor : null
+      },
+      // Transform the previous result with new data
+      updateQuery: (
+        previousResult: MeSubscribing.Query,
+        { fetchMoreResult }: { fetchMoreResult?: MeSubscribing.Query }
+      ) => {
+        if (
+          fetchMoreResult === undefined ||
+          fetchMoreResult.me === null ||
+          fetchMoreResult.me.private === null
+        ) {
+          return previousResult;
+        }
+        if (previousResult.me === null || previousResult.me.private === null) {
+          return fetchMoreResult;
+        }
+        const moreSubscribing: MeSubscribingFrag.Subscribing =
+          fetchMoreResult.me.private.subscribing;
+        const previousSubscribing: MeSubscribingFrag.Subscribing =
+          previousResult.me.private.subscribing;
+        if (moreSubscribing.list.length === 0) {
+          this.canFetchMore = false;
+          return previousResult;
+        }
+        previousResult.me.private.subscribing = {
+          totalCount: moreSubscribing.totalCount,
+          __typename: 'SubConnection',
+          pageInfo: moreSubscribing.pageInfo,
+          list: [...previousSubscribing.list, ...moreSubscribing.list]
+        };
+        return previousResult;
+      }
+    });
+  }
+}

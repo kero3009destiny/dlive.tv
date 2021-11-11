@@ -1,0 +1,147 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { Component, Vue, Prop } from 'vue-property-decorator';
+import { colorMap } from '@/utils/constants';
+
+@Component
+export default class DBtn extends Vue {
+  @Prop({
+    type: String,
+    required: false,
+    default: 'btnA'
+  })
+  public type!: 'btnA' | 'btnB' | 'btnC';
+
+  @Prop({
+    type: String,
+    required: false,
+    default: 'yellow'
+  })
+  public bgColor!: string;
+
+  @Prop({
+    type: String,
+    required: false,
+    default: 'yellow'
+  })
+  public textColor!: string;
+
+  @Prop({
+    type: Boolean,
+    required: false,
+    default: false
+  })
+  public disabled!: boolean;
+
+  @Prop({
+    type: Boolean,
+    required: false,
+    default: true
+  })
+  public disabledClick!: boolean;
+
+  @Prop({
+    type: String,
+    required: false,
+    default: ''
+  })
+  public loadingTips!: boolean;
+
+  @Prop({
+    type: Boolean,
+    required: false,
+    default: false
+  })
+  public isLoading!: boolean;
+
+  get btnClass() {
+    let classes = this.type;
+    if (this.disabled) {
+      classes += ' d-btn--disabled';
+    }
+    if (!this.disabled || (this.disabled && !this.disabledClick)) {
+      classes += ' clickable';
+    }
+    return classes;
+  }
+
+  get textColorTransfer() {
+    if (colorMap.get(this.textColor)) {
+      return colorMap.get(this.textColor);
+    } else {
+      return colorMap.get('yellow');
+    }
+  }
+
+  get bgColorTransfer() {
+    if (colorMap.get(this.bgColor)) {
+      return colorMap.get(this.bgColor);
+    } else {
+      return colorMap.get('yellow');
+    }
+  }
+
+  public clickEvent() {
+    if (this.isLoading) {
+      return;
+    }
+    if (this.disabledClick && this.disabled) {
+      return;
+    }
+    this.$emit('click');
+  }
+}

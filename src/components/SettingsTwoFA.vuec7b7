@@ -1,0 +1,277 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import MeMixin from '@/mixins/MeMixin';
+import SnackbarMixin from '@/mixins/SnackbarMixin';
+import { Component, Mixins, Watch } from 'vue-property-decorator';
+import DBtn from '@/components/DBtn.vue';
+import DDivider from '@/components/DDivider.vue';
+import DTextField from '@/components/DTextField.vue';
+import DDialog from '@/components/DDialog.vue';
+import {
+  twoFactorAdd,
+  twoFactorActivate,
+  twoFactorDelete
+} from '@/apollo/mutation/twoFactor';
+import { namespace } from 'vuex-class';
+
+const meModule = namespace('me');
+
+@Component({
+  components: {
+    DBtn,
+    DDivider,
+    DTextField,
+    DDialog
+  }
+})
+export default class SettingsTwoFA extends Mixins(SnackbarMixin, MeMixin) {
+  @meModule.Getter('meEmailVerified')
+  public meEmailVerified!: boolean;
+  @meModule.Getter('mePhone')
+  public mePhone!: string;
+  @meModule.Getter('meTwoFactorEnabled')
+  public meTwoFactorEnabled!: boolean;
+
+  public qrCode: string = '';
+  public secret: string = '';
+  public verificationCode: string = '';
+  public qrCodeZoomInShow: boolean = false;
+  public deleteTwoFAConfirmShow: boolean = false;
+  public deleteVerificationCode: string = '';
+  public deleteLoading: boolean = false;
+
+  get manualEntry() {
+    return this.secret.replace(/[^a-z0-9]+/gi, '').replace(/(.{4})/g, '$1 ');
+  }
+
+  get canVerify() {
+    return this.verificationCode.length === 6;
+  }
+
+  get canDelete() {
+    return this.deleteVerificationCode.length === 6;
+  }
+
+  public async twoFactorAdd() {
+    const resp = await twoFactorAdd(this);
+    if (resp.qrCode !== null) {
+      this.qrCode = resp.qrCode;
+    }
+    if (resp.secret !== null) {
+      this.secret = resp.secret;
+    }
+  }
+
+  public async verify() {
+    await twoFactorActivate(this, this.verificationCode);
+    this.verificationCode = '';
+  }
+
+  public showDeleteTwoFAConfirm() {
+    this.deleteTwoFAConfirmShow = true;
+  }
+
+  public async twoFactorDelete() {
+    this.deleteLoading = true;
+    await twoFactorDelete(this, this.deleteVerificationCode);
+    this.deleteLoading = false;
+    this.deleteVerificationCode = '';
+    this.deleteTwoFAConfirmShow = false;
+  }
+
+  public getBinary() {
+    return 'data:image/jpeg;base64,' + this.hexToBase64(this.qrCode);
+  }
+
+  public hexToBase64(str: string) {
+    const numArr = str
+      .replace(/\r|\n/g, '')
+      .replace(/([\da-fA-F]{2}) ?/g, '0x$1 ')
+      .replace(/ +$/, '')
+      .split(' ')
+      .map(s => {
+        return parseInt(s, 16);
+      });
+    return btoa(String.fromCharCode.apply(null, numArr));
+  }
+
+  @Watch('meTwoFactorEnabled', { immediate: true })
+  public onEnabled(val: boolean) {
+    if (val === false && this.meEmailVerified && this.mePhone) {
+      this.twoFactorAdd();
+    }
+  }
+}

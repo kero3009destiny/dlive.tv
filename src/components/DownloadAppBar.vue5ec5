@@ -1,0 +1,112 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { Component, Vue } from 'vue-property-decorator';
+import { isAndroid, isIOS } from '@/utils/useragent';
+import VNoSsr from '@/components/VNoSsr.vue';
+import { namespace } from 'vuex-class';
+
+const happyhourModule = namespace('happyhour');
+
+@Component({
+  components: {
+    VNoSsr
+  }
+})
+export default class DownloadAppBar extends Vue {
+  public showBanner: boolean = false;
+  public showPhoneBannerMobileAndroid: boolean = false;
+  public showPhoneBannerMobileIos: boolean = false;
+
+  @happyhourModule.Getter('eventStatus')
+  private happyhourStatus!: 'no_happyhour' | 'prestart' | 'start' | 'end';
+
+  public mounted() {
+    this.showBanner = this.$route.query.gxc === undefined;
+    this.showPhoneBannerMobileAndroid = isAndroid();
+    this.showPhoneBannerMobileIos = isIOS();
+  }
+
+  public goToAndroid() {
+    window.location.href = 'https://go.dlive.tv/android-download-mobileweb';
+  }
+
+  public goToIos() {
+    window.location.href = 'https://go.dlive.tv/ios-download-mobileweb';
+  }
+}

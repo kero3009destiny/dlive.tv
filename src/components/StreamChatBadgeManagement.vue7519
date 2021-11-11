@@ -1,0 +1,207 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import DTab from '@/components/DTab.vue';
+import { MeGlobalFrag, WearBadges } from '@/graphql/types';
+import { BADGES } from '@/models/badge';
+import SnackbarMixin from '@/mixins/SnackbarMixin';
+import GlobalEventBusMixin from '@/mixins/GlobalEventBusMixin';
+import MeMixin from '@/mixins/MeMixin';
+import { Component, Mixins } from 'vue-property-decorator';
+import BadgeItem from '@/components/BadgeItem.vue';
+import DDivider from '@/components/DDivider.vue';
+import DBtn from '@/components/DBtn.vue';
+import VDliveAvatar from '@/components/VDliveAvatar.vue';
+import VDliveName from '@/components/VDliveName.vue';
+import WEAR_BADGES from '@/graphql/mutations/WearBadges.graphql';
+import { setBadgeWearCache } from '@/apollo/cache/me';
+
+@Component({
+  components: {
+    BadgeItem,
+    DTab,
+    DDivider,
+    DBtn,
+    VDliveAvatar,
+    VDliveName
+  }
+})
+export default class StreamChatBadgeManagement extends Mixins(
+  MeMixin,
+  SnackbarMixin,
+  GlobalEventBusMixin
+) {
+  public maxWearNum: number = 3;
+  public originMineBadges: Array<MeGlobalFrag.Badges & { label: string }> = [];
+  get woreNum() {
+    return this.choosedBadges.length;
+  }
+  get meInfo() {
+    return this.me;
+  }
+  get badgeList() {
+    return this.originMineBadges.map(
+      (item: MeGlobalFrag.Badges & { label: string }) => {
+        item.label = '';
+        BADGES.forEach(b => {
+          if (b.type === item.badge) {
+            item.label = b.label;
+          }
+        });
+        return item;
+      }
+    );
+  }
+  get choosedBadges() {
+    return this.badgeList.filter(
+      (item: MeGlobalFrag.Badges) => item.wore === true
+    );
+  }
+  public mounted() {
+    if (this.me && this.me.private && this.me.private.badges) {
+      this.originMineBadges = JSON.parse(
+        JSON.stringify(this.me.private.badges)
+      );
+    }
+  }
+  public changeBadgeWear(index: number) {
+    const thisStatus = arguments[1];
+    if (this.choosedBadges.length > this.maxWearNum && thisStatus) {
+      return this.$errorPlain(`You can carry up to ${this.maxWearNum} badges`);
+    } else {
+      this.originMineBadges[index].wore = thisStatus;
+    }
+  }
+  public closeBadgeManagement() {
+    this.$emit('closeBadgeManagement');
+  }
+  public async confirmBadge() {
+    try {
+      const param = this.badgeList.map(item => {
+        return { badge: item.badge, wore: item.wore };
+      });
+      const { data } = await this.$apollo.mutate<WearBadges.Mutation>({
+        mutation: WEAR_BADGES,
+        variables: {
+          badges: param
+        }
+      });
+      const resp = data.wearBadges;
+      if (resp.err !== null) {
+        this.$errCode(resp.err.code);
+        return;
+      }
+      setBadgeWearCache(this.$apollo.provider.defaultClient, param);
+      this.$success('BadgeManagement.Successful');
+    } catch (err) {
+      // TODO(ruoran): error handling.
+    }
+  }
+}

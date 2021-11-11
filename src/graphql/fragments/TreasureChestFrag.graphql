@@ -1,0 +1,24 @@
+
+    var doc = {"kind":"Document","definitions":[{"kind":"FragmentDefinition","name":{"kind":"Name","value":"TreasureChestUserFrag"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"User"}},"directives":[],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"treasureChest"},"arguments":[],"directives":[],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"value"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"state"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"expireAt"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"buffs"},"arguments":[],"directives":[],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"type"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"boost"},"arguments":[],"directives":[]}]}},{"kind":"Field","name":{"kind":"Name","value":"ongoingGiveaway"},"arguments":[],"directives":[],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"pricePool"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"closeAt"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"claimed"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"durationInSeconds"},"arguments":[],"directives":[]}]}},{"kind":"Field","name":{"kind":"Name","value":"startGiveawayValueThreshold"},"arguments":[],"directives":[]}]}}]}}],"loc":{"start":0,"end":271}};
+    doc.loc.source = {"body":"fragment TreasureChestUserFrag on User {\n  id\n  treasureChest {\n    value\n    state\n    expireAt\n    buffs {\n      type\n      boost\n    }\n    ongoingGiveaway {\n      pricePool\n      closeAt\n      claimed\n      durationInSeconds\n    }\n    startGiveawayValueThreshold\n  }\n}","name":"GraphQL request","locationOffset":{"line":1,"column":1}};
+  
+
+    var names = {};
+    function unique(defs) {
+      return defs.filter(
+        function(def) {
+          if (def.kind !== 'FragmentDefinition') return true;
+          var name = def.name.value
+          if (names[name]) {
+            return false;
+          } else {
+            names[name] = true;
+            return true;
+          }
+        }
+      )
+    }
+  
+
+      module.exports = doc;
+    

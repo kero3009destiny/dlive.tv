@@ -1,0 +1,26 @@
+
+    var doc = {"kind":"Document","definitions":[{"kind":"FragmentDefinition","name":{"kind":"Name","value":"LivestreamInfoFrag"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"User"}},"directives":[],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"livestream"},"arguments":[],"directives":[],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"category"},"arguments":[],"directives":[],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"title"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"imgUrl"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"id"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"backendID"},"arguments":[],"directives":[]}]}},{"kind":"Field","name":{"kind":"Name","value":"language"},"arguments":[],"directives":[],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"language"},"arguments":[],"directives":[]}]}},{"kind":"Field","name":{"kind":"Name","value":"title"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"watchingCount"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"totalReward"},"arguments":[],"directives":[]},{"kind":"FragmentSpread","name":{"kind":"Name","value":"VDonationGiftFrag"},"directives":[]}]}},{"kind":"Field","name":{"kind":"Name","value":"hostingLivestream"},"arguments":[],"directives":[],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"},"arguments":[],"directives":[]}]}},{"kind":"Field","name":{"kind":"Name","value":"rerun"},"arguments":[],"directives":[],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"startSecond"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"watchingCount"},"arguments":[],"directives":[]}]}},{"kind":"FragmentSpread","name":{"kind":"Name","value":"TreasureChestFrag"},"directives":[]}]}}],"loc":{"start":0,"end":430}};
+    doc.loc.source = {"body":"#import './VDonationGift.graphql'\n#import './TreasureChest.graphql'\n\nfragment LivestreamInfoFrag on User {\n  id\n  livestream {\n    id\n    category {\n      title\n      imgUrl\n      id\n      backendID\n    }\n    language {\n      id\n      language\n    }\n    title\n    watchingCount\n    totalReward\n    ...VDonationGiftFrag\n  }\n  hostingLivestream {\n      id\n  }\n  rerun {\n    startSecond\n    watchingCount\n  }\n  ...TreasureChestFrag\n}","name":"GraphQL request","locationOffset":{"line":1,"column":1}};
+  
+
+    var names = {};
+    function unique(defs) {
+      return defs.filter(
+        function(def) {
+          if (def.kind !== 'FragmentDefinition') return true;
+          var name = def.name.value
+          if (names[name]) {
+            return false;
+          } else {
+            names[name] = true;
+            return true;
+          }
+        }
+      )
+    }
+  doc.definitions = doc.definitions.concat(unique(require('./VDonationGift.graphql').definitions));
+doc.definitions = doc.definitions.concat(unique(require('./TreasureChest.graphql').definitions));
+
+
+      module.exports = doc;
+    

@@ -1,0 +1,56 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { EVENTS } from '@/utils/constants';
+import { Component, Mixins, Prop } from 'vue-property-decorator';
+import VSnapClip from '@/components/VSnapClip.vue';
+import { VSnapClipFrag } from '@/graphql/types';
+import GlobalEventBusMixin from '@/mixins/GlobalEventBusMixin';
+
+@Component({
+  components: {
+    VSnapClip
+  }
+})
+export default class ClipUpNext extends Mixins(GlobalEventBusMixin) {
+  @Prop({
+    required: true,
+    type: Array
+  })
+  public clipUpNext!: VSnapClipFrag.Fragment[];
+
+  public clipSnapClick(clipID: string) {
+    this.$_smartPublish(EVENTS.CLIP_CLICK, { clipID, clipList: null });
+  }
+}

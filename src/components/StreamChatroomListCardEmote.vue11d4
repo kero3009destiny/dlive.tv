@@ -1,0 +1,278 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { EVENTS } from '@/utils/constants';
+import {
+  VStreamChatTextRowFrag,
+  StreamChatTextRowStreamerFrag,
+  MeEmoteFrag,
+  RoomRole,
+  EmoteLevel,
+  EmoteSave,
+  EmoteType,
+  EmoteItemFrag,
+  StreamMessageSubscription
+} from '@/graphql/types';
+import { Component, Mixins, Prop, Vue } from 'vue-property-decorator';
+import SnackbarMixin from '@/mixins/SnackbarMixin';
+import { namespace } from 'vuex-class';
+import { ChatText } from '@/models/chat';
+import { levelMap } from '@/utils/emote';
+import { PERMISSION_EVENTS, partnerPermissionCheck } from '@/utils/permission';
+import { emoteSave, emoteBan } from '@/utils/mutations/chatroom';
+import { writeEmoteAddCache } from '@/utils/cache/chatroom';
+import EMOTE_USER_FRAG from '@/graphql/fragments/EmoteUser.graphql';
+import EMOTE_STREAMER_FRAG from '@/graphql/fragments/EmoteStreamerFrag.graphql';
+import GlobalEventBusMixin from '@/mixins/GlobalEventBusMixin';
+import { CompleteMe } from '@/store/me/types';
+
+const meModule = namespace('me');
+const enum TARGET {
+  STREAMER = 'Streamer',
+  ME = 'Me'
+}
+@Component
+export default class StreamChatroomListCardEmote extends Mixins(
+  SnackbarMixin,
+  GlobalEventBusMixin
+) {
+  @Prop({
+    required: true
+  })
+  public senderInfo!: StreamMessageSubscription.StreamMessageReceived;
+
+  @Prop({
+    required: true
+  })
+  public streamerInfo!: StreamChatTextRowStreamerFrag.Fragment;
+
+  @Prop({
+    required: true
+  })
+  public selectedEmote!: ChatText;
+  @Prop({
+    required: true
+  })
+  public me!: CompleteMe | null;
+
+  @meModule.Getter('meEmote')
+  private meEmote!: MeEmoteFrag.Emote;
+
+  get isVipEmote() {
+    return this.selectedEmote.className === 'vip';
+  }
+
+  get canAddToPersonal() {
+    if (this.meEmote !== null) {
+      const noEmote = this.meEmote.mine.list.every(emote => {
+        return (
+          this.selectedEmote !== null &&
+          emote.sourceURL !== this.selectedEmote.value
+        );
+      });
+      return noEmote;
+    }
+    return true;
+  }
+
+  public saveEmoteToFavorite() {
+    if (this.meEmote.mine.list.length >= 20) {
+      this.$error('EmoteBoard.StickerReachedLimit');
+      return;
+    }
+    this.saveEmote(EmoteLevel.UserLevel, TARGET.ME);
+  }
+
+  public saveEmoteToStreamerChannel() {
+    if (this.streamerInfo.emote.channel.list.length >= 20) {
+      this.$error('EmoteBoard.StickerReachedLimit');
+      return;
+    }
+    this.saveEmote(EmoteLevel.ChannelLevel, TARGET.STREAMER);
+  }
+
+  public saveEmoteToMyChannel() {
+    if (this.meEmote.channel.list.length >= 20) {
+      this.$error('EmoteBoard.StickerReachedLimit');
+      return;
+    }
+    this.saveEmote(EmoteLevel.ChannelLevel, TARGET.ME);
+  }
+  public async saveEmote(emoteLevel: EmoteLevel, target: TARGET) {
+    if (this.selectedEmote === null) {
+      return;
+    }
+    const variables: EmoteSave.Variables = {
+      input: {
+        name: this.selectedEmote.value.slice(
+          this.selectedEmote.value.indexOf('emote') + 6
+        ),
+        level: levelMap.get(this.selectedEmote.className) as EmoteLevel,
+        myLevel: emoteLevel,
+        type: EmoteType.Emote
+      }
+    };
+    if (target === TARGET.STREAMER) {
+      Vue.set(variables.input, 'streamer', this.streamerInfo.username);
+    }
+    const resp = await emoteSave(this, variables);
+    if (resp === undefined || resp.emote === null) {
+      return;
+    }
+    this.EmoteAddToCache(resp.emote, target);
+    this.closeMenu();
+  }
+  public EmoteAddToCache(emote: EmoteItemFrag.Fragment, target: TARGET) {
+    const param = this.cacheParameter(emote, target);
+    writeEmoteAddCache(this.$apollo.provider.defaultClient, emote, param);
+  }
+  public cacheParameter(emote: EmoteItemFrag.Fragment, target: TARGET) {
+    if (target === TARGET.ME && this.me !== null) {
+      return {
+        id: this.me.id,
+        fragment: EMOTE_USER_FRAG,
+        fragmentName: 'EmoteUserFrag'
+      };
+    }
+    if (target === TARGET.STREAMER) {
+      return {
+        id: this.streamerInfo.id,
+        fragment: EMOTE_STREAMER_FRAG
+      };
+    }
+    return null;
+  }
+
+  // get canAddToStreamerChannel() {
+  //   if (
+  //     this.me !== null &&
+  //     this.me.username !== this.streamerInfo.username &&
+  //     this.streamerInfo.myRoomRole === RoomRole.Moderator
+  //   ) {
+  //     const noEmote = this.streamerInfo.emote.channel.list.every(emote => {
+  //       return (
+  //         this.selectedEmote !== null &&
+  //         emote.sourceURL !== this.selectedEmote.value
+  //       );
+  //     });
+  //     return noEmote;
+  //   }
+  //   return false;
+  // }
+
+  get canAddToMyChannel() {
+    if (
+      this.me !== null &&
+      partnerPermissionCheck(
+        PERMISSION_EVENTS.CHANNEL_STICKER,
+        this.me.partnerStatus
+      )
+    ) {
+      const noEmote = this.meEmote.channel.list.every(emote => {
+        return (
+          this.selectedEmote !== null &&
+          emote.sourceURL !== this.selectedEmote.value
+        );
+      });
+      return noEmote;
+    }
+    return false;
+  }
+  public sendEmote() {
+    this.$_smartPublish(
+      EVENTS.CHAT_SEND,
+      (this.senderInfo as VStreamChatTextRowFrag.Fragment).content
+    );
+    this.closeMenu();
+  }
+
+  get canBanEmote() {
+    if (
+      this.me !== null &&
+      (this.streamerInfo.myRoomRole === RoomRole.Owner ||
+        this.streamerInfo.myRoomRole === RoomRole.Moderator)
+    ) {
+      return true;
+    }
+    return false;
+  }
+
+  public async banEmote() {
+    await emoteBan(
+      this,
+      (this.senderInfo as VStreamChatTextRowFrag.Fragment).content,
+      this.streamerInfo.username,
+      this.streamerInfo.id
+    );
+    this.closeMenu();
+  }
+
+  get canSendVipEmote() {
+    return (
+      this.streamerInfo.myRoomRole === RoomRole.Owner ||
+      (this.streamerInfo.mySubscription !== null &&
+        this.streamerInfo.mySubscription.isSubscribing)
+    );
+  }
+  public closeMenu() {
+    this.$emit('closeProfileCard');
+  }
+}

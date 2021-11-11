@@ -1,0 +1,140 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { Component, Vue, Prop } from 'vue-property-decorator';
+import { ThirdParty } from '@/utils/thirdParty';
+import { dataPoint } from '@/plugins/dataCollection';
+
+@Component({})
+export default class LoginThirdPartyBtn extends Vue {
+  @Prop({
+    required: true
+  })
+  public thirdParty!: ThirdParty; // Can't use constant string on union type
+
+  @Prop({
+    required: false,
+    type: Boolean,
+    default: false
+  })
+  public shouldCollectData!: boolean;
+
+  get imgSrc() {
+    return require(`../assets/icon/${this.thirdParty}-login-icon.svg`);
+  }
+
+  get text() {
+    switch (this.thirdParty) {
+      case 'fb': {
+        return this.$t('LoginClaimUsername.Facebook');
+      }
+      case 'yt': {
+        return this.$t('LoginClaimUsername.Youtube');
+      }
+      case 'twitch': {
+        return this.$t('LoginClaimUsername.Twitch');
+      }
+      default: {
+        return '';
+      }
+    }
+  }
+
+  get appID() {
+    switch (this.thirdParty) {
+      case 'fb': {
+        return process.env.VUE_APP_FB_APP_ID;
+      }
+      case 'yt': {
+        return process.env.VUE_APP_YT_APP_ID;
+      }
+      case 'twitch': {
+        return process.env.VUE_APP_TWITCH_APP_ID;
+      }
+      default: {
+        return '';
+      }
+    }
+  }
+
+  get gaEventCategory() {
+    switch (this.thirdParty) {
+      case 'fb': {
+        return 'facebook';
+      }
+      case 'yt': {
+        return 'youtube';
+      }
+      case 'twitch': {
+        return 'twitch';
+      }
+      default: {
+        return '';
+      }
+    }
+  }
+
+  get redirectUrl() {
+    const rst = `${process.env.VUE_APP_DEPLOYED_URL}`;
+    // XXX: facebook redirect_uri is weird, we have to append a '/'
+    if (this.thirdParty === 'fb') {
+      return `${rst}/`;
+    }
+    return rst;
+    // return 'http://localhost:8080';
+  }
+
+  get loginUrl() {
+    switch (this.thirdParty) {
+      case 'fb': {
+        return `https://www.facebook.com/v3.1/dialog/oauth?client_id=${
+          this.appID
+        }&redirect_uri=${this.redirectUrl}&state=${this.thirdParty}|${
+          this.$route.path
+        }&scope=email,user_age_range,user_link,user_gender`;
+      }
+      case 'yt': {
+        return `https://accounts.google.com/o/oauth2/v2/auth?client_id=${
+          this.appID
+        }&response_type=code&scope=openid+email+profile&redirect_uri=${
+          this.redirectUrl
+        }&state=${this.thirdParty}|${this.$route.path}`;
+      }
+      case 'twitch': {
+        return `https://id.twitch.tv/oauth2/authorize?client_id=${
+          this.appID
+        }&redirect_uri=${
+          this.redirectUrl
+        }&response_type=code&scope=openid+user:read:email&state=${
+          this.thirdParty
+        }|${this.$route.path}`;
+      }
+      default:
+        return '';
+    }
+  }
+
+  public login() {
+    if (this.shouldCollectData) {
+      dataPoint('register_third_party', {
+        eventCategory: this.gaEventCategory
+      });
+    }
+    // XXX(ruoran): dataPoint() doesn't return a promise
+    // so I use set time out
+    setTimeout(() => {
+      window.location.href = this.loginUrl;
+    }, 200);
+  }
+}

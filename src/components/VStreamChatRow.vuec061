@@ -1,0 +1,314 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import VDliveAvatar from '@/components/VDliveAvatar.vue';
+import VStreamChatRowSender from '@/components/VStreamChatRowSender.vue';
+import VStreamChatTextRow from '@/components/VStreamChatTextRow.vue';
+import VStreamChatFollowRow from '@/components/VStreamChatFollowRow.vue';
+import VStreamChatSubscriptionRow from '@/components/VStreamChatSubscriptionRow.vue';
+import VStreamChatResubRow from '@/components/VStreamChatResubRow.vue';
+import VStreamChatGiftRow from '@/components/VStreamChatGiftRow.vue';
+import VStreamChatGiftSubRow from '@/components/VStreamChatGiftSubRow.vue';
+import VStreamChatClipRow from '@/components/VStreamChatClipRow.vue';
+import VStreamChatGiftSubReceiveRow from '@/components/VStreamChatGiftSubReceiveRow.vue';
+import VStreamChatHostRow from '@/components/VStreamChatHostRow.vue';
+import VStreamChatChestValueRow from '@/components/VStreamChatChestValueRow.vue';
+import VStreamChatNotificationRow from '@/components/VStreamChatNotificationRow.vue';
+import VStreamChatSubStreakRow from '@/components/VStreamChatSubStreakRow.vue';
+import {
+  StreamMessageSubscription,
+  ChatType,
+  VStreamChatRowStreamerFrag,
+  DonationType,
+  VStreamChatTextRowFrag
+} from '@/graphql/types';
+import { CompleteMe } from '@/store/me/types';
+import { Component, Mixins, Prop } from 'vue-property-decorator';
+import clickaway from 'vue-clickaway';
+import { emoteRegex } from '@/utils/emote';
+import { namespace } from 'vuex-class';
+const userMetaModule = namespace('userMeta');
+
+@Component({
+  components: {
+    VDliveAvatar,
+    VStreamChatRowSender,
+    VStreamChatTextRow,
+    VStreamChatFollowRow,
+    VStreamChatSubscriptionRow,
+    VStreamChatResubRow,
+    VStreamChatGiftRow,
+    VStreamChatHostRow,
+    VStreamChatNotificationRow,
+    VStreamChatChestValueRow,
+    VStreamChatGiftSubRow,
+    VStreamChatGiftSubReceiveRow,
+    VStreamChatClipRow,
+    VStreamChatSubStreakRow
+  }
+})
+export default class VStreamChatRow extends Mixins(clickaway.mixin) {
+  @Prop({
+    required: true
+  })
+  public chat!: StreamMessageSubscription.StreamMessageReceived;
+
+  @Prop({
+    required: true
+  })
+  public streamerInfo!: VStreamChatRowStreamerFrag.Fragment;
+
+  @Prop({
+    required: true
+  })
+  public me!: CompleteMe | null;
+
+  @Prop({
+    required: false,
+    default: false,
+    type: Boolean
+  })
+  public isCardChat!: boolean;
+
+  public showProfileCard: boolean = false;
+
+  @userMetaModule.Getter('streamShowTimestamp')
+  private streamShowTimestamp!: boolean;
+
+  get isMessage() {
+    return this.chat.type === ChatType.Message;
+  }
+
+  get animationStyle() {
+    if (this.isCardChat) {
+      return 'height:40px';
+    }
+    return 'height:120px';
+  }
+  get isVipEmote() {
+    if (this.chat.type === ChatType.Message) {
+      const chatContent = (this.chat as VStreamChatTextRowFrag.Fragment)
+        .content;
+      const emoteList = chatContent.match(emoteRegex);
+      // confirm message is a emote
+      if (emoteList !== null && emoteList.length === 1) {
+        const items = emoteList[0].split('/');
+        if (items.length === 4) {
+          return items[1] === 'vip';
+        }
+      }
+    }
+    return false;
+  }
+
+  get isFollow() {
+    return this.chat.type === ChatType.Follow;
+  }
+
+  get isSubscribe() {
+    return this.chat.type === ChatType.Subscription;
+  }
+  get isExtendSub() {
+    return this.chat.type === ChatType.ExtendSub;
+  }
+  get isClip() {
+    return this.chat.type === ChatType.Clip;
+  }
+
+  get isGiftSub() {
+    return this.chat.type === ChatType.GiftSub;
+  }
+
+  get isGiftSubReceive() {
+    return this.chat.type === ChatType.GiftSubReceive;
+  }
+
+  get isGift() {
+    return this.chat.type === ChatType.Gift;
+  }
+
+  get isHost() {
+    return this.chat.type === ChatType.Host;
+  }
+
+  get isTcValue() {
+    return this.chat.type === ChatType.TcValue;
+  }
+
+  get isSubStreak() {
+    return this.chat.type === ChatType.SubStreak;
+  }
+
+  get isNotice() {
+    return (
+      this.chat.type === ChatType.Host ||
+      this.chat.type === ChatType.Gift ||
+      this.chat.type === ChatType.Subscription ||
+      this.chat.type === ChatType.ExtendSub ||
+      this.chat.type === ChatType.Follow ||
+      this.chat.type === ChatType.TcValue ||
+      this.isVipEmote ||
+      this.chat.type === ChatType.GiftSub ||
+      this.chat.type === ChatType.GiftSubReceive ||
+      this.chat.type === ChatType.SubStreak
+    );
+  }
+
+  get isNotification() {
+    return (
+      this.chat.type === ChatType.Ban ||
+      this.chat.type === ChatType.Mod ||
+      this.chat.type === ChatType.Emote ||
+      this.chat.type === ChatType.Timeout
+    );
+  }
+
+  get showAnimation() {
+    return (
+      this.isGift &&
+      ((this.chat as StreamMessageSubscription.ChatGiftInlineFragment).gift ===
+        DonationType.Diamond ||
+        (this.chat as StreamMessageSubscription.ChatGiftInlineFragment).gift ===
+          DonationType.Ninjaghini ||
+        (this.chat as StreamMessageSubscription.ChatGiftInlineFragment).gift ===
+          DonationType.Ninjet)
+    );
+  }
+
+  get animationSrc() {
+    if (
+      (this.chat as StreamMessageSubscription.ChatGiftInlineFragment).gift ===
+      DonationType.Diamond
+    ) {
+      return require('@/assets/animation/diamond.gif');
+    } else if (
+      (this.chat as StreamMessageSubscription.ChatGiftInlineFragment).gift ===
+      DonationType.Ninjaghini
+    ) {
+      return require('@/assets/animation/ninjaghini.gif');
+    } else if (
+      (this.chat as StreamMessageSubscription.ChatGiftInlineFragment).gift ===
+      DonationType.Ninjet
+    ) {
+      return require('@/assets/animation/ninjet.gif');
+    } else {
+      return '';
+    }
+  }
+
+  public toggleProfileCard() {
+    this.showProfileCard = !this.showProfileCard;
+  }
+  public closeProfileCard() {
+    this.showProfileCard = false;
+  }
+}

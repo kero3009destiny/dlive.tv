@@ -1,0 +1,469 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { ApolloQuery } from '@/decorators/apollo';
+import DBtn from '@/components/DBtn.vue';
+import DToken from '@/components/DToken.vue';
+import LIVESTREAM_PROFILE_WALLET from '@/graphql/queries/LivestreamProfileWallet.graphql';
+import { LivestreamProfileWallet, Maybe } from '@/graphql/types';
+import { Component, Mixins } from 'vue-property-decorator';
+import MeMixin from '@/mixins/MeMixin';
+import GlobalEventBusMixin from '@/mixins/GlobalEventBusMixin';
+import { EVENTS } from '@/utils/constants';
+
+type Option = 'crypto' | 'lemon';
+interface DonationRecord extends LivestreamProfileWallet._List {
+  mode?: string;
+  counterparty?: string;
+}
+@Component({
+  components: {
+    DBtn,
+    DToken
+  }
+})
+export default class ProfileWallet extends Mixins(
+  MeMixin,
+  GlobalEventBusMixin
+) {
+  @ApolloQuery({
+    query: LIVESTREAM_PROFILE_WALLET,
+    variables(): LivestreamProfileWallet.Variables {
+      return {
+        displayname: this.displayname,
+        first: this.numTxPerFetch,
+        isLoggedIn: this.isLoggedIn
+      };
+    }
+  })
+  public userByDisplayName?: Maybe<LivestreamProfileWallet.UserByDisplayName>;
+  // Computed ----------------------------------------------------
+  get displayname() {
+    return this.$route.params.displayname;
+  }
+
+  get linkIcon() {
+    return require('@/assets/icon/blockchainlink-darkmode.svg');
+  }
+
+  get profileWallet() {
+    if (
+      this.userByDisplayName !== undefined &&
+      this.userByDisplayName !== null
+    ) {
+      return this.userByDisplayName;
+    }
+    return null;
+  }
+
+  get wallet() {
+    if (this.profileWallet !== null) {
+      return this.profileWallet.wallet;
+    }
+    return null;
+  }
+
+  get isMe() {
+    if (this.profileWallet !== null) {
+      return this.profileWallet.isMe;
+    }
+    return false;
+  }
+
+  get userTransactions() {
+    if (this.profileWallet !== null) {
+      return this.profileWallet.transactions;
+    }
+    return null;
+  }
+
+  get usertransactionsCrypto() {
+    if (this.profileWallet !== null) {
+      return this.profileWallet.tronDonations;
+    }
+    return null;
+  }
+
+  get transactionList() {
+    if (this.curOptionIsLemon && this.userTransactions != null) {
+      return this.userTransactions.list;
+    }
+    if (
+      this.curOptionIsCrypto &&
+      this.usertransactionsCrypto != null &&
+      this.userByDisplayName
+    ) {
+      const username = this.userByDisplayName.username;
+      return (this.usertransactionsCrypto.list as DonationRecord[]).map(
+        record => {
+          if (record.toUser.username === username) {
+            record.mode = 'Donation In';
+            record.counterparty = `@${record.fromUser.username}`;
+          } else {
+            record.mode = 'Donation Out';
+            record.counterparty = `@${record.toUser.username}`;
+          }
+          return record;
+        }
+      );
+    }
+    return null;
+  }
+
+  get hasNextPage() {
+    if (this.curOptionIsLemon && this.userTransactions != null) {
+      return this.userTransactions.pageInfo.hasNextPage;
+    }
+    if (this.curOptionIsCrypto && this.usertransactionsCrypto != null) {
+      return this.usertransactionsCrypto.pageInfo.hasNextPage;
+    }
+    return false;
+  }
+
+  get curOptionIsCrypto() {
+    return this.curOption.option === 'crypto';
+  }
+
+  get curOptionIsLemon() {
+    return this.curOption.option === 'lemon';
+  }
+
+  get currencyIcon() {
+    if (this.curOptionIsCrypto) {
+      return [
+        require('@/assets/icon/btt-icon-white.svg'),
+        require('@/assets/icon/trx-icon-white.svg')
+      ];
+    }
+    if (this.curOptionIsLemon) {
+      return [require('@/assets/icon/token.svg')];
+    }
+    return [];
+  }
+
+  get currencyType() {
+    if (this.curOptionIsCrypto) {
+      return 'crypto';
+    }
+    if (this.curOptionIsLemon) {
+      return 'token';
+    }
+    return '';
+  }
+
+  get headers() {
+    if (this.curOptionIsCrypto) {
+      return [
+        {
+          text: 'Date',
+          sortable: false,
+          value: 'timestamp'
+        },
+        { text: 'Mode', value: 'mode', sortable: false },
+        { text: 'Counterparty', value: 'counterparty', sortable: false },
+        { text: 'Amount', value: 'amount', sortable: false },
+        { text: 'Transaction ID', value: 'txID', sortable: false }
+      ];
+    }
+    if (this.curOptionIsLemon) {
+      return [
+        {
+          text: 'Id',
+          align: 'left',
+          sortable: false,
+          value: 'id'
+        },
+        { text: 'Date', value: 'createdAt', sortable: false },
+        { text: 'Source', value: 'description', sortable: false },
+        { text: 'Mode', value: 'txType', sortable: false },
+        { text: 'Amount', value: 'amount', sortable: false },
+        { text: 'Balance', value: 'balance', sortable: false }
+      ];
+    }
+    return '';
+  }
+
+  // Local
+  public readonly numTxPerFetch: number = 20;
+  public options: Array<{ option: Option; label: string }> = [
+    { option: 'lemon', label: 'Lemon' },
+    { option: 'crypto', label: 'Crypto' }
+  ];
+  public curOption: { option: Option; label: string } = this.options[0];
+
+  // Function -------------------------------------------------
+  public getPaidClicked() {
+    this.$_smartPublish(EVENTS.OPEN_GET_PAID, null);
+  }
+
+  public openTransaction(txID: string) {
+    window.open(process.env.VUE_APP_CHECK_TRANSACTION_ADDRESS + txID);
+  }
+
+  public goToWalletClicked() {
+    this.$_smartPublish(EVENTS.GO_TO_WALLET, null);
+  }
+
+  public changeOption() {
+    // TODO
+  }
+
+  public fetchMore() {
+    if (this.curOptionIsCrypto) {
+      this.fetchMoretransactionsCrypto();
+    } else {
+      this.fetchMoreTransactions();
+    }
+  }
+
+  public fetchMoreTransactions() {
+    if (
+      this.userTransactions === null ||
+      !this.userTransactions.pageInfo.hasNextPage
+    ) {
+      return;
+    }
+    this.$apollo.queries.userByDisplayName.fetchMore({
+      variables: {
+        displayname: this.displayname,
+        first: this.numTxPerFetch,
+        after: this.userTransactions.pageInfo.endCursor
+      },
+      updateQuery: (
+        previousResult: LivestreamProfileWallet.Query,
+        { fetchMoreResult }: { fetchMoreResult?: LivestreamProfileWallet.Query }
+      ) => {
+        if (
+          fetchMoreResult === undefined ||
+          fetchMoreResult.userByDisplayName === null
+        ) {
+          return previousResult;
+        }
+        const moreTransactions: LivestreamProfileWallet.Transactions =
+          fetchMoreResult.userByDisplayName.transactions;
+        let prevTransactions = previousResult.userByDisplayName;
+        if (prevTransactions === null) {
+          prevTransactions = fetchMoreResult.userByDisplayName;
+        } else {
+          prevTransactions.transactions.pageInfo = moreTransactions.pageInfo;
+          prevTransactions.transactions.list = [
+            ...prevTransactions.transactions.list,
+            ...moreTransactions.list
+          ];
+        }
+        return {
+          userByDisplayName: prevTransactions
+        };
+      }
+    });
+  }
+
+  public fetchMoretransactionsCrypto() {
+    if (
+      this.usertransactionsCrypto === null ||
+      !this.usertransactionsCrypto.pageInfo.hasNextPage
+    ) {
+      return;
+    }
+    this.$apollo.queries.userByDisplayName.fetchMore({
+      variables: {
+        displayname: this.displayname,
+        first: this.numTxPerFetch,
+        afterDonate: this.usertransactionsCrypto.pageInfo.endCursor
+      },
+      updateQuery: (
+        previousResult: LivestreamProfileWallet.Query,
+        { fetchMoreResult }: { fetchMoreResult?: LivestreamProfileWallet.Query }
+      ) => {
+        if (
+          fetchMoreResult === undefined ||
+          fetchMoreResult.userByDisplayName === null
+        ) {
+          return previousResult;
+        }
+        const moreTransactions: LivestreamProfileWallet.TronDonations =
+          fetchMoreResult.userByDisplayName.tronDonations;
+        let prevTransactions = previousResult.userByDisplayName;
+        if (prevTransactions === null) {
+          prevTransactions = fetchMoreResult.userByDisplayName;
+        } else {
+          prevTransactions.tronDonations.pageInfo = moreTransactions.pageInfo;
+          prevTransactions.tronDonations.list = [
+            ...prevTransactions.tronDonations.list,
+            ...moreTransactions.list
+          ];
+        }
+        return {
+          userByDisplayName: prevTransactions
+        };
+      }
+    });
+  }
+}

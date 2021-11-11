@@ -1,0 +1,93 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { Component, Vue, Prop } from 'vue-property-decorator';
+import { isAndroid, isIOS } from '@/utils/useragent';
+import { dataPoint } from '@/plugins/dataCollection';
+import { ReferrerGQL } from '@/store/userMeta/types';
+import { namespace } from 'vuex-class';
+
+const userMetaModule = namespace('userMeta');
+
+@Component
+export default class LivestreamChannelMobileApp extends Vue {
+  @Prop({
+    required: true,
+    type: String
+  })
+  public displayname!: string;
+
+  @Prop({
+    required: true,
+    type: String
+  })
+  public username!: string;
+
+  @Prop({
+    required: true,
+    type: String
+  })
+  public textPath!: string;
+
+  public showBanner: boolean = false;
+
+  public showAndroid: boolean = false;
+
+  public showIos: boolean = false;
+
+  public userRef: string = '';
+
+  @userMetaModule.Getter('referrer')
+  private referrer!: ReferrerGQL | null;
+
+  public mounted() {
+    this.showBanner = this.$route.query.gxc === undefined;
+    this.showAndroid = isAndroid();
+    this.showIos = isIOS();
+  }
+
+  public downloadClicked() {
+    dataPoint('mobile_web_download', {
+      eventCategory: this.showIos ? 'iOS' : 'android'
+    });
+    if (this.showIos) {
+      const width = window.screen.width;
+      const height = window.screen.height;
+      const ratio = window.devicePixelRatio;
+      if (this.referrer !== null) {
+        window.location.href = `https://app.dlive.tv/${
+          this.username
+        }?screenWidth=${width * ratio}&screenHeight=${height *
+          ratio}&pixelRatio=${ratio}&referral=${this.referrer.referrer}`;
+      } else {
+        window.location.href = `https://app.dlive.tv/${
+          this.username
+        }?screenWidth=${width * ratio}&screenHeight=${height *
+          ratio}&pixelRatio=${ratio}`;
+      }
+    } else if (this.showAndroid) {
+      if (this.referrer !== null) {
+        window.location.href = `https://play.google.com/store/apps/details?id=io.dlive&referrer=utm_source%3Dgoogle-play%26utm_medium%3Dorganic%26utm_term%3D${
+          this.displayname
+        }%26utm_content%3D${this.referrer.referrer}`;
+      } else {
+        window.location.href = `https://play.google.com/store/apps/details?id=io.dlive&referrer=utm_source%3Dgoogle-play%26utm_medium%3Dorganic%26utm_term%3D${
+          this.displayname
+        }`;
+      }
+    }
+  }
+}

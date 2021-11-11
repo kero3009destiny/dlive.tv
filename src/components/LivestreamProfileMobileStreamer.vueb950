@@ -1,0 +1,173 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import VFollow from '@/components/VFollow.vue';
+import VSubscription from '@/components/VSubscription.vue';
+import VDliveAvatar from '@/components/VDliveAvatar.vue';
+import VDliveName from '@/components/VDliveName.vue';
+import DToken from '@/components/DToken.vue';
+import DBtn from '@/components/DBtn.vue';
+import MeMixin from '@/mixins/MeMixin';
+import { LivestreamPage } from '@/graphql/types';
+import { Component, Mixins, Prop } from 'vue-property-decorator';
+import { ROUTE_LIVESTREAM } from '@/router';
+
+@Component({
+  components: {
+    VFollow,
+    VDliveAvatar,
+    VDliveName,
+    VSubscription,
+    DBtn,
+    DToken
+  }
+})
+export default class LivestreamProfileMobileStreamer extends Mixins(MeMixin) {
+  @Prop({
+    required: true
+  })
+  public livestreamProfileMobile!: LivestreamPage.UserByDisplayName;
+
+  // Computed --------------------------------------------------------------------
+
+  get isMe() {
+    if (this.me !== null && this.livestreamProfileMobile !== null) {
+      return this.me.username === this.livestreamProfileMobile.username;
+    }
+    return false;
+  }
+
+  get livestream() {
+    if (this.livestreamProfileMobile !== null) {
+      return this.livestreamProfileMobile.livestream;
+    }
+    return null;
+  }
+
+  get rerun() {
+    if (this.livestreamProfileMobile !== null) {
+      return this.livestreamProfileMobile.rerun;
+    }
+    return null;
+  }
+
+  get hostingLivestream() {
+    if (this.livestreamProfileMobile !== null) {
+      return this.livestreamProfileMobile.hostingLivestream;
+    }
+    return null;
+  }
+
+  public goHostStreamerChannel() {
+    if (this.hostingLivestream !== null) {
+      this.$router.push({
+        name: ROUTE_LIVESTREAM,
+        params: { displayname: this.hostingLivestream.creator.displayname }
+      });
+    }
+  }
+}

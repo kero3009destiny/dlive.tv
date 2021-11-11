@@ -1,0 +1,239 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { Component, Mixins, Prop } from 'vue-property-decorator';
+import MeMixin from '@/mixins/MeMixin';
+import DBtn from '@/components/DBtn.vue';
+import { VSubscriptionFrag } from '@/graphql/types';
+import SnackbarMixin from '@/mixins/SnackbarMixin';
+import { getCookie } from '../utils/cookie';
+
+@Component({
+  components: {
+    DBtn
+  }
+})
+export default class AmazonPayRecurring extends Mixins(MeMixin, SnackbarMixin) {
+  @Prop({
+    required: true
+  })
+  public subscribee!: VSubscriptionFrag.Fragment;
+
+  public amazonLoginStateCache: null | string = null;
+
+  private amazonStatusInterval: number = 0;
+
+  public mounted() {
+    const head = document.getElementsByTagName('head')[0];
+    const s2 = document.createElement('script');
+    this.amazonLoginStateCache = getCookie('amazon_Login_state_cache');
+
+    this.amazonStatusInterval = window.setInterval(() => {
+      this.amazonLoginStateCache = getCookie('amazon_Login_state_cache');
+    }, 1000);
+
+    s2.innerHTML = `
+    var billingAgreementId=null;
+    window.onAmazonLoginReady = function() {
+      amazon.Login.setClientId("amzn1.application-oa2-client.f36fbf1267b54575853f86a3c06cb8cf");
+    };
+
+    window.onAmazonPaymentsReady = function() {
+      showLoginButton();
+      
+      showWalletWidget(null);
+    };
+
+    document.getElementById('Logout').onclick = function() {
+      amazon.Login.logout();
+      document.cookie = "amazon_Login_accessToken=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/";
+      billingAgreementId=null
+      // window.location.href = '/';
+    };
+    function showLoginButton() {
+        var authRequest;
+        OffAmazonPayments.Button("AmazonPayButton", "A2G4JTO27CAJI5", {
+          type:  "PwA",
+          color: "Gold",
+          size:  "medium",
+          authorization: function() {
+            loginOptions = {scope: "profile payments:widget payments:shipping_address", popup: true};
+            authRequest = amazon.Login.authorize (loginOptions, function(t) {
+                    console.log(t.access_token);
+                    console.log(t.expires_in);
+                    console.log(t);
+                    showWalletWidget(null);
+                });
+          }
+        });
+    }
+
+    
+    function showWalletWidget(billingAgreementId) {
+        // Wallet
+        new OffAmazonPayments.Widgets.Wallet({
+          sellerId: 'A2G4JTO27CAJI5',
+          agreementType: 'BillingAgreement',
+          amazonBillingAgreementId: billingAgreementId,
+          onPaymentSelect: function() {
+              console.log(222,arguments);
+          },
+          onReady: function(billingAgreement) {
+             console.log(111,billingAgreement.getAmazonBillingAgreementId());
+            billingAgreementId=billingAgreement.getAmazonBillingAgreementId();
+                showConsentWidget(billingAgreement);
+          },
+          design: {
+              designMode: 'responsive'
+          },
+          onError: function(error) {
+              // Error handling code 
+              // We also recommend that you implement an onError handler in your code. 
+              // @see https://payments.amazon.com/documentation/lpwa/201954960
+                    // showLoginButton();
+
+              console.log('OffAmazonPayments.Widgets.Wallet', error.getErrorCode(), error.getErrorMessage());
+          }
+        }).bind("walletWidgetDiv");
+    }
+
+    function showConsentWidget(billingAgreement) {
+        // Consent
+        new OffAmazonPayments.Widgets.Consent({
+          sellerId: 'A2G4JTO27CAJI5',
+          amazonBillingAgreementId: billingAgreement.getAmazonBillingAgreementId(),
+          onReady: function(billingAgreementConsentStatus){
+              console.log(billingAgreementConsentStatus.getConsentStatus());
+              billingAgreementId=billingAgreement.getAmazonBillingAgreementId();
+
+             buyerBillingAgreementConsentStatus = billingAgreementConsentStatus.getConsentStatus();
+
+          },
+          onConsent: function(billingAgreementConsentStatus){
+              console.log(billingAgreementConsentStatus.getConsentStatus());
+              billingAgreementId=billingAgreement.getAmazonBillingAgreementId();
+
+             buyerBillingAgreementConsentStatus = billingAgreementConsentStatus.getConsentStatus();
+
+          },
+          design: {
+              designMode: 'responsive'
+          },
+          onError: function(error) {
+              // Error handling code 
+              // We also recommend that you implement an onError handler in your code. 
+              // @see https://payments.amazon.com/documentation/lpwa/201954960
+              console.log('OffAmazonPayments.Widgets.Consent', error.getErrorCode(), error.getErrorMessage());
+          }
+        }).bind("consentWidgetDiv");
+    }
+    `;
+    head.appendChild(s2);
+
+    const s3 = document.createElement('script');
+    if (process.env.VUE_APP_AMAZON_PAY_JS !== undefined) {
+      s3.src = process.env.VUE_APP_AMAZON_PAY_JS;
+    } else {
+      s3.src =
+        'https://static-na.payments-amazon.com/OffAmazonPayments/us/js/Widgets.js';
+    }
+    s3.async = true;
+    head.appendChild(s3);
+  }
+  public beforeDestroy() {
+    if (this.amazonStatusInterval !== 0) {
+      window.clearInterval(this.amazonStatusInterval);
+      window.onAmazonPaymentsReady = null;
+    }
+  }
+  public dispatch(el: Element, type: string) {
+    try {
+      const evt = document.createEvent('Event');
+      evt.initEvent(type, true, true);
+      el.dispatchEvent(evt);
+    } catch (e) {
+      // alert(e);
+    }
+  }
+  public dealLoginAmazon() {
+    const d1 = document.getElementsByClassName('amazonpay-button-inner-image');
+    if (d1) {
+      this.dispatch(d1[0], 'click');
+    }
+  }
+  public dealLoginOutAmazon() {
+    const d1 = document.getElementById('Logout');
+    if (d1) {
+      this.dispatch(d1, 'click');
+      this.$forceUpdate();
+    }
+  }
+}

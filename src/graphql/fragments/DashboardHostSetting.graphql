@@ -1,0 +1,26 @@
+
+    var doc = {"kind":"Document","definitions":[{"kind":"FragmentDefinition","name":{"kind":"Name","value":"DashboardHostSettingFrag"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"User"}},"directives":[],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"hostingLivestream"},"arguments":[],"directives":[],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"creator"},"arguments":[],"directives":[],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"username"},"arguments":[],"directives":[]},{"kind":"FragmentSpread","name":{"kind":"Name","value":"VDliveAvatarFrag"},"directives":[]},{"kind":"FragmentSpread","name":{"kind":"Name","value":"VDliveNameFrag"},"directives":[]}]}}]}}]}}],"loc":{"start":0,"end":236}};
+    doc.loc.source = {"body":"#import './VDliveAvatar.graphql'\n#import './VDliveName.graphql'\n\nfragment DashboardHostSettingFrag on User {\n  id\n  hostingLivestream {\n    creator {\n      id\n      username\n      ...VDliveAvatarFrag\n      ...VDliveNameFrag\n    }\n  }\n}\n","name":"GraphQL request","locationOffset":{"line":1,"column":1}};
+  
+
+    var names = {};
+    function unique(defs) {
+      return defs.filter(
+        function(def) {
+          if (def.kind !== 'FragmentDefinition') return true;
+          var name = def.name.value
+          if (names[name]) {
+            return false;
+          } else {
+            names[name] = true;
+            return true;
+          }
+        }
+      )
+    }
+  doc.definitions = doc.definitions.concat(unique(require('./VDliveAvatar.graphql').definitions));
+doc.definitions = doc.definitions.concat(unique(require('./VDliveName.graphql').definitions));
+
+
+      module.exports = doc;
+    

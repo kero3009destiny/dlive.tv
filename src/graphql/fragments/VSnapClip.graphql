@@ -1,0 +1,26 @@
+
+    var doc = {"kind":"Document","definitions":[{"kind":"FragmentDefinition","name":{"kind":"Name","value":"VSnapClipFrag"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"Clip"}},"directives":[],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"permlink"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"clippedBy"},"arguments":[],"directives":[],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"FragmentSpread","name":{"kind":"Name","value":"VDliveAvatarFrag"},"directives":[]},{"kind":"FragmentSpread","name":{"kind":"Name","value":"VDliveNameFrag"},"directives":[]}]}},{"kind":"Field","name":{"kind":"Name","value":"upvotes"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"views"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"picked"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"url"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"description"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"createdAt"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"startTime"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"endTime"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"thumbnailUrl"},"arguments":[],"directives":[]}]}}],"loc":{"start":0,"end":275}};
+    doc.loc.source = {"body":"#import './VDliveAvatar.graphql'\n#import './VDliveName.graphql'\n\nfragment VSnapClipFrag on Clip {\n  id\n  permlink\n  clippedBy {\n    ...VDliveAvatarFrag\n    ...VDliveNameFrag\n  }\n  upvotes\n  views\n  picked\n  url\n  description\n  createdAt\n  startTime\n  endTime\n  thumbnailUrl\n}","name":"GraphQL request","locationOffset":{"line":1,"column":1}};
+  
+
+    var names = {};
+    function unique(defs) {
+      return defs.filter(
+        function(def) {
+          if (def.kind !== 'FragmentDefinition') return true;
+          var name = def.name.value
+          if (names[name]) {
+            return false;
+          } else {
+            names[name] = true;
+            return true;
+          }
+        }
+      )
+    }
+  doc.definitions = doc.definitions.concat(unique(require('./VDliveAvatar.graphql').definitions));
+doc.definitions = doc.definitions.concat(unique(require('./VDliveName.graphql').definitions));
+
+
+      module.exports = doc;
+    

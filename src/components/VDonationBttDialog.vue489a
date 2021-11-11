@@ -1,0 +1,454 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import QrcodeVue from 'qrcode.vue';
+import MeMixin from '@/mixins/MeMixin';
+import SnackbarMixin from '@/mixins/SnackbarMixin';
+import DBtn from '@/components/DBtn.vue';
+import DChooseNum from '@/components/DChooseNum.vue';
+import { Component, Mixins, Prop } from 'vue-property-decorator';
+import DTextField from '@/components/DTextField.vue';
+import { Gift } from '@/models/gift';
+import { setTronSenderAddress } from '@/apollo/mutation/dashboard';
+import { namespace } from 'vuex-class';
+import clickaway from 'vue-clickaway';
+import DTab from '@/components/DTab.vue';
+import { Tab } from '@/models/tab';
+const uiModule = namespace('ui');
+const meModule = namespace('me');
+
+@Component({
+  components: {
+    DBtn,
+    DTab,
+    DChooseNum,
+    QrcodeVue,
+    DTextField
+  }
+})
+export default class VDonationBttDialog extends Mixins(
+  clickaway.mixin,
+  MeMixin,
+  SnackbarMixin
+) {
+  @Prop({
+    required: true
+  })
+  public gift!: Gift;
+  @Prop({
+    required: true
+  })
+  public bttReceiverAddress!: string;
+  public tronWebAddr: string = '';
+  public activeTab: string = 'tab-tronink';
+  public activeTron: string = 'tron-btt';
+  public bttDonateInput: string = '';
+  public addressInput: string = '';
+  public addressHaveBorder: boolean = false;
+  public inputLoading: boolean = false;
+  public showQrCode: boolean = false;
+  public currentTransactionId: string = '';
+  public showDonateCompleteTips: boolean = false;
+  public alternateBttList: Array<{
+    id: string;
+    num: number;
+    numText: string;
+  }> = [
+    { id: 'btt_1', num: 1000, numText: '1K' },
+    { id: 'btt_2', num: 10000, numText: '10K' },
+    { id: 'btt_3', num: 100000, numText: '100K' },
+    { id: 'btt_4', num: 1000000, numText: '1,000K' }
+  ];
+  public alternateTrxList: Array<{
+    id: string;
+    num: number;
+    numText: string;
+  }> = [
+    { id: 'trx_1', num: 10, numText: '10' },
+    { id: 'trx_2', num: 100, numText: '100' },
+    { id: 'trx_3', num: 1000, numText: '1,000' },
+    { id: 'trx_4', num: 10000, numText: '10,000' }
+  ];
+
+  @meModule.Getter('tronSenderAddress')
+  private tronSenderAddress!: string;
+  @uiModule.Getter('theatreMode')
+  private theatreMode!: boolean;
+
+  get walletTabs(): Tab[] {
+    let result = Array<Tab>();
+    result = [
+      new Tab('TronLink', null, 'tab-tronink'),
+      new Tab('Other Wallet', null, 'tab-other')
+    ];
+    return result;
+  }
+
+  get bttIcon() {
+    if (this.activeTron === 'tron-btt') {
+      return require('@/assets/icon/btt-icon-white.svg');
+    } else {
+      return require('@/assets/icon/btt-icon-grey.svg');
+    }
+  }
+
+  get trxIcon() {
+    if (this.activeTron === 'tron-trx') {
+      return require('@/assets/icon/trx-icon-white.svg');
+    } else {
+      return require('@/assets/icon/trx-icon-grey.svg');
+    }
+  }
+
+  get addressVerifyCheck(): boolean {
+    if (this.tronSenderAddress !== this.addressInput) {
+      return false;
+    } else {
+      return true;
+    }
+  }
+  public async mounted() {
+    if (window.tronWeb && window.tronWeb.defaultAddress.base58) {
+      this.tronWebAddr = window.tronWeb.defaultAddress.base58;
+    }
+    this.addressInput = this.tronSenderAddress;
+  }
+  public onClickQrCode() {
+    this.showQrCode = !this.showQrCode;
+  }
+
+  public closeQrCode() {
+    this.showQrCode = false;
+  }
+
+  public changeTab(tab: Tab) {
+    if (tab.href !== undefined) {
+      this.activeTab = tab.href;
+    }
+  }
+
+  public changeTronType(type: string) {
+    this.activeTron = type;
+    this.showDonateCompleteTips = false;
+  }
+  public onAddressFocus() {
+    this.addressHaveBorder = true;
+  }
+  public onAddressBlur() {
+    this.addressHaveBorder = false;
+  }
+  public closeDonate() {
+    this.$emit('close');
+  }
+
+  public onClickCopy() {
+    const copyDom = document.querySelector('#receive-address') as HTMLElement;
+    const target = document.createElement('div') as HTMLElement;
+    target.id = 'tempTarget';
+    target.style.opacity = '0';
+    target.innerText = copyDom.innerText;
+    document.body.appendChild(target);
+    const range = document.createRange();
+    const select = window.getSelection();
+    if (copyDom === null || range === null || select === null) {
+      return;
+    }
+    range.selectNode(target);
+    select.removeAllRanges();
+    select.addRange(range);
+    const successful = document.execCommand('copy');
+    if (successful) {
+      this.$success('dashboard.SuccessCopy');
+    } else {
+      this.$error('dashboard.FailToCopy');
+    }
+  }
+
+  public async clickSave() {
+    const resp = await setTronSenderAddress(this, this.addressInput);
+    if (resp !== undefined) {
+      // this.saveBadWordCache(word, true);
+    }
+  }
+
+  public async clickGiftBtt(donateNum: number) {
+    try {
+      const tronweb = window.tronWeb;
+      if (tronweb && tronweb.defaultAddress.base58) {
+        this.tronWebAddr = tronweb.defaultAddress.base58;
+      } else {
+        this.$error('VDonationGiftBtn.notLoginTron');
+        return;
+      }
+      const tx = await tronweb.transactionBuilder.sendToken(
+        this.bttReceiverAddress,
+        donateNum * Math.pow(10, 6),
+        '1002000',
+        this.tronWebAddr
+      );
+      const signedTx = await tronweb.trx.sign(tx);
+      const broastTx = await tronweb.trx.sendRawTransaction(signedTx);
+      this.currentTransactionId = broastTx.txid;
+      this.showDonateCompleteTips = true;
+      this.$success('VDonationGiftBtn.DonateSuccess');
+      if (this.tronSenderAddress !== this.tronWebAddr) {
+        await setTronSenderAddress(this, this.tronWebAddr);
+        this.addressInput = this.tronWebAddr;
+      }
+    } catch (error) {
+      if (
+        error ===
+          'class org.tron.core.exception.ContractValidateException : assetBalance must be greater than 0.' ||
+        error ===
+          'class org.tron.core.exception.ContractValidateException : assetBalance is not sufficient.' ||
+        error ===
+          'class org.tron.core.exception.ContractValidateException : Validate TransferContract error, balance is not sufficient.'
+      ) {
+        this.$error('VDonationGiftBtn.NotEnoughBalance');
+      } else {
+        this.$error(error);
+      }
+    }
+  }
+
+  public async clickGiftTrx(donateNum: number) {
+    try {
+      const tronweb = window.tronWeb;
+      if (tronweb && tronweb.defaultAddress.base58) {
+        this.tronWebAddr = tronweb.defaultAddress.base58;
+      } else {
+        this.$error('VDonationGiftBtn.notLoginTron');
+        return;
+      }
+      const tx = await tronweb.transactionBuilder.sendTrx(
+        this.bttReceiverAddress,
+        donateNum * Math.pow(10, 6),
+        this.tronWebAddr
+      );
+      const signedTx = await tronweb.trx.sign(tx);
+      const broastTx = await tronweb.trx.sendRawTransaction(signedTx);
+      this.currentTransactionId = broastTx.txid;
+      this.showDonateCompleteTips = true;
+      this.$success('VDonationGiftBtn.DonateSuccess');
+      if (this.tronSenderAddress !== this.tronWebAddr) {
+        await setTronSenderAddress(this, this.tronWebAddr);
+        this.addressInput = this.tronWebAddr;
+      }
+    } catch (error) {
+      if (
+        error ===
+          'class org.tron.core.exception.ContractValidateException : assetBalance must be greater than 0.' ||
+        error ===
+          'class org.tron.core.exception.ContractValidateException : assetBalance is not sufficient.' ||
+        error ===
+          'class org.tron.core.exception.ContractValidateException : Validate TransferContract error, balance is not sufficient.'
+      ) {
+        this.$error('VDonationGiftBtn.NotEnoughBalance');
+      } else {
+        this.$error(error);
+      }
+    }
+  }
+
+  public openTransaction() {
+    if (this.currentTransactionId) {
+      window.open(
+        process.env.VUE_APP_CHECK_TRANSACTION_ADDRESS +
+          this.currentTransactionId
+      );
+    }
+  }
+}

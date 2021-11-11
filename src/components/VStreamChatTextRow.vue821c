@@ -1,0 +1,4 @@
+var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('span',{staticStyle:{"word-break":"break-word"}},[_c('v-linkify',{attrs:{"emojis":_vm.chatTextRow.emojis,"str":_vm.chatTextRow.content,"streamer-info":_vm.streamerInfo,"me":_vm.me,"text-color":_vm.textColor,"is-card-chat":_vm.isCardChat}})],1)}
+var staticRenderFns = []
+
+export { render, staticRenderFns }

@@ -1,0 +1,270 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import NAV_SEARCH_RESULT from '@/graphql/queries/NavSearchResult.graphql';
+import { NavSearchResult } from '@/graphql/types';
+import DTextField from '@/components/DTextField.vue';
+import DMenu from '@/components/DMenu.vue';
+import VDliveAvatar from '@/components/VDliveAvatar.vue';
+import VDliveName from '@/components/VDliveName.vue';
+import { Component, Vue, Watch, Prop } from 'vue-property-decorator';
+import { ROUTE_LIVESTREAM, ROUTE_GAME_NAME } from '@/router';
+
+@Component({
+  components: {
+    DTextField,
+    DMenu,
+    VDliveAvatar,
+    VDliveName
+  }
+})
+export default class NavSearch extends Vue {
+  @Prop({
+    required: false,
+    default: false,
+    type: Boolean
+  })
+  public autofocus!: boolean;
+
+  public search: NavSearchResult.Search | null = null;
+
+  get menuShow() {
+    return this.keyword !== '';
+  }
+
+  get channelShow() {
+    return this.allUsers.length !== 0;
+  }
+
+  get categoryShow() {
+    return this.categories.length !== 0;
+  }
+
+  get allUsers() {
+    if (this.search !== null) {
+      return this.search.allUsers.list.filter(user => {
+        return user !== undefined && user !== null;
+      });
+    }
+    return [];
+  }
+
+  get categories() {
+    if (this.search !== null) {
+      return this.search.liveCategories.list.filter(category => {
+        return category !== undefined && category !== null;
+      });
+    }
+    return [];
+  }
+
+  // Local
+  public keyword = '';
+  public isLoading = false;
+  // Function --------------------------------------------------------------------------------------------------
+  // public goSearchPage() {
+  //   if (this.keyword !== '') {
+  //     this.$router.push({
+  //       name: ROUTE_SEARCH,
+  //       params: { keyword: this.keyword }
+  //     });
+  //   }
+  // }
+  @Watch('keyword')
+  public onKeywordChange() {
+    this.search = null;
+  }
+
+  public isLivestream(
+    item:
+    | NavSearchResult.LivestreamInlineFragment
+    | NavSearchResult.UserInlineFragment
+  ) {
+    return item.__typename === 'Livestream';
+  }
+
+  public dealSearch() {
+    if (this.keyword === '') {
+      return;
+    }
+    try {
+      this.isLoading = true;
+      this.$apollo
+        .query<NavSearchResult.Query>({
+          query: NAV_SEARCH_RESULT,
+          variables: {
+            text: this.keyword,
+            userFirst: 8,
+            categoryFirst: 3
+          }
+        })
+        .then(result => {
+          this.isLoading = false;
+          if (result.data.search) {
+            this.search = result.data.search;
+          }
+        });
+    } catch (err) {
+      this.isLoading = false;
+    }
+  }
+  public isUser(
+    item:
+    | NavSearchResult.LivestreamInlineFragment
+    | NavSearchResult.UserInlineFragment
+  ) {
+    return item.__typename === 'User';
+  }
+
+  public routerToChannel(
+    user: NavSearchResult.Creator | NavSearchResult.UserInlineFragment
+  ) {
+    // this.keyword = '';
+    return {
+      name: ROUTE_LIVESTREAM,
+      params: { displayname: user.displayname }
+    };
+  }
+
+  public routerToCategory(category: NavSearchResult._List) {
+    // this.keyword = '';
+    return {
+      name: ROUTE_GAME_NAME,
+      params: {
+        categoryID: category.backendID,
+        categoryName: category.title.replace(/\s+/g, '-')
+      }
+    };
+  }
+
+  public clearText() {
+    this.keyword = '';
+  }
+}

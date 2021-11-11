@@ -1,0 +1,365 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import VDliveAvatar from '@/components/VDliveAvatar.vue';
+import { ApolloQuery } from '@/decorators/apollo';
+import DAILY_REPORT from '@/graphql/queries/DailyReport.graphql';
+import { Maybe, DailyReport } from '@/graphql/types';
+import { Component, Mixins } from 'vue-property-decorator';
+import { namespace } from 'vuex-class';
+import MeMixin from '@/mixins/MeMixin';
+
+const userMetaModule = namespace('userMeta');
+
+@Component({
+  components: {
+    VDliveAvatar
+  }
+})
+export default class DailyReportDialog extends Mixins(MeMixin) {
+  @ApolloQuery({
+    query: DAILY_REPORT,
+    fetchPolicy: 'network-only',
+    manual: true,
+    variables(): DailyReport.Variables {
+      return {
+        first: 2
+      };
+    },
+    result({ data }) {
+      if (data) {
+        this.meDailyReport = data.me;
+        if (
+          this.dailyReport !== null &&
+          this.dailyReport.id !== this.dailyReportId
+        ) {
+          this.dailyReportShow = true;
+          this.setDailyReportId(this.dailyReport.id);
+        }
+      }
+    }
+  })
+  public meDailyReport?: Maybe<DailyReport.Me>;
+
+  get dailyReport() {
+    if (this.meDailyReport && this.meDailyReport.private !== null) {
+      return this.meDailyReport.private.dailyReport;
+    }
+    return null;
+  }
+
+  get followerCount() {
+    if (this.dailyReport !== null) {
+      return this.dailyReport.followers.totalCount;
+    }
+    return 0;
+  }
+
+  get followerList() {
+    if (this.dailyReport !== null) {
+      return this.dailyReport.followers.list;
+    }
+    return [];
+  }
+
+  get subscriberCount() {
+    if (this.dailyReport !== null) {
+      return this.dailyReport.subscribers.totalCount;
+    }
+    return 0;
+  }
+
+  get subscriberList() {
+    if (this.dailyReport !== null) {
+      return this.dailyReport.subscribers.list;
+    }
+    return [];
+  }
+
+  get subAnniversaryCount() {
+    if (this.dailyReport !== null) {
+      return this.dailyReport.subAnniversaries.totalCount;
+    }
+    return 0;
+  }
+
+  get subAnniversaryList() {
+    if (this.dailyReport !== null) {
+      return this.dailyReport.subAnniversaries.list;
+    }
+    return [];
+  }
+
+  get moreIcon() {
+    return { avatar: require('@/assets/icon/daily-report-more-icon.svg') };
+  }
+
+  public dailyReportShow: boolean = false;
+
+  @userMetaModule.Getter('dailyReportId')
+  private dailyReportId!: string;
+  @userMetaModule.Mutation('setDailyReportId')
+  private setDailyReportId!: (id: string) => void;
+
+  public mounted() {
+    const dailyReport: string = this.$route.query.dailyReport as string;
+    if (dailyReport !== undefined) {
+      this.dailyReportShow = true;
+    }
+  }
+
+  public dailyReportClose() {
+    this.dailyReportShow = false;
+  }
+}

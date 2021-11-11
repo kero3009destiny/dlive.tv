@@ -1,0 +1,106 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import DBtn from '@/components/DBtn.vue';
+import { Component, Prop, Vue } from 'vue-property-decorator';
+import { ROUTE_HOME } from '@/router';
+
+@Component({
+  components: {
+    DBtn
+  }
+})
+export default class VPageNotFound extends Vue {
+  @Prop({
+    required: false,
+    default: ''
+  })
+  public displayname!: string;
+
+  @Prop({
+    required: true,
+    type: String
+  })
+  public from!: 'channel' | 'video' | 'reply' | 'clip';
+
+  @Prop({
+    required: false,
+    type: Boolean,
+    default: true
+  })
+  public hasRedirect!: boolean;
+
+  get isChannel() {
+    return this.from === 'channel';
+  }
+
+  get isVideo() {
+    return this.from === 'video';
+  }
+
+  get isReply() {
+    return this.from === 'reply';
+  }
+
+  get isClip() {
+    return this.from === 'clip';
+  }
+
+  get text() {
+    switch (this.from) {
+      case 'channel': {
+        return `${this.displayname} ${this.$t(
+          'VPageNotFound.ChannelNotFound'
+        )}`;
+      }
+      case 'video': {
+        return this.$t('VPageNotFound.PostNotFound');
+      }
+      case 'reply': {
+        return this.$t('VPageNotFound.PostNotFound');
+      }
+      case 'clip': {
+        return this.$t('VPageNotFound.ClipNotFound');
+      }
+      default: {
+        return '';
+      }
+    }
+  }
+
+  private routeTo() {
+    this.$router.push({ name: ROUTE_HOME });
+  }
+}

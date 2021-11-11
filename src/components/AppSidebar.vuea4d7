@@ -1,0 +1,294 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { EVENTS } from '@/utils/constants';
+import MeMixin from '@/mixins/MeMixin';
+import { Component, Mixins } from 'vue-property-decorator';
+import AppSidebarCashin from '@/components/AppSidebarCashin.vue';
+import AppSidebarChannels from '@/components/AppSidebarChannels.vue';
+import AppSidebarRecommend from '@/components/AppSidebarRecommend.vue';
+import AppSidebarCategorys from '@/components/AppSidebarCategorys.vue';
+import AppSidebarChannelsClose from '@/components/AppSidebarChannelsClose.vue';
+import AppSidebarCategorysClose from '@/components/AppSidebarCategorysClose.vue';
+import AppSidebarRecommendClose from '@/components/AppSidebarRecommendClose.vue';
+import AppSidebarLinks from '@/components/AppSidebarLinks.vue';
+import DDivider from '@/components/DDivider.vue';
+import { ApolloQuery } from '@/decorators/apollo';
+import ME_SIDEBAR from '@/graphql/queries/MeSidebar.graphql';
+import { MeSidebar, Maybe } from '@/graphql/types';
+import { namespace } from 'vuex-class';
+import { addScrollListener } from '@/utils/chatroom';
+import { debounce } from 'throttle-debounce';
+import GlobalEventBusMixin from '@/mixins/GlobalEventBusMixin';
+import {
+  SidebarRecommendation,
+  GlobalInformationRecommend,
+  VCategoryLivestreamFrag
+} from '@/graphql/types';
+import GLOBAL_INFORMATION_RECOMMEND from '@/graphql/queries/GlobalInformationRecommend.graphql';
+import { HomePageLivestream } from '@/graphql/types';
+import HOME_PAGE_LIVESTREAM from '@/graphql/queries/HomePageLivestream.graphql';
+
+const dialogModule = namespace('dialog');
+const globalCategoryModule = namespace('globalCategory');
+const globalInfoModule = namespace('globalInfo');
+
+const refetchInterval = 60000;
+
+@Component({
+  components: {
+    AppSidebarCashin,
+    AppSidebarChannels,
+    AppSidebarRecommend,
+    AppSidebarCategorys,
+    AppSidebarLinks,
+    DDivider,
+    AppSidebarChannelsClose,
+    AppSidebarRecommendClose,
+    AppSidebarCategorysClose
+  }
+})
+export default class AppSidebar extends Mixins(MeMixin, GlobalEventBusMixin) {
+  @ApolloQuery({
+    query: ME_SIDEBAR,
+    fetchPolicy: 'network-only',
+    manual: true,
+    skip() {
+      return !this.isLoggedIn;
+    },
+    variables() {
+      return {
+        folowingFirst: 20
+      };
+    },
+    // manual mode query must have the result hook
+    result() {
+      return;
+    }
+  })
+  public MeSidebar?: Maybe<MeSidebar.Me>;
+
+  @ApolloQuery({
+    manual: true,
+    query: HOME_PAGE_LIVESTREAM,
+    fetchPolicy: 'network-only',
+    variables(): HomePageLivestream.Variables {
+      return {
+        first: 5,
+        categoryID: 11455
+      };
+    },
+    result({ data }) {
+      if (data) {
+        this.livestreamsCrypto = data.livestreams;
+        if (data.livestreams) {
+          this.setGlobalCategoryCryptoChannels(data.livestreams.list);
+        }
+      }
+      return;
+    }
+  })
+  public livestreamsCrypto?: HomePageLivestream.Livestreams | null;
+
+  @ApolloQuery({
+    manual: true,
+    query: HOME_PAGE_LIVESTREAM,
+    fetchPolicy: 'network-only',
+    variables(): HomePageLivestream.Variables {
+      return {
+        first: 5,
+        categoryID: 11454
+      };
+    },
+    result({ data }) {
+      if (data) {
+        this.livestreamsBlockchain = data.livestreams;
+        if (data.livestreams) {
+          this.setGlobalCategoryBlockchainChannels(data.livestreams.list);
+        }
+      }
+      return;
+    }
+  })
+  public livestreamsBlockchain?: HomePageLivestream.Livestreams | null;
+
+  // local
+  public sidebarInterval: number = 0;
+  public showSidebar: boolean = true;
+  public recommendInterval: number = 0;
+
+  @dialogModule.Mutation('setCashInDialog')
+  private setCashInDialog!: (status: boolean) => void;
+  @dialogModule.Mutation('setDailyCheckInDialog')
+  private setDailyCheckInDialog!: (status: boolean) => void;
+
+  @globalInfoModule.Mutation('setGlobalInfoRecommend')
+  private setGlobalInfoRecommend!: (
+    globalInfoRecommend: SidebarRecommendation.RecommendChannels[]
+  ) => void;
+
+  @globalCategoryModule.Mutation('setGlobalCategoryCryptoChannels')
+  private setGlobalCategoryCryptoChannels!: (
+    livestreamsCrypto: VCategoryLivestreamFrag.List[]
+  ) => void;
+
+  @globalCategoryModule.Mutation('setGlobalCategoryBlockchainChannels')
+  private setGlobalCategoryBlockchainChannels!: (
+    livestreamsBlockchain: VCategoryLivestreamFrag.List[]
+  ) => void;
+
+  public mounted() {
+    this._setPolling();
+    this.scrollEvent();
+    this.recommendInterval = window.setInterval(this.refetchRecommend, 60000);
+  }
+
+  public beforeDestroy() {
+    clearInterval(this.sidebarInterval);
+    clearInterval(this.recommendInterval);
+  }
+
+  public refetchMeSidebar() {
+    this.$apollo.queries.MeSidebar.refetch();
+  }
+
+  public toggleSidebar() {
+    this.showSidebar = !this.showSidebar;
+  }
+
+  public scrollEvent() {
+    const container = document.getElementById('sidebar');
+    addScrollListener(
+      container,
+      debounce(600, () => {
+        this.$_smartPublish(EVENTS.SIDEBAR_SCROLL_EVENT, null);
+      })
+    );
+  }
+
+  public openCashinPopup() {
+    if (this.requireLogin()) {
+      return;
+    }
+    this.setCashInDialog(true);
+  }
+
+  public openDailyCheckIn() {
+    if (this.requireLogin()) {
+      return;
+    }
+    this.setDailyCheckInDialog(true);
+  }
+
+  public async refetchRecommend() {
+    const variables: GlobalInformationRecommend.Variables = {
+      limit: 5
+    };
+    try {
+      const data = await this.$apollo.query<GlobalInformationRecommend.Query>({
+        query: GLOBAL_INFORMATION_RECOMMEND,
+        fetchPolicy: 'network-only',
+        variables
+      });
+      if (data.data.globalInfo === null) {
+        return;
+      }
+      this.setGlobalInfoRecommend(data.data.globalInfo.recommendChannels);
+    } catch (err) {
+      // TODO
+    }
+  }
+
+  private _setPolling() {
+    this.sidebarInterval = window.setInterval(
+      this.refetchMeSidebar,
+      refetchInterval
+    );
+  }
+}

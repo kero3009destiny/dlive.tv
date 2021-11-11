@@ -1,0 +1,26 @@
+
+    var doc = {"kind":"Document","definitions":[{"kind":"FragmentDefinition","name":{"kind":"Name","value":"SidebarRecommendation"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"GlobalInfo"}},"directives":[],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"recommendChannels"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"limit"},"value":{"kind":"Variable","name":{"kind":"Name","value":"limit"}}}],"directives":[],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"user"},"arguments":[],"directives":[],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"FragmentSpread","name":{"kind":"Name","value":"VDliveNameFrag"},"directives":[]},{"kind":"FragmentSpread","name":{"kind":"Name","value":"VDliveAvatarFrag"},"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"livestream"},"arguments":[],"directives":[],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"watchingCount"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"permlink"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"category"},"arguments":[],"directives":[],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"title"},"arguments":[],"directives":[]}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"banStatus"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"hostingLivestream"},"arguments":[],"directives":[],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"permlink"},"arguments":[],"directives":[]}]}}]}}]}}]}}],"loc":{"start":0,"end":485}};
+    doc.loc.source = {"body":"#import './VDliveName.graphql'\n#import './VDliveAvatar.graphql'\nfragment SidebarRecommendation on GlobalInfo {\n  recommendChannels(limit: $limit) {\n      user {\n        ...VDliveNameFrag\n        ...VDliveAvatarFrag\n        livestream {\n            id\n            watchingCount\n          permlink\n            category {\n                id\n                title\n            }\n        }\n        banStatus\n        hostingLivestream {\n          id\n          permlink\n        }\n      }\n  }\n}","name":"GraphQL request","locationOffset":{"line":1,"column":1}};
+  
+
+    var names = {};
+    function unique(defs) {
+      return defs.filter(
+        function(def) {
+          if (def.kind !== 'FragmentDefinition') return true;
+          var name = def.name.value
+          if (names[name]) {
+            return false;
+          } else {
+            names[name] = true;
+            return true;
+          }
+        }
+      )
+    }
+  doc.definitions = doc.definitions.concat(unique(require('./VDliveName.graphql').definitions));
+doc.definitions = doc.definitions.concat(unique(require('./VDliveAvatar.graphql').definitions));
+
+
+      module.exports = doc;
+    

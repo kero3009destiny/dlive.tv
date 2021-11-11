@@ -1,0 +1,44 @@
+var map = {
+	"./amex-bg.png": "f626",
+	"./cashback-dialog-bg.png": "02c8",
+	"./chest-close-bg.png": "f8bc",
+	"./chest-open-bg.png": "dc85",
+	"./chest-value-update-bg.png": "7ad6",
+	"./daily-check-in-popup-bg.png": "c9e4",
+	"./daily-check-in-reward-bg.png": "ee0c",
+	"./dci-bg.png": "7221",
+	"./discover-bg.png": "cc1a",
+	"./download-app-bg.png": "976f",
+	"./hallowween-home-header-bg.png": "b9c3",
+	"./home-banner-bg.png": "f28b1",
+	"./home-bg.png": "4ed9",
+	"./home-header-bg.png": "51fd",
+	"./jcb-bg.png": "7b50",
+	"./mastercard-bg.png": "bbf0",
+	"./payment-epin-bg.png": "28e4",
+	"./payment-skrill-bg.png": "fbd6",
+	"./payment-stripe-bg.png": "432a",
+	"./profile-bg.png": "7f52",
+	"./visa-bg.png": "ece8"
+};
+
+
+function webpackContext(req) {
+	var id = webpackContextResolve(req);
+	return __webpack_require__(id);
+}
+function webpackContextResolve(req) {
+	var id = map[req];
+	if(!(id + 1)) { // check for number or string
+		var e = new Error("Cannot find module '" + req + "'");
+		e.code = 'MODULE_NOT_FOUND';
+		throw e;
+	}
+	return id;
+}
+webpackContext.keys = function webpackContextKeys() {
+	return Object.keys(map);
+};
+webpackContext.resolve = webpackContextResolve;
+module.exports = webpackContext;
+webpackContext.id = "65e2";

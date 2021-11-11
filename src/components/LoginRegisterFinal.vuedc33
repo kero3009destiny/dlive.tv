@@ -1,0 +1,356 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import VUploadImage from '@/components/VUploadImage.vue';
+import DBtn from '@/components/DBtn.vue';
+import DDivider from '@/components/DDivider.vue';
+// import AuthTokenMixin from '@/mixins/AuthTokenMixin';
+// import CountryCodeMixin from '@/mixins/CountryCodeMixin';
+// import CurrentUserMixin from '@/mixins/CurrentUserMixin';
+// import ErrorCheckingMixin from '@/mixins/ErrorCheckingMixin';
+// import FormValidationMixin from '@/mixins/FormValidationMixin';
+// import UploadProfilePicMixin from '@/mixins/UploadProfilePicMixin';
+import { Component, Mixins, Prop, Emit } from 'vue-property-decorator';
+import VGrecaptcha from '@/components/VGrecaptcha.vue';
+import VTextFieldDisplayName from '@/components/VTextFieldDisplayName.vue';
+import { getRandomInt } from '@/utils/math';
+import uploadAvatar from '@/api/uploadAvatar';
+import {
+  RegisterWithFb,
+  RegisterResponseFrag,
+  RegisterWithTw,
+  RegisterWithYt,
+  RegisterWithWallet,
+  RegisterWithEmailStepTwo
+} from '@/graphql/types';
+import { namespace } from 'vuex-class';
+import { ReferrerGQL } from '@/store/userMeta/types';
+import {
+  ALL_LOGIN_OPTIONS,
+  AllLogin,
+  THIRD_PARTY_OPTIONS
+} from '@/utils/thirdParty';
+import { optionsValidator } from '@/utils/prop';
+import SnackbarMixin from '@/mixins/SnackbarMixin';
+import { InternalError, RecaptchaError } from '@/models/error';
+import {
+  registerFb,
+  registerYt,
+  registerTw,
+  registerWallet,
+  registerEmailStepTwo
+} from '@/apollo/mutation/register';
+import { dataPoint } from '@/plugins/dataCollection';
+import { Ads } from '@/store/userMeta/types';
+import GlobalEventBusMixin from '@/mixins/GlobalEventBusMixin';
+import { EVENTS } from '@/utils/constants';
+
+const userMetaModule = namespace('userMeta');
+const accessTokenModule = namespace('accessToken');
+const bannerModule = namespace('banner');
+
+@Component({
+  components: {
+    VUploadImage,
+    VGrecaptcha,
+    VTextFieldDisplayName,
+    DBtn,
+    DDivider
+  }
+})
+export default class LoginRegisterFinal extends Mixins(
+  SnackbarMixin,
+  GlobalEventBusMixin
+) {
+  get userProfileCheck() {
+    if (
+      this.displayName &&
+      (this.$refs.displaynameTextfield as VTextFieldDisplayName).valid
+    ) {
+      return false;
+    } else {
+      return true;
+    }
+  }
+
+  get loginMethodIsThirdParty() {
+    return THIRD_PARTY_OPTIONS.indexOf(this.registerMethod) !== -1;
+  }
+  // AuthTokenMixin,
+  // CurrentUserMixin,
+  // ErrorCheckingMixin,
+  // FormValidationMixin,
+  // UploadProfilePicMixin,
+  @Prop({
+    required: true,
+    type: String
+  })
+  public token!: string; // XXX(@ryanli): accessToken for thirdparty and wallet register, emailToken for email register
+
+  @Prop({
+    required: true,
+    type: String,
+    validator: optionsValidator(ALL_LOGIN_OPTIONS)
+  })
+  public registerMethod!: AllLogin;
+
+  @Prop({
+    required: false,
+    type: String
+  })
+  public redirectUrl!: string;
+
+  public displayName: string = '';
+
+  @accessTokenModule.Mutation('setAccessToken')
+  public setAccessToken!: (token: string) => void;
+
+  public uploadAvatar = uploadAvatar;
+  public avatarURL = `https://images.prd.dlivecdn.com/avatar/default${getRandomInt(
+    24
+  )}.png`;
+  public showChangeAvatar: boolean = false;
+
+  @userMetaModule.Getter('referrer')
+  private referrer!: ReferrerGQL | null;
+  @userMetaModule.Getter('langCode')
+  private langCode!: string;
+  @userMetaModule.Getter('ads')
+  private ads!: Ads;
+  @userMetaModule.Action('fetchFingerprint')
+  private getFingerprint!: () => Promise<string>;
+  @bannerModule.Mutation('setEmailConfirm')
+  private setEmailConfirm!: (status: boolean) => void;
+
+  private signupLoading: boolean = false;
+
+  public async register() {
+    this.signupLoading = true;
+    try {
+      let resp!: RegisterResponseFrag.Fragment;
+      // Make sure we have fingerpint in the store and thus in the header before register
+      await this.getFingerprint();
+      if (this.loginMethodIsThirdParty) {
+        const recaptcha = await (this.$refs
+          .grecaptcha as VGrecaptcha).execute();
+        if (recaptcha === null) {
+          this.$error('LoginEmailRegisterCallback.RecaptchaFailed');
+          throw new RecaptchaError();
+        }
+        const vars:
+        | RegisterWithFb.Variables
+        | RegisterWithYt.Variables
+        | RegisterWithTw.Variables = {
+          recaptcha,
+          displayname: this.displayName,
+          avatar: this.avatarURL,
+          accessToken: this.token,
+          language: this.langCode
+        };
+        if (this.referrer !== null) {
+          vars.referrer = this.referrer.referrer;
+          vars.referralSource = this.referrer.source;
+        }
+        switch (this.registerMethod) {
+          case 'fb': {
+            resp = await registerFb(this, vars);
+            break;
+          }
+          case 'yt': {
+            resp = await registerYt(this, vars);
+            break;
+          }
+          case 'twitch': {
+            resp = await registerTw(this, vars);
+            break;
+          }
+        }
+      } else if (this.registerMethod === 'wallet') {
+        const vars: RegisterWithWallet.Variables = {
+          accessToken: this.token,
+          displayname: this.displayName,
+          avatar: this.avatarURL,
+          language: this.langCode
+        };
+        if (this.referrer !== null) {
+          vars.referrer = this.referrer.referrer;
+          vars.referralSource = this.referrer.source;
+        }
+        resp = await registerWallet(this, vars);
+      } else if (this.registerMethod === 'email') {
+        const vars: RegisterWithEmailStepTwo.Variables = {
+          emailToken: this.token,
+          displayname: this.displayName,
+          avatar: this.avatarURL,
+          language: this.langCode,
+          referralSource:
+            this.referrer !== null ? this.referrer.source : undefined
+        };
+        resp = await registerEmailStepTwo(this, vars);
+      } else {
+        throw new InternalError(
+          `Unrecoginzed register method: ${this.registerMethod}`
+        );
+      }
+      this.signupLoading = false;
+      if (resp.me !== null && resp.me.private !== null) {
+        this.setAccessToken(resp.me.private.accessToken);
+      }
+      dataPoint('register_sign_up', {
+        eventCategory: this.registerMethod,
+        eventLabel: 'success'
+      });
+      this.closing();
+      this.$successPlain(this.displayName + ' Welcome to DLive!');
+      if (this.registerMethod === 'email') {
+        this.setEmailConfirm(true);
+      }
+      if (this.redirectUrl !== undefined) {
+        this.$router.replace(this.redirectUrl);
+      }
+      this.$_smartPublish(EVENTS.TOGGLE_REGISTER_RECOMMEND, true);
+      this.dataTrack();
+      this.reportGoogleAWSignup();
+    } catch (err) {
+      this.signupLoading = false;
+      dataPoint('register_sign_up', {
+        eventCategory: this.registerMethod,
+        eventLabel: err
+      });
+      throw err;
+    }
+  }
+
+  @Emit('success')
+  public closing() {
+    // NOOP
+  }
+
+  public refreshAvatar() {
+    this.avatarURL = `https://images.prd.dlivecdn.com/avatar/default${getRandomInt(
+      24
+    )}.png`;
+  }
+
+  public onAvatarDone(url: string) {
+    this.showChangeAvatar = false;
+    this.avatarURL = url;
+    (this.$refs.changeAvatar as HTMLFormElement).reset();
+  }
+
+  public onClickChangeAvatar() {
+    this.showChangeAvatar = true;
+  }
+
+  public useDefaultAvatar(e: ErrorEvent) {
+    if (this.$options.filters === undefined) {
+      return;
+    }
+    const url = this.$options.filters.orDefaultAvatar(null);
+    if (e.target !== null) {
+      (e.target as HTMLImageElement).src = url;
+    }
+  }
+
+  public dataTrack() {
+    fbq('track', 'CompleteRegistration');
+    if (this.ads) {
+      dataPoint('register_ads', {
+        eventCategory: this.ads.from,
+        eventLabel: this.ads.id
+      });
+    }
+  }
+
+  private reportGoogleAWSignup() {
+    /*global gtag_report_conversion */
+    /*eslint no-undef: "error"*/
+    // @ts-ignore
+    gtag_report_conversion();
+  }
+}

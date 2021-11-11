@@ -1,0 +1,181 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import {
+  CheckEmoteByName,
+  EmoteLevel,
+  StreamChatTextRowStreamerFrag,
+  RoomRole
+} from '../graphql/types';
+import clickaway from 'vue-clickaway';
+import DMenu from '@/components/DMenu.vue';
+import DMenuItem from '@/components/DMenuItem.vue';
+import { Component, Mixins, Prop } from 'vue-property-decorator';
+import MeMixin from '@/mixins/MeMixin';
+import { emojiBan, emojiUnban } from '@/utils/mutations/chatroom';
+import SnackbarMixin from '@/mixins/SnackbarMixin';
+
+@Component({
+  components: {
+    DMenuItem,
+    DMenu
+  }
+})
+export default class VEmojiDialog extends Mixins(
+  clickaway.mixin,
+  MeMixin,
+  SnackbarMixin
+) {
+  @Prop({
+    required: true
+  })
+  public emojiInfo?: CheckEmoteByName.EmoteByName;
+  @Prop({
+    required: true
+  })
+  public streamerInfo!: StreamChatTextRowStreamerFrag.Fragment;
+
+  public showOperation: boolean = false;
+  get canBanEmote() {
+    if (this.me !== null && this.streamerInfo.myRoomRole === RoomRole.Owner) {
+      return true;
+    }
+    return false;
+  }
+  get isBanned() {
+    if (this.emojiInfo) {
+      return this.bannedEmotes.includes(this.emojiInfo.emote.name);
+    } else {
+      return false;
+    }
+  }
+  get creator() {
+    if (this.emojiInfo) {
+      return this.emojiInfo.creator;
+    }
+    return null;
+  }
+  get emoji() {
+    if (this.emojiInfo) {
+      return this.emojiInfo.emote;
+    }
+    return null;
+  }
+  get isGlobal() {
+    if (this.emoji) {
+      return this.emoji.level === EmoteLevel.GlobalLevel;
+    }
+    return false;
+  }
+  get loadingInfo() {
+    return !this.emojiInfo;
+  }
+  get bannedEmotes() {
+    if (this.streamerInfo && this.streamerInfo.chatBannedEmoji) {
+      return this.streamerInfo.chatBannedEmoji;
+    } else {
+      return [];
+    }
+  }
+  public infoClose() {
+    this.$emit('close');
+  }
+  public visitChannel() {
+    if (this.creator && !this.isGlobal) {
+      window.open(`/${this.creator.displayname}`, '_blank');
+    }
+  }
+  public async banEmote() {
+    if (this.emojiInfo) {
+      if (this.isBanned) {
+        await emojiUnban(
+          this,
+          this.emojiInfo.emote.name,
+          this.streamerInfo.username,
+          this.streamerInfo.id
+        );
+      } else {
+        await emojiBan(
+          this,
+          this.emojiInfo.emote.name,
+          this.streamerInfo.username,
+          this.streamerInfo.id
+        );
+      }
+    }
+  }
+}

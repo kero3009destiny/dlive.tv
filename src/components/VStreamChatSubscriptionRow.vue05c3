@@ -1,0 +1,51 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { VStreamChatSubscriptionRowFrag } from '@/graphql/types';
+import { Component, Prop, Vue } from 'vue-property-decorator';
+import { SUB_RECURRING_SETTINGS } from '@/models/subRecurring';
+
+@Component
+export default class VStreamChatSubscriptionRow extends Vue {
+  @Prop({
+    required: true
+  })
+  public chatSubscriptionRow!: VStreamChatSubscriptionRowFrag.Fragment;
+
+  get isRecurring() {
+    return (
+      this.chatSubscriptionRow.month > 10000 ||
+      this.chatSubscriptionRow.month === 0
+    );
+  }
+
+  get recurringSubTips() {
+    const month = this.chatSubscriptionRow.month % 10000;
+    const current = SUB_RECURRING_SETTINGS.find(item => item.month === month);
+    if (month === 0) {
+      return 'monthly';
+    }
+    if (current) {
+      return current.lab;
+    }
+    return '';
+  }
+}

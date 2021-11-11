@@ -1,0 +1,235 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import DDialog from '@/components/DDialog.vue';
+import DDivider from '@/components/DDivider.vue';
+import DBtn from '@/components/DBtn.vue';
+import ME_RECENT_CASHIN_RECORDS from '@/graphql/queries/MeRecentCashinRecords.graphql';
+import { MeRecentCashinRecords, CashinStatusType } from '@/graphql/types';
+import { ROUTE_MY_PURCHASE } from '@/router';
+import { Component, Mixins, Watch } from 'vue-property-decorator';
+import MeMixin from '@/mixins/MeMixin';
+import { namespace } from 'vuex-class';
+
+const dialogModule = namespace('dialog');
+
+@Component({
+  components: {
+    DDialog,
+    DDivider,
+    DBtn
+  }
+})
+export default class CashInSuccessPopup extends Mixins(MeMixin) {
+  get recentRecordList() {
+    if (
+      this.meRecentCashInRecords &&
+      this.meRecentCashInRecords.private !== null
+    ) {
+      return this.meRecentCashInRecords.private.userRecentCashinRecords.slice(
+        0,
+        3
+      );
+    }
+    return [];
+  }
+
+  public noDataText: string = '';
+  public showCashinSuccessDialog: boolean = true;
+  public startTime: number = 0;
+  public recentRecordTimout: number = 0;
+  public recentRecordInterval: number = 0;
+  public meRecentCashInRecords: MeRecentCashinRecords.Me | null = null;
+  public headers = [
+    { text: 'Amount', value: 'linoAmount', sortable: false },
+    { text: 'Status', value: 'status', sortable: false, align: 'right' }
+  ];
+
+  @dialogModule.Mutation('setCashInSuccessDialog')
+  private setCashInSuccessDialog!: (status: boolean) => void;
+
+  public mounted() {
+    this.startTime = Date.now() - 60 * 1 * 1000;
+    this.fetchRecentRecords();
+  }
+
+  public beforeDestroy() {
+    clearInterval(this.recentRecordInterval);
+  }
+
+  public async fetchRecentRecords() {
+    this.recentRecordInterval = window.setInterval(async () => {
+      if (this.startTime === 0) {
+        return;
+      }
+      try {
+        const { data } = await this.$apollo.query<MeRecentCashinRecords.Query>({
+          query: ME_RECENT_CASHIN_RECORDS,
+          fetchPolicy: 'network-only',
+          variables: {
+            startTime: this.startTime
+          }
+        });
+        if (data) {
+          if (
+            this.recentRecordList.length === 0 &&
+            data.me &&
+            data.me.private !== null &&
+            data.me.private.userRecentCashinRecords.length !== 0
+          ) {
+            clearTimeout(this.recentRecordTimout);
+            this.recentRecordTimout = window.setTimeout(() => {
+              clearInterval(this.recentRecordInterval);
+            }, 20 * 1000);
+          }
+          this.meRecentCashInRecords = data.me;
+        }
+      } catch (err) {
+        // console.log(err);
+      }
+    }, 1000);
+    this.recentRecordTimout = window.setTimeout(() => {
+      clearInterval(this.recentRecordInterval);
+      this.noDataText =
+        'Payment status is not available at this moment:( Please click More Transaction History page to learn more.';
+    }, 20 * 1000);
+  }
+
+  public btnColor(status: CashinStatusType) {
+    if (status) {
+      return status.toLowerCase();
+    }
+    return 'red';
+  }
+
+  public statusText(status: CashinStatusType) {
+    if (status === CashinStatusType.Completed) {
+      return 'Received';
+    } else if (status === CashinStatusType.RefundPending) {
+      return 'Refund pending';
+    } else if (status === CashinStatusType.RefundUnverified) {
+      return 'Waiting for transfer';
+    } else if (status === CashinStatusType.Pending) {
+      return 'On the way';
+    }
+    return status.charAt(0) + status.slice(1).toLowerCase();
+  }
+
+  public goMyPurchase() {
+    this.$router.push({ name: ROUTE_MY_PURCHASE });
+    this.setCashInSuccessDialog(false);
+  }
+
+  @Watch('showCashinSuccessDialog')
+  public onShowCashinSuccessDialog(val: boolean, oldVal: boolean) {
+    if (!val && oldVal) {
+      this.setCashInSuccessDialog(false);
+    }
+  }
+}

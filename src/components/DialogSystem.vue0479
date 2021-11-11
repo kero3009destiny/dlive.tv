@@ -1,0 +1,4 @@
+var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',[_c('d-dialog',{staticClass:"email-verify-dialog",attrs:{"value":_vm.dialogShow,"max-width":450,"persistent":_vm.persistent},on:{"input":_vm.changeState},scopedSlots:_vm._u([{key:"dialog-title",fn:function(){return [_vm._v(" "+_vm._s(_vm.title)+" ")]},proxy:true},{key:"dialog-content",fn:function(){return [_c('div',{staticClass:"text-12-medium text-grey margint-4 marginb-3"},[_vm._v(" "+_vm._s(_vm.$t('SettingsEmail.EmailAddress'))+" ")]),_c('settings-email-send-verify',{staticClass:"marginb-4"}),_c('div',{staticClass:"flex-box flex-align-center flex-justify-end paddingtb-4"},[_c('div',{staticClass:"text-uppercase clickable",on:{"click":_vm.close}},[_vm._v(" "+_vm._s(_vm.$t('DialogSystem.Cancel'))+" ")])])]},proxy:true}])})],1)}
+var staticRenderFns = []
+
+export { render, staticRenderFns }

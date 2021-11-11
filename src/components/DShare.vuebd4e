@@ -1,0 +1,135 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import DBtn from '@/components/DBtn.vue';
+import DTextField from '@/components/DTextField.vue';
+import socialSharing from 'vue-social-sharing';
+import SnackbarMixin from '@/mixins/SnackbarMixin';
+import { Component, Mixins, Prop } from 'vue-property-decorator';
+
+@Component({
+  components: {
+    DTextField,
+    socialSharing,
+    DBtn
+  }
+})
+export default class DShare extends Mixins(SnackbarMixin) {
+  @Prop({
+    type: String,
+    required: true
+  })
+  public shareLink!: string;
+
+  @Prop({
+    type: String,
+    required: false,
+    default: ''
+  })
+  public shareTitle!: string;
+
+  @Prop({
+    type: String,
+    required: false,
+    default: ''
+  })
+  public shareDescription!: string;
+
+  @Prop({
+    type: String,
+    required: false,
+    default: ''
+  })
+  public hashtags!: string;
+
+  @Prop({
+    type: String,
+    required: false,
+    default: ''
+  })
+  public twitterUser!: string;
+
+  public onClickCopyUrl() {
+    this.$copyText(this.shareLink).then(
+      () => {
+        this.$success('UserReferral.ReferralLinkCopied');
+      },
+      () => {
+        this.$error('UserReferral.ReferralLinkCopyFailed');
+      }
+    );
+  }
+
+  public open(e: string) {
+    this.$emit('open', e);
+  }
+}

@@ -1,0 +1,148 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { Component, Mixins, Prop, Watch } from 'vue-property-decorator';
+import MeMixin from '@/mixins/MeMixin';
+import { namespace } from 'vuex-class';
+
+const videoPlayerModule = namespace('videoPlayer');
+
+@Component({
+  components: {}
+})
+export default class VVideoPlayer extends Mixins(MeMixin) {
+  @Prop({
+    required: true
+  })
+  public src!: string;
+
+  @videoPlayerModule.Getter('twitchResourceLoaded')
+  private loaded!: boolean;
+  @videoPlayerModule.Mutation('setTwitchResourceLoaded')
+  private setLoaded!: (l: boolean) => void;
+
+  private player: object | null = null;
+
+  public mounted() {
+    this.loadResources()
+      .then(() => {
+        // Initialize player
+        /*global videojs */
+        /*eslint no-undef: "error"*/
+        // @ts-ignore
+        this.player = videojs(
+          'videoplayer',
+          {
+            techOrder: ['TwitchWhiteLabel'],
+            fluid: true
+          },
+          () => {
+            // callback on player is ready.
+          }
+        );
+        if (this.player !== null) {
+          // Enables twitch's quality plugin
+          // @ts-ignore
+          this.player.enableTwitchPlugins();
+
+          // Play stream
+          // @ts-ignore
+          this.player.src(this.src);
+        }
+      })
+      .catch(reason => {
+        throw reason;
+      });
+  }
+
+  public beforeDestroy() {
+    if (this.player !== undefined && this.player !== null) {
+      // @ts-ignore
+      this.player.pause();
+      // @ts-ignore
+      this.player.dispose();
+      this.player = null;
+    }
+  }
+
+  @Watch('src')
+  public onSrcChange() {
+    if (this.player !== null) {
+      // @ts-ignore
+      this.player.src(this.src);
+    }
+  }
+
+  // private loadCSS(src: string, timeout: number): Promise<void> {
+  //   return new Promise<void>((resolve, reject) => {
+  //     const s = document.createElement('link');
+  //     s.rel = 'stylesheet';
+  //     s.href = src;
+  //     s.onload = () => { resolve(); }
+  //     s.onerror = () => { reject(); }
+  //     setTimeout(() => { reject('timeout') }, timeout)
+  //   });
+  // }
+
+  private loadJS(src: string, timeout: number): Promise<void> {
+    return new Promise<void>((resolve, reject) => {
+      const s = document.createElement('script');
+      s.type = 'text/javascript';
+      s.async = true;
+      s.src = src;
+      s.onload = () => {
+        resolve();
+      };
+      s.onerror = () => {
+        reject('load error:' + src);
+      };
+      setTimeout(() => {
+        reject('load timeout:' + src);
+      }, timeout);
+      document.head.append(s);
+    });
+  }
+
+  private loadResources(): Promise<void> {
+    if (this.loaded) {
+      return Promise.resolve();
+    }
+    // Disable Google analytics for video.js - needs to be included before video.js script
+    // @ts-ignore
+    window.HELP_IMPROVE_VIDEOJS = false;
+    const timeout = 3000;
+    const resources = [
+      // this.loadCSS('https://cdnjs.cloudflare.com/ajax/libs/video.js/7.5.0/video-js.css', timeout),
+      this.loadJS(
+        'https://cdnjs.cloudflare.com/ajax/libs/video.js/7.5.0/video.min.js',
+        timeout
+      ),
+      this.loadJS(
+        'https://cvp.twitch.tv/2.14.0/videojs-hls-tech.min.js',
+        timeout
+      )
+    ];
+    return Promise.all(resources).then(() => {
+      // Register Twitch as playback technology for Video.js
+      /*global registerTwitchTechForVideoJs */
+      /*eslint no-undef: "error"*/
+      // @ts-ignore
+      registerTwitchTechForVideoJs(videojs, {});
+      this.setLoaded(true);
+    });
+  }
+}

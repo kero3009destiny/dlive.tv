@@ -1,0 +1,66 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { Component, Mixins, Prop } from 'vue-property-decorator';
+import { LivestreamAboutFrag } from '@/graphql/types';
+import ProfileAboutEditPanel from '@/components/ProfileAboutEditPanel.vue';
+import ProfileAboutEditNew from '@/components/ProfileAboutEditNew.vue';
+import { changePanelOrder } from '@/apollo/mutation/profileAbout';
+import Draggable from 'vuedraggable';
+import SnackbarMixin from '@/mixins/SnackbarMixin';
+@Component({
+  components: {
+    ProfileAboutEditPanel,
+    ProfileAboutEditNew,
+    Draggable
+  }
+})
+export default class ProfileAboutEdit extends Mixins(SnackbarMixin) {
+  @Prop({
+    required: true
+  })
+  public userAbout!: LivestreamAboutFrag.Fragment;
+
+  // Local
+  public isEditing = false;
+
+  public editClick(status: boolean) {
+    this.isEditing = status;
+  }
+
+  public onCancelEdit() {
+    this.isEditing = false;
+  }
+
+  public async dragEnded() {
+    const rstOrder = [];
+    for (const item of this.userAbout.panels) {
+      rstOrder.push(item.id);
+    }
+    try {
+      await changePanelOrder(this, rstOrder, this.userAbout.id);
+    } catch (err) {
+      throw err;
+    }
+  }
+}

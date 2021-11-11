@@ -1,0 +1,4 @@
+var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return (_vm.loaded)?_c('div',{staticClass:"video-container",staticStyle:{"height":"100%"}},[_c('video',{staticClass:"video-js",attrs:{"id":"videoplayer","controls":"","autoplay":"","playsinline":""}})]):_vm._e()}
+var staticRenderFns = []
+
+export { render, staticRenderFns }

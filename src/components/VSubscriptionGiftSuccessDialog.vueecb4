@@ -1,0 +1,92 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import {
+  VSubscriptionFrag,
+  AmazonGiftSubscriptionPaymentSuccessNotification
+} from '@/graphql/types';
+import { Component, Mixins, Prop } from 'vue-property-decorator';
+import MeMixin from '@/mixins/MeMixin';
+import SnackbarMixin from '@/mixins/SnackbarMixin';
+import { namespace } from 'vuex-class';
+import DBtn from '@/components/DBtn.vue';
+import AMAZON_GIFT_SUBSCRIPTION_PAYMENT_SUCCESS_NOTIFICATION from '@/graphql/mutations/AmazonGiftSubscriptionPaymentSuccessNotification.graphql';
+
+const dialogModule = namespace('dialog');
+const uiModule = namespace('ui');
+
+@Component({
+  components: {
+    DBtn
+  }
+})
+export default class VSubscriptionGiftSuccessDialog extends Mixins(
+  MeMixin,
+  SnackbarMixin
+) {
+  @Prop({
+    required: true
+  })
+  public subscribee!: VSubscriptionFrag.Fragment;
+
+  @Prop({
+    required: false,
+    default: false,
+    type: Boolean
+  })
+  public successed!: boolean;
+
+  @uiModule.Getter('isMobile')
+  private isMobile!: boolean;
+
+  @dialogModule.Mutation('setGiftSuccessDialog')
+  private setGiftSuccessDialog!: (status: boolean) => void;
+
+  public async mounted() {
+    if (this.$route.params.payment === 'amazon') {
+      try {
+        const { data } = await this.$apollo.mutate<
+          AmazonGiftSubscriptionPaymentSuccessNotification.Mutation
+        >({
+          mutation: AMAZON_GIFT_SUBSCRIPTION_PAYMENT_SUCCESS_NOTIFICATION,
+          variables: this.$route.query
+        });
+        const resp = data.AmazonGiftSubscriptionPaymentSuccessNotification;
+        if (resp.err !== null) {
+          this.$errCode(resp.err.code);
+        }
+        return;
+      } catch (err) {
+        // this.$error('Gift Failed');
+      }
+    }
+  }
+  public closeSubDialog() {
+    this.$emit('closeSubDialog');
+    this.setGiftSuccessDialog(false);
+  }
+}

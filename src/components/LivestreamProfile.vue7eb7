@@ -1,0 +1,193 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import ProfileAbout from '@/components/ProfileAbout.vue';
+import ProfileFollowers from '@/components/ProfileFollowers.vue';
+import ProfileFollowing from '@/components/ProfileFollowing.vue';
+import ProfileVideo from '@/components/ProfileVideo.vue';
+import ProfileReplay from '@/components/ProfileReplay.vue';
+import ProfileClips from '@/components/ProfileClips.vue';
+import ProfileSubscriber from '@/components/ProfileSubscriber.vue';
+import ProfileWallet from '@/components/ProfileWallet.vue';
+import DTab from '@/components/DTab.vue';
+import { LivestreamProfileFrag, Role } from '@/graphql/types';
+import { Tab } from '@/models/tab';
+import { Component, Prop, Mixins } from 'vue-property-decorator';
+import MeMixin from '@/mixins/MeMixin';
+
+@Component({
+  components: {
+    ProfileAbout,
+    ProfileVideo,
+    ProfileWallet,
+    ProfileReplay,
+    ProfileClips,
+    ProfileSubscriber,
+    ProfileFollowers,
+    ProfileFollowing,
+    DTab
+  }
+})
+export default class LivestreamProfile extends Mixins(MeMixin) {
+  // Computed--------------------------------------------------------------------
+  get tabs(): Tab[] {
+    let result = Array<Tab>();
+    if (this.streamerProfile !== null) {
+      result = [
+        new Tab('LiveStreamProfile.About', null, 'tab-about'),
+        new Tab(
+          'LiveStreamProfile.Videos',
+          this.streamerProfile.videos.totalCount,
+          'tab-videos'
+        ),
+        new Tab(
+          'LiveStreamProfile.Replays',
+          this.streamerProfile.pastBroadcasts.totalCount,
+          'tab-replays'
+        ),
+        new Tab(
+          'LiveStreamProfile.Clips',
+          this.streamerProfile.clips.totalCount,
+          'tab-clips'
+        ),
+        new Tab(
+          'LiveStreamProfile.Followers',
+          this.streamerProfile.followers.totalCount,
+          'tab-followers'
+        ),
+        new Tab(
+          'LiveStreamProfile.Followings',
+          this.streamerProfile.following.totalCount,
+          'tab-followings'
+        )
+      ];
+      if (
+        this.streamerProfile.isMe ||
+        (this.me !== null && this.me.role === Role.Staff)
+      ) {
+        result.splice(
+          4,
+          0,
+          new Tab('LiveStreamProfile.Earnings', null, 'tab-earnings')
+        );
+      }
+      if (
+        this.streamerProfile.isMe &&
+        this.streamerProfile.canSubscribe &&
+        this.streamerProfile.private !== null
+      ) {
+        result.push(
+          new Tab(
+            'LiveStreamProfile.Subscribers',
+            this.streamerProfile.private.subscribers.totalCount,
+            'tab-subscribers'
+          )
+        );
+      }
+    }
+    return result;
+  }
+
+  get isSelf() {
+    if (this.streamerProfile !== null) {
+      return this.streamerProfile.isMe;
+    } else {
+      return false;
+    }
+  }
+
+  @Prop({
+    type: Object,
+    required: true
+  })
+  public streamerProfile!: LivestreamProfileFrag.Fragment;
+
+  public activeTab: string = 'tab-about';
+
+  public changeTab(tab: Tab) {
+    if (tab.href !== undefined) {
+      this.activeTab = tab.href;
+    }
+  }
+}

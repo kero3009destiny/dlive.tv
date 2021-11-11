@@ -1,0 +1,4 @@
+var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',[_c('draggable',{staticClass:"flex-justify-center flex-wrap",attrs:{"filter":'.ignore-drag-elements',"prevent-on-filter":false},on:{"end":_vm.dragEnded},model:{value:(_vm.userAbout.panels),callback:function ($$v) {_vm.$set(_vm.userAbout, "panels", $$v)},expression:"userAbout.panels"}},_vm._l((_vm.userAbout.panels),function(panel){return _c('profile-about-edit-panel',{key:panel.id,attrs:{"user-about-edit-panel":panel,"user-about":_vm.userAbout}})}),1),_c('div',{staticClass:"flex-justify-center"},[_c('profile-about-edit-new',{attrs:{"user-about":_vm.userAbout}})],1)],1)}
+var staticRenderFns = []
+
+export { render, staticRenderFns }

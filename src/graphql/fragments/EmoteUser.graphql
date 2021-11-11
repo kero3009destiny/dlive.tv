@@ -1,0 +1,27 @@
+
+    var doc = {"kind":"Document","definitions":[{"kind":"FragmentDefinition","name":{"kind":"Name","value":"EmoteUserFrag"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"User"}},"directives":[],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"emote"},"arguments":[],"directives":[],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"FragmentSpread","name":{"kind":"Name","value":"EmoteMineFrag"},"directives":[]},{"kind":"FragmentSpread","name":{"kind":"Name","value":"EmoteChannelFrag"},"directives":[]},{"kind":"FragmentSpread","name":{"kind":"Name","value":"EmoteVipFrag"},"directives":[]}]}}]}}],"loc":{"start":0,"end":207}};
+    doc.loc.source = {"body":"#import './EmoteChannel.graphql'\n#import './EmoteMine.graphql'\n#import './EmoteVip.graphql'\n\nfragment EmoteUserFrag on User {\n  emote {\n    ...EmoteMineFrag\n    ...EmoteChannelFrag\n    ...EmoteVipFrag\n  }\n}\n","name":"GraphQL request","locationOffset":{"line":1,"column":1}};
+  
+
+    var names = {};
+    function unique(defs) {
+      return defs.filter(
+        function(def) {
+          if (def.kind !== 'FragmentDefinition') return true;
+          var name = def.name.value
+          if (names[name]) {
+            return false;
+          } else {
+            names[name] = true;
+            return true;
+          }
+        }
+      )
+    }
+  doc.definitions = doc.definitions.concat(unique(require('./EmoteChannel.graphql').definitions));
+doc.definitions = doc.definitions.concat(unique(require('./EmoteMine.graphql').definitions));
+doc.definitions = doc.definitions.concat(unique(require('./EmoteVip.graphql').definitions));
+
+
+      module.exports = doc;
+    

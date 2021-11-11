@@ -1,0 +1,248 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import DBtn from '@/components/DBtn.vue';
+import DMenu from '@/components/DMenu.vue';
+import DMenuItem from '@/components/DMenuItem.vue';
+import DDialog from '@/components/DDialog.vue';
+import {
+  DAddressCardFrag,
+  CashOutMethodType,
+  BankAddressStatusType
+} from '@/graphql/types';
+import { bankAddressDelete, tipaltiIFrameKey } from '@/apollo/mutation/payment';
+import MeMixin from '@/mixins/MeMixin';
+import SnackbarMixin from '@/mixins/SnackbarMixin';
+import { Component, Mixins, Prop } from 'vue-property-decorator';
+@Component({
+  components: {
+    DMenu,
+    DMenuItem,
+    DDialog,
+    DBtn
+  }
+})
+export default class DAddressCard extends Mixins(MeMixin, SnackbarMixin) {
+  @Prop({
+    type: Object,
+    required: false
+  })
+  public address?: DAddressCardFrag.Fragment;
+
+  @Prop({
+    type: Boolean,
+    required: false,
+    default: false
+  })
+  public focus!: boolean;
+
+  @Prop({
+    type: Boolean,
+    required: false,
+    default: false
+  })
+  public addNew!: boolean;
+
+  get isTipalti() {
+    if (this.address === undefined) {
+      return false;
+    }
+    if (this.address.method === CashOutMethodType.Tipalti) {
+      return true;
+    }
+    return false;
+  }
+
+  get accountNumber() {
+    if (this.address === undefined) {
+      return '';
+    }
+    if (this.address.method === CashOutMethodType.Bank) {
+      return (this.address.address as DAddressCardFrag.BankInfoInlineFragment)
+        .accountNumber;
+    } else {
+      return (this.address.address as DAddressCardFrag.BtcAddressInlineFragment)
+        .address;
+    }
+  }
+
+  get isIncorrect() {
+    if (
+      this.address !== undefined &&
+      this.address.status === BankAddressStatusType.Incorrect
+    ) {
+      return true;
+    }
+    return false;
+  }
+
+  get addressError() {
+    if (this.address !== undefined) {
+      if (this.address.err) {
+        return this.address.err;
+      }
+      if (
+        this.isTipalti &&
+        (this.address.address as DAddressCardFrag.TipaltiAddressInlineFragment)
+          .address === 'NoPM'
+      ) {
+        return 'Please update your payment address.';
+      }
+      return 'Incorrect payment address, please delete and add again.';
+    }
+    return 'Incorrect payment address, please delete and add again.';
+  }
+
+  // local
+  public addressCardMenuShow: boolean = false;
+  public addressDeleteConfirm: boolean = false;
+
+  public deleteLoading: boolean = false;
+
+  public async bankAddressDelete() {
+    if (this.me !== null && this.address !== undefined) {
+      this.deleteLoading = true;
+      bankAddressDelete(this, this.address.id, this.me.id);
+    }
+  }
+
+  public async updateTipaltiCard() {
+    if (this.address === undefined) {
+      return;
+    }
+    const newWindow = window.open('', '_blank');
+    const resp = await tipaltiIFrameKey(this, this.address.id);
+    if (newWindow) {
+      if (resp !== undefined) {
+        newWindow.location.href = `${
+          process.env.VUE_APP_TIPALTI_URL
+        }?${resp}&redirectto=${window.location.protocol}//${
+          window.location.host
+        }/cb/payment/address/success`;
+      } else {
+        newWindow.close();
+      }
+    }
+  }
+}

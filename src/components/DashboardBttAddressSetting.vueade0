@@ -1,0 +1,51 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import DTextField from '@/components/DTextField.vue';
+import MeMixin from '@/mixins/MeMixin';
+import SnackbarMixin from '@/mixins/SnackbarMixin';
+import DBtn from '@/components/DBtn.vue';
+import { Component, Mixins } from 'vue-property-decorator';
+// import { namespace } from 'vuex-class';
+
+@Component({
+  components: {
+    DTextField,
+    DBtn
+  }
+})
+export default class DashboardBttAddress extends Mixins(
+  SnackbarMixin,
+  MeMixin
+) {
+  public addressInput: string = '';
+
+  get addressVerifyCheck(): boolean {
+    return !this.addressInput;
+  }
+
+  public clickSubmit() {
+    if (this.requireLogin()) {
+      return;
+    }
+    this.$emit('submit', this.addressInput);
+  }
+}

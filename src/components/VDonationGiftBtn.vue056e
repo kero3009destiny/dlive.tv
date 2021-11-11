@@ -1,0 +1,198 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { EVENTS } from '@/utils/constants';
+import VDonationGiftBtnSuperchat from '@/components/VDonationGiftBtnSuperchat.vue';
+import VDonationBttDialog from '@/components/VDonationBttDialog.vue';
+import SnackbarMixin from '@/mixins/SnackbarMixin';
+import MeMixin from '@/mixins/MeMixin';
+import DToken from '@/components/DToken.vue';
+import { StreamDonate } from '@/graphql/types';
+import GlobalEventBusMixin from '@/mixins/GlobalEventBusMixin';
+import { Gift } from '@/models/gift';
+import { Component, Mixins, Prop } from 'vue-property-decorator';
+import { streamDonate } from '@/apollo/mutation/donate';
+import { DonateInput, DonationType, VDonationGiftFrag } from '@/graphql/types';
+import clickaway from 'vue-clickaway';
+import { namespace } from 'vuex-class';
+const uiModule = namespace('ui');
+
+const enum CLAP_STATUS {
+  INIT = 0,
+  SHOW_AUTH,
+  SHOW_AUTH_DONE
+}
+
+@Component({
+  components: {
+    DToken,
+    VDonationGiftBtnSuperchat,
+    VDonationBttDialog
+  }
+})
+export default class VDonationGiftBtn extends Mixins(
+  clickaway.mixin,
+  SnackbarMixin,
+  MeMixin,
+  GlobalEventBusMixin
+) {
+  @Prop({
+    required: true
+  })
+  public gift!: Gift;
+  @Prop({
+    required: true
+  })
+  public bttReceiverAddress!: string;
+  @Prop({
+    required: true
+  })
+  public post!: VDonationGiftFrag.Fragment | null;
+
+  public apolloClient = this.$apollo.provider.defaultClient;
+
+  // local
+  public showLoading = false;
+  public costLino: number = 0;
+  public clapStatus = CLAP_STATUS.INIT;
+  public preAuthAmount = 200;
+  public shouldShowSuperchat = false;
+  public shouldShowBttDialog = false;
+
+  @uiModule.Getter('theatreMode')
+  private theatreMode!: boolean;
+
+  get isMyself() {
+    if (this.me !== null && this.post !== null) {
+      return this.post.creator.username === this.me.username;
+    }
+    return false;
+  }
+
+  get creator() {
+    if (this.post !== null) {
+      return this.post.creator.username;
+    }
+    return null;
+  }
+
+  get isLargeGift() {
+    return (
+      this.gift.type === DonationType.Diamond ||
+      this.gift.type === DonationType.Ninjaghini ||
+      this.gift.type === DonationType.Ninjet
+    );
+  }
+
+  public onClickDonate() {
+    if (this.requireLogin()) {
+      return;
+    }
+    if (this.isMyself) {
+      this.$error('VDonationGiftBtn.CannotDonateYourself');
+      return;
+    }
+    if (this.post === null) {
+      this.$error('VDonationGiftBtn.Offline');
+      return;
+    }
+    if (this.isLargeGift) {
+      this.shouldShowSuperchat = !this.shouldShowSuperchat;
+    } else if (this.gift.type === DonationType.Btt) {
+      this.shouldShowBttDialog = !this.shouldShowBttDialog;
+    } else {
+      this.sendDonation();
+    }
+  }
+  public superchatSend(superchatInput: string) {
+    this.sendDonation(superchatInput);
+  }
+  public closeSuperchat() {
+    this.shouldShowSuperchat = false;
+    this.shouldShowBttDialog = false;
+  }
+
+  public async sendDonation(superchatInput: string = '') {
+    if (this.post === null) {
+      this.$error('VDonationGiftBtn.Offline');
+      return;
+    }
+    this.showLoading = true;
+    this.closeSuperchat();
+    const input: DonateInput = {
+      permlink: this.post.permlink,
+      type: this.gift.type,
+      count: 1,
+      message: superchatInput
+    };
+    try {
+      const resp = await streamDonate(this, input, this.gift, this.post);
+
+      this.showLoading = false;
+      // Jiayi: donate optimization
+      this.optimiseDonation(resp, superchatInput);
+      this.chestEngagement();
+    } catch (err) {
+      this.showLoading = false;
+      throw err;
+    }
+  }
+
+  public optimiseDonation(resp: StreamDonate.Donate, superchatInput: string) {
+    this.$_smartPublish(EVENTS.GIFT_DONATE, {
+      resp,
+      gift: this.gift.type,
+      superchatInput
+    });
+  }
+
+  public chestEngagement() {
+    this.$_smartPublish(EVENTS.CHEST_ENGAGEMENT, null);
+  }
+}

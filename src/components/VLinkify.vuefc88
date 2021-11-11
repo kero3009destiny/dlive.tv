@@ -1,0 +1,206 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import * as linkify from 'linkifyjs';
+import mentionPlugin from 'linkifyjs/plugins/mention';
+import { CompleteMe } from '@/store/me/types';
+import { Component, Prop, Vue } from 'vue-property-decorator';
+import { ChatText } from '@/models/chat';
+import { emoteRegex, getEmoteHeight } from '@/utils/emote';
+import VStreamChatEmoji from '@/components/VStreamChatEmoji.vue';
+import GraphemeSplitter from 'grapheme-splitter';
+import { StreamChatTextRowStreamerFrag } from '@/graphql/types';
+
+const splitter = new GraphemeSplitter();
+
+mentionPlugin(linkify);
+
+@Component({
+  components: {
+    VStreamChatEmoji
+  }
+})
+export default class VLinkify extends Vue {
+  @Prop({
+    required: true
+  })
+  public str!: string;
+
+  @Prop({
+    required: true
+  })
+  public streamerInfo!: StreamChatTextRowStreamerFrag.Fragment;
+  @Prop({
+    required: false
+  })
+  public emojis!: number[];
+
+  @Prop({
+    required: false,
+    default: '#ffffff'
+  })
+  public textColor!: string;
+
+  @Prop({
+    required: true
+  })
+  public me!: CompleteMe | null;
+
+  @Prop({
+    required: false,
+    default: false,
+    type: Boolean
+  })
+  public isCardChat!: boolean;
+
+  public urlClicked(e: Event) {
+    e.stopPropagation();
+  }
+  get linkPartList() {
+    if (this.str === undefined || this.str === null || this.str === '') {
+      return null;
+    }
+    const strLocal = this.str;
+    const emoteList = strLocal.match(emoteRegex);
+    if (emoteList !== null && emoteList.length === 1) {
+      const items = emoteList[0].split('/');
+      if (items.length === 4) {
+        const value =
+          process.env.VUE_APP_IMG_URL +
+          items[0].slice(1) +
+          '/' +
+          items[3].slice(0, items[3].length - 1);
+        return [new ChatText(value, 'emote', value, items[1])];
+      }
+    }
+    if (this.emojis.length > 0) {
+      return this.parseEmoji(strLocal, this.emojis);
+    } else {
+      return this.parseLink(strLocal);
+    }
+  }
+
+  get textStyle() {
+    return `color: ${this.textColor}`;
+  }
+
+  public emoteStyle(value: string) {
+    if (this.isCardChat) {
+      return 'max-width: 40px; max-height: 40px';
+    }
+    const s = getEmoteHeight(value);
+    return `${s};max-width: 80px; max-height: 80px`;
+  }
+
+  public parseLink(strLocal: string) {
+    const linkifyRst = linkify.find(strLocal);
+    const tempRst: ChatText[] = [];
+    if (linkifyRst.length === 0) {
+      return [new ChatText(strLocal, 'text', '', '')];
+    }
+    for (const link of linkifyRst) {
+      const start = strLocal.indexOf(link.value);
+      // push text before this result into rst[]
+      tempRst.push(new ChatText(strLocal.substring(0, start), 'text', '', ''));
+      strLocal = strLocal.substring(start);
+      // push this result into rst[]
+      let classTemp = '';
+      if (this.me !== null && '@' + this.me.displayname === link.value) {
+        classTemp = 'mention-me';
+      }
+      const linkChat = new ChatText(
+        link.value,
+        link.type,
+        link.href,
+        classTemp
+      );
+      tempRst.push(linkChat);
+      strLocal = strLocal.substring(link.value.length);
+    }
+    if (strLocal) {
+      tempRst.push(new ChatText(strLocal, 'text', '', ''));
+    }
+    return tempRst;
+  }
+  public parseEmoji(content: string, emojis: number[]) {
+    let start = -1;
+    const value = splitter.splitGraphemes(content);
+    const res = emojis.map((item, index) => {
+      if (index % 2 === 0) {
+        const temp = this.parseLink(value.slice(start + 1, item).join(''));
+        start = item;
+        return temp;
+      } else {
+        const temp = new ChatText(
+          value.slice(start, item + 1).join(''),
+          'emoji',
+          '',
+          ''
+        );
+        start = item;
+        return temp;
+      }
+    });
+    res.push(
+      this.parseLink(value.slice(emojis[emojis.length - 1] + 1).join(''))
+    );
+
+    return res.flat();
+  }
+}

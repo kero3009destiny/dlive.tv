@@ -1,0 +1,271 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { EVENTS } from '@/utils/constants';
+import { Component, Mixins, Prop } from 'vue-property-decorator';
+import ClipCommentItem from '@/components/ClipCommentItem.vue';
+import { ApolloQuery } from '@/decorators/apollo';
+import CLIP_COMMENT from '@/graphql/queries/ClipComment.graphql';
+import {
+  Maybe,
+  ClipComment as ClipCommentComponent,
+  ClipCommentOrderOption
+} from '@/graphql/types';
+import MeMixin from '@/mixins/MeMixin';
+import SnackbarMixin from '@/mixins/SnackbarMixin';
+import { clipComment } from '@/apollo/mutation/clip';
+import VInfiniteLoading from '@/components/VInfiniteLoading.vue';
+import { StateChanger } from 'vue-infinite-loading';
+import { fetchMoreLoading } from '@/utils/fetchdata';
+import GlobalEventBusMixin from '@/mixins/GlobalEventBusMixin';
+// import { duplicateClipComment } from '@/utils/livestream';
+
+@Component({
+  components: {
+    ClipCommentItem,
+    VInfiniteLoading
+  }
+})
+export default class ClipComment extends Mixins(
+  MeMixin,
+  SnackbarMixin,
+  GlobalEventBusMixin
+) {
+  @ApolloQuery({
+    query: CLIP_COMMENT,
+    fetchPolicy: 'network-only',
+    skip() {
+      return !this.clipID;
+    },
+    variables() {
+      return {
+        id: this.clipID,
+        first: this.numPerFetch,
+        option: ClipCommentOrderOption.Latest
+      };
+    },
+    result() {
+      return;
+    }
+  })
+  public clip?: Maybe<ClipCommentComponent.Clip>;
+
+  @ApolloQuery({
+    query: CLIP_COMMENT,
+    manual: true,
+    skip() {
+      return !this.clipID;
+    },
+    variables() {
+      return {
+        id: this.clipID,
+        first: this.mostLikePerFetch,
+        option: ClipCommentOrderOption.MostLike
+      };
+    },
+    result({ data }) {
+      if (data) {
+        this.clipMostLike = data.clip;
+      }
+      return;
+    }
+  })
+  public clipMostLike?: Maybe<ClipCommentComponent.Clip>;
+
+  @Prop({
+    required: true,
+    type: String
+  })
+  public clipID!: string;
+
+  get clipCommentList() {
+    if (this.clip !== undefined && this.clip !== null) {
+      return this.clip.clipComments.list.filter(comment => {
+        let result = true;
+        this.clipMostLikeCommentList.map(mostLikeComment => {
+          if (mostLikeComment.id === comment.id) {
+            result = false;
+            return;
+          }
+        });
+        return result;
+      });
+    }
+    return [];
+  }
+
+  get clipMostLikeCommentList() {
+    if (this.clipMostLike !== undefined && this.clipMostLike !== null) {
+      return this.clipMostLike.clipComments.list;
+    }
+    return [];
+  }
+
+  get hasNoComment() {
+    return (
+      this.clipMostLike !== undefined &&
+      this.clipMostLike !== null &&
+      this.clipMostLikeCommentList.length === 0 &&
+      this.clipCommentList.length === 0
+    );
+  }
+
+  get placeholder() {
+    return `Add a comment`;
+  }
+
+  public commentInput: string = '';
+  public inputLimit: number = 200;
+  public infiniteId = +new Date();
+  public numPerFetch = 10;
+  public mostLikePerFetch = 3;
+
+  public mounted() {
+    this.$_smartSubscribe(EVENTS.CLIP_INPUT_FOCUS, this.clipInputFocus);
+  }
+
+  public clipInputFocus() {
+    (this.$refs.clipCommentInput as HTMLInputElement).focus();
+  }
+
+  public commentSubmit() {
+    if (!this.commentInput) {
+      return;
+    }
+    clipComment(this, this.commentInput, this.clipID, this.mostLikePerFetch);
+    this.commentInput = '';
+  }
+
+  public _fetchMoreComments($state: StateChanger) {
+    fetchMoreLoading($state, this.fetchMoreComments);
+  }
+
+  public fetchMoreComments() {
+    return new Promise<boolean>(resolve => {
+      if (this.clip === undefined || this.clip === null) {
+        resolve(false);
+        return;
+      }
+      if (!this.clip.clipComments.pageInfo.hasNextPage) {
+        resolve(false);
+        return;
+      }
+      this.$apollo.queries.clip
+        .fetchMore({
+          variables: {
+            first: this.numPerFetch,
+            after: this.clip.clipComments.pageInfo.endCursor,
+            option: ClipCommentOrderOption.Latest
+          },
+          updateQuery: (
+            previousResult: ClipCommentComponent.Query,
+            {
+              fetchMoreResult
+            }: {
+              fetchMoreResult?: ClipCommentComponent.Query;
+            }
+          ) => {
+            if (
+              fetchMoreResult === undefined ||
+              fetchMoreResult.clip === null ||
+              previousResult.clip === null
+            ) {
+              resolve(false);
+              return;
+            }
+            const moreComments = fetchMoreResult.clip.clipComments;
+
+            const prevClip = previousResult.clip;
+
+            if (!moreComments.pageInfo.hasNextPage) {
+              resolve(false);
+            } else {
+              resolve(true);
+            }
+            // if ()
+            prevClip.clipComments.pageInfo = moreComments.pageInfo;
+            prevClip.clipComments.list = [
+              ...prevClip.clipComments.list,
+              ...moreComments.list
+            ];
+            // prevClip.clipComments.list = duplicateClipComment(prevClip.clipComments);
+            return {
+              clip: prevClip
+            };
+          }
+        })
+        .catch(() => {
+          return;
+        });
+    });
+  }
+}

@@ -1,0 +1,1119 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* eslint-disable */
+import ADD_SUBSCRIBE from '@/graphql/mutations/AddSubscribe.graphql';
+import { EVENTS } from '@/utils/constants';
+import { IPAPI } from '@/api/ip';
+import VTextFieldEmail from '@/components/VTextFieldEmail.vue';
+import VDliveAvatar from '@/components/VDliveAvatar.vue';
+import {
+  VSubscriptionFrag,
+  MeBalance,
+  Maybe,
+  AddSubscribe
+} from '@/graphql/types';
+import { Component, Mixins, Prop, Watch, Vue } from 'vue-property-decorator';
+import MeMixin from '@/mixins/MeMixin';
+import SnackbarMixin from '@/mixins/SnackbarMixin';
+import DBtn from '@/components/DBtn.vue';
+import DDivider from '@/components/DDivider.vue';
+import AmazonPayRecurring from '@/components/AmazonPayRecurring.vue';
+import {
+  PaymentMethod,
+  // amazonPayI18n,
+  PaymentMethodI18n,
+  lemonI18n,
+  // amazonPayType,
+  stripeI18n
+} from '@/models/cashin';
+import {
+  GiftMethodI18n,
+  GiftPaymentMethod,
+  giftLemonI18n,
+  giftStripeI18n
+  // giftAmazonPayI18n
+} from '@/models/giftMethod';
+import // paymentAddEmail
+// amazonPaymentInitiate
+'@/apollo/mutation/cashin';
+import { stripeRecurringToken } from '@/apollo/mutation/subRecurring';
+import { namespace } from 'vuex-class';
+import DSelect from '@/components/DSelect.vue';
+const userMetaModule = namespace('userMeta');
+const meModule = namespace('me');
+const dialogModule = namespace('dialog');
+// import { SubscriptionRecurring } from '@/models/subRecurring';
+import { GiftSubscriptionEntry } from '@/models/giftSub';
+import {
+  stripeGiftSubToken,
+  amazonGiftSubscriptionSignature
+} from '@/apollo/mutation/giftSub';
+import CHANNEL_CAN_BE_GIFT_SUBSCRIPTION from '@/graphql/queries/ChannelCanBeGiftSubscription.graphql';
+import RECEIVER_CAN_GET_GIFT_SUBSCRIPTION from '@/graphql/queries/ReceiverCanGetGiftSubscription.graphql';
+import ME_BALANCE from '@/graphql/queries/MeBalance.graphql';
+import { ApolloQuery } from '@/decorators/apollo';
+import { addGiftSub } from '@/apollo/mutation/giftSub';
+import GlobalEventBusMixin from '@/mixins/GlobalEventBusMixin';
+import { MONTHLY } from '@/models/subscription';
+import { MONTHLY_RECURRING } from '@/models/subRecurring';
+import {
+  AmazonSetSubscriptionAgreement,
+  RecurringSubPaymentType,
+  AmazonConfirmSubscriptionAgreement,
+  ChannelCanBeGiftSubscription,
+  ReceiverCanGetGiftSubscription
+} from '@/graphql/types';
+import AMAZON_SET_SUBSCRIPTION_AGREEMENT from '@/graphql/mutations/AmazonSetSubscriptionAgreement.graphql';
+import AMAZON_CONFIRM_SUBSCRIPTION_AGREEMENT from '@/graphql/mutations/AmazonConfirmSubscriptionAgreement.graphql';
+import { SUB_RECURRING_SETTINGS } from '@/models/subRecurring';
+import { loadStripe } from '@stripe/stripe-js';
+
+@Component({
+  name: 'VSubCheckout',
+  components: {
+    DBtn,
+    DDivider,
+    VTextFieldEmail,
+    VDliveAvatar,
+    AmazonPayRecurring,
+    DSelect
+  }
+})
+export default class VSubCheckOut extends Mixins(
+  MeMixin,
+  SnackbarMixin,
+  GlobalEventBusMixin
+) {
+  @ApolloQuery({
+    query: ME_BALANCE,
+    fetchPolicy: 'network-only',
+    manual: true,
+    skip() {
+      return !this.isLoggedIn;
+    },
+    result({ data }: { data: MeBalance.Query }) {
+      if (data !== undefined && data !== null && data.me !== null) {
+        Vue.set(this, 'meBalance', data.me);
+      }
+    }
+  })
+  public meBalance?: Maybe<MeBalance.Me>;
+  @Prop({
+    required: true
+  })
+  public subscribee!: VSubscriptionFrag.Fragment;
+
+  @Prop({
+    required: false
+  })
+  public giftUser!: string;
+
+  @Prop({
+    required: false,
+    default: false
+  })
+  public isGiftSub!: boolean;
+
+  @Prop({
+    required: false
+  })
+  public choosedGift!: GiftSubscriptionEntry;
+
+  @Prop({
+    required: false,
+    default: true
+  })
+  public shouldShowBack!: boolean;
+
+  public paymentMethod: PaymentMethod | GiftPaymentMethod | null = null;
+
+  public stripeToken = '';
+
+  public canGift = false;
+
+  public paymentMethods: Array<PaymentMethodI18n | GiftMethodI18n> = [];
+
+  public amazonInfoInterval: number = 0;
+
+  public amazonPayBillingAgreementId: string = '';
+
+  public buyerBillingAgreementConsentStatus: string = 'false';
+
+  public paymentEmail: string = '';
+
+  public amazonPaySignature = '';
+
+  public amazonPayOrderId = '';
+
+  public amazonSellNote = '';
+
+  public loadAmazonPayOnceBtn = false;
+
+  private subMode: number = 0;
+
+  private stripeClientSecret: string = '';
+
+  private stripeDialogVisible: boolean = false;
+
+  @userMetaModule.Action('fetchIpStats')
+  private getIP!: () => Promise<IPAPI>;
+
+  @userMetaModule.Mutation('setCashinEmail')
+  private setCashinEmail!: (email: string) => void;
+
+  @userMetaModule.Getter('cashinEmail')
+  private cashinEmail!: string;
+
+  @meModule.Getter('meEmail')
+  private meEmail!: string | null;
+
+  @dialogModule.Mutation('setDownloadAppDialog')
+  private setDownloadAppDialog!: (status: boolean) => void;
+
+  @dialogModule.Mutation('setGiftSuccessDialog')
+  private setGiftSuccessDialog!: (status: boolean) => void;
+  private amazonPayJSLoaded = false;
+
+  get choosedSub() {
+    return this.subSettings[this.subMode];
+  }
+
+  get subSettings() {
+    // if (this.isResub) {
+    //   const rst = SUB_SETTINGS;
+    //   return rst.slice(0, 4);
+    // }
+    return SUB_RECURRING_SETTINGS;
+  }
+
+  get payModeName() {
+    if (this.choosedGift) {
+      return this.choosedGift.label;
+    } else {
+      return this.choosedSub.lab;
+    }
+  }
+  get payTotal() {
+    if (this.choosedGift) {
+      if (this.isLemonMethod) {
+        return this.choosedGift.cost;
+      }
+      return this.choosedGift.usd;
+    } else {
+      if (this.isLemonMethod) {
+        return this.choosedSub.cost;
+      }
+      return this.choosedSub.usd;
+    }
+  }
+  get isLemonMethod() {
+    return this.paymentMethod === 'lemon';
+  }
+  get paymentMethodIsAmazonPay() {
+    return this.paymentMethod === 'amazonPay';
+  }
+  get paymentMethodIsStripe() {
+    return this.paymentMethod === 'stripe';
+  }
+  get returnGiftAmazonUrl() {
+    return `${window.location.origin}/cb/subscription/gift/amazon/success/${
+      this.subscribee.displayname
+    }`;
+  }
+  get amazonPayPrice() {
+    if (this.choosedGift) {
+      return this.choosedGift.usd;
+    } else {
+      return 0;
+    }
+  }
+  get cancelGiftAmazonReturnUrl() {
+    return `${window.location.origin}/cb/subscription/gift/amazon/fail/${
+      this.subscribee.displayname
+    }`;
+  }
+  get enoughBalance() {
+    if (this.meBalance && this.$options.filters !== undefined) {
+      const myBalance = this.$options.filters.coinToLino(
+        this.meBalance.wallet.balance
+      );
+      if (this.choosedGift && myBalance >= this.choosedGift.cost) {
+        return true;
+      } else if (this.choosedSub && myBalance >= this.choosedSub.cost) {
+        return true;
+      } else {
+        return false;
+      }
+    }
+    return false;
+  }
+  get canPay() {
+    if (this.paymentMethod === null) {
+      return false;
+    }
+    if (this.choosedGift && !this.canGift) {
+      return false;
+    }
+    if (this.paymentMethodIsAmazonPay) {
+      if (this.choosedGift) {
+        if (
+          this.amazonPaySignature === '' ||
+          this.amazonPayOrderId === '' ||
+          !this.loadAmazonPayOnceBtn
+        ) {
+          return false;
+        }
+      } else {
+        if (
+          !this.amazonPayBillingAgreementId ||
+          this.buyerBillingAgreementConsentStatus === 'false'
+        ) {
+          return false;
+        }
+      }
+    }
+    if (this.isLemonMethod && !this.enoughBalance) {
+      return false;
+    }
+    return this.paymentEmail !== '';
+  }
+
+  public mounted() {
+    if (this.choosedGift) {
+      this.geGiftMethods();
+    } else {
+      this.getPaymentMethods();
+    }
+    this.amazonInfoInterval = window.setInterval(() => {
+      this.loadAmazonPayOnceBtn =
+        document.getElementsByClassName('amazonpay-button-inner-image').length >
+        0;
+      this.amazonPayBillingAgreementId = window.billingAgreementId;
+      this.buyerBillingAgreementConsentStatus =
+        window.buyerBillingAgreementConsentStatus;
+    }, 1000);
+  }
+  public dispatch(el: Element, type: string) {
+    try {
+      const evt = document.createEvent('Event');
+      evt.initEvent(type, true, true);
+      el.dispatchEvent(evt);
+    } catch (e) {
+      // this.$error('Error');
+    }
+  }
+  public dealGiftAmazonPay() {
+    const d1 = document.getElementsByClassName('amazonpay-button-inner-image');
+    if (d1) {
+      this.dispatch(d1[0], 'click');
+    }
+  }
+  public loadAmazonPayJS() {
+    if (this.amazonPayJSLoaded) {
+      return;
+    }
+    const s = document.createElement('script');
+    s.type = 'text/javascript';
+    s.async = true;
+    if (process.env.VUE_APP_AMAZON_PAY_JS !== undefined) {
+      s.src = process.env.VUE_APP_AMAZON_PAY_JS;
+    } else {
+      s.src =
+        'https://static-na.payments-amazon.com/OffAmazonPayments/us/js/Widgets.js';
+    }
+    const head = document.getElementsByTagName('head')[0];
+    head.appendChild(s);
+    this.amazonPayJSLoaded = true;
+  }
+
+  public getPaymentMethods() {
+    this.getIP()
+      .then(data => {
+        const country = data.country;
+        // TODO(@ryan): Should put unexpected errors in error handling instead of checking ourself
+        if (country === 'TR') {
+          // to do
+        } else if (
+          country === 'LU' ||
+          country === 'CA' ||
+          country === 'US' ||
+          country === 'AU' ||
+          country === 'IE' ||
+          country === 'GB' ||
+          country === 'DE' ||
+          country === 'AR' ||
+          country === 'BR'
+        ) {
+          this.paymentMethods = [];
+        }
+        if (this.choosedSub === MONTHLY_RECURRING) {
+          this.paymentMethods.push(lemonI18n);
+        }
+        // if not turkey
+        if (country !== 'TR') {
+          this.paymentMethods.push(stripeI18n);
+        }
+
+        if (this.paymentMethods.length !== 0) {
+          this.paymentMethod = this.paymentMethods[0].method;
+        }
+      })
+      .catch(() => {
+        // If network error
+        this.paymentMethods = [];
+        this.paymentMethod = this.paymentMethods[0].method;
+      });
+    if (this.cashinEmail !== '') {
+      this.paymentEmail = this.cashinEmail;
+    } else if (this.meEmail !== null) {
+      this.paymentEmail = this.meEmail;
+    }
+  }
+  public geGiftMethods() {
+    this.getIP()
+      .then(data => {
+        const country = data.country;
+        // TODO(@ryan): Should put unexpected errors in error handling instead of checking ourself
+        if (country === 'TR') {
+          // to do
+        } else if (
+          country === 'LU' ||
+          country === 'CA' ||
+          country === 'US' ||
+          country === 'AU' ||
+          country === 'IE' ||
+          country === 'GB' ||
+          country === 'DE' ||
+          country === 'AR' ||
+          country === 'BR' ||
+          country === 'HK'
+        ) {
+          this.paymentMethods = [giftStripeI18n];
+        } else {
+          this.paymentMethods = [giftStripeI18n];
+        }
+        this.paymentMethods.push(giftLemonI18n);
+        if (this.paymentMethods.length !== 0) {
+          this.paymentMethod = this.paymentMethods[0].method;
+        }
+      })
+      .catch(() => {
+        // If network error
+        this.paymentMethods = [giftLemonI18n];
+        this.paymentMethod = this.paymentMethods[0].method;
+      });
+    if (this.cashinEmail !== '') {
+      this.paymentEmail = this.cashinEmail;
+    } else if (this.meEmail !== null) {
+      this.paymentEmail = this.meEmail;
+    }
+  }
+  public beforeDestroy() {
+    if (this.amazonInfoInterval !== 0) {
+      window.clearInterval(this.amazonInfoInterval);
+    }
+  }
+  public downloadApp() {
+    this.setDownloadAppDialog(true);
+  }
+
+  public paymentIcon(method: number) {
+    return require(`@/assets/icon/${method}-logo.svg`);
+  }
+
+  public changeMethod(method: PaymentMethod) {
+    this.paymentMethod = method;
+  }
+  public async checkChannelCanGift() {
+    try {
+      const variables: ChannelCanBeGiftSubscription.Variables = {
+        streamer: this.subscribee.username
+      };
+      const { data } = await this.$apollo.query<
+        ChannelCanBeGiftSubscription.Query
+      >({
+        query: CHANNEL_CAN_BE_GIFT_SUBSCRIPTION,
+        fetchPolicy: 'network-only',
+        variables
+      });
+      const resp = data.channelCanBeGiftSubscription;
+      if (process.env.VUE_APP_MODE === 'stagings') {
+        this.canGift = true;
+      }
+      if (resp.err !== null) {
+        this.$errCode(resp.err.code);
+        return;
+      }
+      this.canGift = resp.can;
+    } catch (err) {
+      // this.$error('Error');
+    }
+  }
+  public async checkReceiverCanGetGift() {
+    try {
+      const variables: ReceiverCanGetGiftSubscription.Variables = {
+        streamer: this.subscribee.displayname,
+        receiver: this.giftUser
+      };
+      const { data } = await this.$apollo.query<
+        ReceiverCanGetGiftSubscription.Query
+      >({
+        query: RECEIVER_CAN_GET_GIFT_SUBSCRIPTION,
+        fetchPolicy: 'network-only',
+        variables
+      });
+      const resp = data.receiverCanGetGiftSubscription;
+      if (resp.err !== null) {
+        this.$errCode(resp.err.code);
+        return;
+      }
+      this.canGift = resp.can;
+    } catch (err) {
+      // this.$error('Error');
+    }
+  }
+  public pay() {
+    if (this.requireLogin()) {
+      return;
+    }
+    this.setCashinEmail(this.paymentEmail);
+    if (this.paymentMethodIsAmazonPay) {
+      if (this.choosedGift) {
+        this.dealGiftAmazonPay();
+      } else {
+        this.amazonSubmit();
+      }
+    }
+    if (this.isLemonMethod) {
+      this.lemonSubmit();
+    }
+    if (this.paymentMethodIsStripe) {
+      this.stripeSubmit();
+    }
+  }
+  public backClicked() {
+    this.$emit('backClicked');
+  }
+
+  public onSubSettingChange(index: number) {
+    this.subMode = index;
+  }
+
+  public async lemonSubmit() {
+    if (this.requireLogin()) {
+      return;
+    }
+    try {
+      if (this.isGiftSub) {
+        await addGiftSub(
+          this,
+          this.subscribee.username,
+          this.giftUser,
+          this.choosedGift.count
+        );
+        this.closeSubDialog();
+        setTimeout(() => {
+          this.$_smartPublish(EVENTS.GIFT_SUCCESSED, null);
+        }, 1000);
+        return;
+      }
+      if (this.choosedSub) {
+        await this.subMonthlyUseLemon();
+        this.closeSubDialog();
+        setTimeout(() => {
+          this.$_smartPublish(EVENTS.SUB_SUCCESSED, null);
+        }, 1000);
+      }
+    } catch (err) {
+      this.closeSubDialog();
+    }
+  }
+  public async subMonthlyUseLemon() {
+    if (this.requireLogin()) {
+      return;
+    }
+    try {
+      const { data } = await this.$apollo.mutate<AddSubscribe.Mutation>({
+        mutation: ADD_SUBSCRIBE,
+        variables: {
+          streamer: this.subscribee.username,
+          month: MONTHLY.month
+        }
+      });
+      const resp = data.subscribeWithCashback;
+      if (resp.err !== null) {
+        this.$errCode(resp.err.code);
+      }
+      return;
+    } catch (err) {
+      // this.$error('Subscribe Failed');
+    }
+  }
+
+  // submit stripe
+  public async stripeSubmit() {
+    if (this.isGiftSub && this.choosedGift) {
+      this.fetchStripeSecretKey();
+    } else {
+      const newWindow = window.open('', '_blank');
+      await this.fetchStripeToken();
+      if (this.stripeToken && newWindow !== null) {
+        newWindow.location.href = this.stripeToken;
+      }
+      this.closeSubDialog();
+    }
+  }
+  public async fetchStripeSecretKey() {
+    if (this.isGiftSub && this.choosedGift) {
+      // ===gift sub==
+      const resp = await stripeGiftSubToken(
+        this,
+        this.subscribee.username,
+        this.choosedGift.count,
+        1,
+        this.giftUser ? this.giftUser : null
+      );
+      const clientSecret = resp.token;
+      if (clientSecret === null) {
+        throw new Error('Server error');
+      }
+      this.stripeClientSecret = clientSecret;
+      if (clientSecret) {
+        this.initStripePaymentUI();
+      }
+    }
+  }
+
+  public async initStripePaymentUI() {
+    try {
+      const self = this;
+      let stripeLoadKey = 'pk_test_79gSIwlu2FtlDUr567F1FrBm';
+      if (process.env.VUE_APP_MODE === 'production') {
+        // update the production key
+        stripeLoadKey = 'pk_live_6ZufySEn3mShNwjNL6JYwO0V';
+      }
+      const stripePromise = loadStripe(stripeLoadKey);
+      // @ts-ignore
+      const stripe: any = await stripePromise;
+      self.stripeDialogVisible = true;
+      this.$nextTick(() => {
+        const elements = stripe.elements();
+
+        const style = {
+          base: {
+            color: '#32325d',
+            fontFamily: 'Arial, sans-serif',
+            fontSmoothing: 'antialiased',
+            fontSize: '16px',
+            '::placeholder': {
+              color: '#32325d'
+            }
+          },
+          invalid: {
+            fontFamily: 'Arial, sans-serif',
+            color: '#fa755a',
+            iconColor: '#fa755a'
+          }
+        };
+
+        const card = elements.create('card', { style });
+        // Stripe injects an iframe into the DOM
+        card.mount('#card-element');
+        // @ts-ignore
+        card.on('change', (event: any) => {
+          // Disable the Pay button if there are no card details in the Element
+          // @ts-ignore
+          document.querySelector('.stripe-form-submit__btn').disabled =
+            event.empty;
+          // @ts-ignore
+          document.querySelector('#card-error').textContent = event.error
+            ? event.error.message
+            : '';
+        });
+
+        const form: HTMLFormElement = document.getElementById(
+          'payment-form'
+        ) as HTMLFormElement;
+        form.addEventListener('submit', event => {
+          event.preventDefault();
+          // Complete payment when the submit button is clicked
+          // start to pay
+          self.payWithCard(stripe, card, this.stripeClientSecret);
+        });
+      });
+    } catch (error) {
+      // @ts-ignore
+      document.querySelector('#card-error').textContent = 'something error!';
+    }
+  }
+  // @ts-ignore
+  public payWithCard(stripe: any, card: any, clientSecret: string) {
+    const self = this;
+    /* ------- UI helpers ------- */
+    // Show a spinner on payment submission
+    const loading = (isLoading: boolean) => {
+      if (isLoading) {
+        // Disable the button and show a spinner
+        // @ts-ignore
+        document.querySelector('.stripe-form-submit__btn').disabled = true;
+        // @ts-ignore
+        document.querySelector('#spinner').classList.remove('hidden');
+        // @ts-ignore
+        document.querySelector('#button-text').classList.add('hidden');
+      } else {
+        // @ts-ignore
+        document.querySelector('.stripe-form-submit__btn').disabled = false;
+        // @ts-ignore
+        document.querySelector('#spinner').classList.add('hidden');
+        // @ts-ignore
+        document.querySelector('#button-text').classList.remove('hidden');
+      }
+    };
+
+    // Shows a success message when the payment is complete
+    // Show the customer the error from Stripe if their card fails to charge
+    const showError = (errorMsgText: string) => {
+      loading(false);
+      const errorMsg = document.querySelector('#card-error');
+      // @ts-ignore
+      errorMsg.textContent = errorMsgText;
+      setTimeout(() => {
+        // @ts-ignore
+        errorMsg.textContent = '';
+      }, 4000);
+    };
+
+    loading(true);
+    stripe
+      .confirmCardPayment(clientSecret, {
+        // @ts-ignore
+        payment_method: {
+          card
+        }
+      })
+      .then((result: any) => {
+        if (result.error) {
+          // Show error to your customer
+          showError(result.error.message);
+        } else {
+          // The payment succeeded!
+          // orderComplete(result.paymentIntent.id);
+          loading(false);
+          self.$_smartPublish(EVENTS.GIFT_SUCCESSED, null);
+          self.stripeDialogVisible = false;
+          // this.closeSubDialog();
+        }
+      });
+  }
+
+  public async fetchGiftAmazonPay() {
+    this.amazonPaySignature = '';
+    const resp = await amazonGiftSubscriptionSignature(
+      this,
+      this.subscribee.username,
+      this.giftUser ? this.giftUser : null,
+      1,
+      this.choosedGift.count,
+      encodeURIComponent(this.returnGiftAmazonUrl),
+      encodeURIComponent(this.cancelGiftAmazonReturnUrl),
+      this.choosedGift.usd + '',
+      'USD'
+    );
+    if (resp === undefined) {
+      return;
+    }
+    this.amazonPaySignature = resp.signature;
+    this.amazonPayOrderId = resp.orderID;
+    this.amazonSellNote = resp.sellerNote;
+  }
+  public async fetchStripeToken() {
+    if (this.me !== null) {
+      this.stripeToken = '';
+      let resp;
+      let priceId;
+      if (this.choosedSub) {
+        // monthly sub
+        const isStg = process.env.VUE_APP_MODE === 'stagings';
+        switch (this.choosedSub.subOption) {
+          case 'monthly':
+            priceId = isStg
+              ? 'price_1JeyrXGoVI8A3NPTDDzTPLIs'
+              : 'price_1JpPFxGoVI8A3NPTn2Zafolz';
+            break;
+          case 'quarterly':
+            priceId = isStg
+              ? 'price_1Jm9p2GoVI8A3NPTp8YkSZwv'
+              : 'price_1JpPFxGoVI8A3NPTww1957qv';
+            break;
+          case 'halfYearly':
+            priceId = isStg
+              ? 'price_1Jm9p2GoVI8A3NPTRoQya78j'
+              : 'price_1JpPFxGoVI8A3NPTMxN2T6jR';
+            break;
+          case 'yearly':
+            priceId = isStg
+              ? 'price_1Jm9p2GoVI8A3NPT7RAnsRa9'
+              : 'price_1JpPFxGoVI8A3NPTOk9VBL5P';
+            break;
+          default:
+            priceId = isStg
+              ? 'price_1JeyrXGoVI8A3NPTDDzTPLIs'
+              : 'price_1JpPFxGoVI8A3NPTn2Zafolz';
+            break;
+        }
+        resp = await stripeRecurringToken(
+          this,
+          this.subscribee.username,
+          priceId,
+          this.choosedSub.subOption
+        );
+      }
+      if (resp === undefined || resp.token === null) {
+        return;
+      }
+      this.stripeToken = resp.token;
+    }
+  }
+  public async checkAgreement() {
+    try {
+      const { data } = await this.$apollo.mutate<
+        AmazonSetSubscriptionAgreement.Mutation
+      >({
+        mutation: AMAZON_SET_SUBSCRIPTION_AGREEMENT,
+        variables: {
+          agreementID: window.billingAgreementId,
+          streamer: this.subscribee.username,
+          paymentType: RecurringSubPaymentType.Monthly
+        }
+      });
+      const resp = data.AmazonSetSubscriptionAgreement;
+      if (resp.err !== null) {
+        this.$errCode(resp.err.code);
+        return;
+      }
+      await this.confirmAgreement();
+      this.closeSubDialog();
+      setTimeout(() => {
+        this.$_smartPublish(EVENTS.SUB_SUCCESSED, null);
+      }, 1000);
+      // console.log('resp:', resp);
+    } catch (err) {
+      // TODO(@ryan): error handling
+    }
+  }
+
+  public async amazonSubmit() {
+    await this.checkAgreement();
+  }
+  public async confirmAgreement() {
+    try {
+      const { data } = await this.$apollo.mutate<
+        AmazonConfirmSubscriptionAgreement.Mutation
+      >({
+        mutation: AMAZON_CONFIRM_SUBSCRIPTION_AGREEMENT,
+        variables: {
+          agreementID: window.billingAgreementId,
+          streamer: this.subscribee.username
+        }
+      });
+      const resp = data.AmazonConfirmSubscriptionAgreement;
+      if (resp.err !== null) {
+        this.$errCode(resp.err.code);
+        return;
+      }
+      // console.log('resp:', resp);
+    } catch (err) {
+      // TODO(@ryan): error handling
+    }
+  }
+
+  public closeSubDialog() {
+    this.$emit('closeSubDialog');
+  }
+
+  @Watch('paymentMethodIsAmazonPay')
+  private onAmazonPayBtnShow(val: boolean, oldVal: boolean) {
+    if (this.amazonPayJSLoaded) {
+      return;
+    }
+    if (val && !oldVal && this.choosedGift) {
+      this.loadAmazonPayJS();
+    }
+  }
+
+  @Watch('paymentMethod', { immediate: true })
+  private watchPayment(val: PaymentMethod) {
+    if (val === 'amazonPay') {
+      if (this.choosedGift) {
+        this.fetchGiftAmazonPay();
+      }
+    }
+    if (this.choosedGift) {
+      if (this.giftUser) {
+        this.checkChannelCanGift();
+      } else {
+        this.checkChannelCanGift();
+      }
+    }
+  }
+}

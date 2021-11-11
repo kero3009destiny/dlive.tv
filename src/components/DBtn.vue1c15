@@ -1,0 +1,7 @@
+var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',{staticClass:"d-btn border-radius-3 text-14-medium no-select flex-all-center text-nowrap position-relative",class:_vm.btnClass,style:({
+    '--bg-color': _vm.bgColorTransfer,
+    '--text-color': _vm.textColorTransfer
+  }),on:{"click":_vm.clickEvent}},[(!_vm.loadingTips)?_c('div',{staticClass:"d-btn-content flex-align-center",class:{ 'is-loading': _vm.isLoading }},[_vm._t("default")],2):_vm._e(),(_vm.loadingTips)?_c('div',[(_vm.isLoading)?_c('div',{staticClass:"marginr-2"},[_vm._v(" "+_vm._s(_vm.loadingTips)+" ")]):_vm._t("default")],2):_vm._e(),(_vm.isLoading)?_c('span',{staticClass:"d-btn-loading-default",class:{ 'd-btn-loading': !_vm.loadingTips }},[_c('div',{staticClass:"d-progress-circular v-progress-circular--indeterminate position-relative"},[_c('svg',{staticStyle:{"transform":"rotate(0deg)"},attrs:{"xmlns":"http://www.w3.org/2000/svg","viewBox":"21.904761904761905 21.904761904761905 43.80952380952381 43.80952380952381"}},[_c('circle',{staticClass:"v-progress-circular__overlay",attrs:{"fill":"transparent","cx":"43.80952380952381","cy":"43.80952380952381","r":"20","stroke-width":"3.8095238095238093","stroke-dasharray":"125.664","stroke-dashoffset":"125.66370614359172px"}})])])]):_vm._e()])}
+var staticRenderFns = []
+
+export { render, staticRenderFns }

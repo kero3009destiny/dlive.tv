@@ -1,0 +1,170 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import VDliveAvatar from '@/components/VDliveAvatar.vue';
+import DDivider from '@/components/DDivider.vue';
+import { Component, Prop, Mixins } from 'vue-property-decorator';
+import MeMixin from '@/mixins/MeMixin';
+import { PinnedSubFrag } from '@/graphql/types';
+import VDliveName from '@/components/VDliveName.vue';
+import PinnedGiftItemCardChat from '@/components/PinnedGiftItemCardChat.vue';
+import { addGiftSubClaim, addGiftSubDismiss } from '@/apollo/mutation/giftSub';
+import SnackbarMixin from '@/mixins/SnackbarMixin';
+import { follow } from '@/apollo/mutation/follow';
+
+import DBtn from '@/components/DBtn.vue';
+@Component({
+  components: {
+    VDliveAvatar,
+    VDliveName,
+    DDivider,
+    PinnedGiftItemCardChat,
+    DBtn
+  }
+})
+export default class PinnedSubStart extends Mixins(MeMixin, SnackbarMixin) {
+  @Prop({
+    required: true
+  })
+  public streamerInfo!: PinnedSubFrag.Fragment;
+
+  get sender() {
+    return this.streamerInfo.ongoingGiftSub;
+  }
+
+  get subSetting() {
+    return this.streamerInfo.subSetting;
+  }
+
+  get isfollow() {
+    return this.streamerInfo.isFollowing;
+  }
+
+  get badgeStyle() {
+    if (this.subSetting === undefined || this.subSetting === null) {
+      return '';
+    }
+    const style = `background: ${this.subSetting.badgeColor}; color: ${
+      this.subSetting.textColor
+    }`;
+    return style;
+  }
+
+  public routeTo(displayname: string) {
+    window.open(`/${displayname}`, '_blank');
+  }
+
+  public async claimClicked() {
+    if (this.requireLogin()) {
+      return;
+    }
+    if (!this.streamerInfo.isFollowing) {
+      await follow(this, this.streamerInfo.username, this.streamerInfo.id);
+    }
+    const resp = await addGiftSubClaim(this, this.streamerInfo.username);
+    if (resp === undefined || resp.err !== null) {
+      this.claimSuccess(false);
+      return;
+    }
+    this.claimSuccess(true);
+  }
+
+  public async dismissClicked() {
+    if (!this.isLoggedIn) {
+      this.closePinnedSub();
+      return;
+    }
+    try {
+      await addGiftSubDismiss(this, this.streamerInfo.username);
+      this.closePinnedSub();
+    } catch (err) {
+      this.closePinnedSub();
+    }
+  }
+
+  public claimSuccess(isSuccessful: boolean) {
+    this.$emit('claimSuccess', isSuccessful);
+  }
+
+  public closePinnedSub() {
+    this.$emit('closePinnedSub');
+  }
+}

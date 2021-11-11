@@ -1,0 +1,47 @@
+
+
+
+
+
+
+
+
+
+
+
+
+import DTextField from '@/components/DTextField.vue';
+import { Component, Prop, Vue } from 'vue-property-decorator';
+import { validateEmail, required } from '@/utils/validate';
+
+@Component({
+  components: {
+    DTextField
+  }
+})
+export default class VTextFieldEmail extends Vue {
+  @Prop({ required: true, type: String })
+  public value!: string;
+
+  get valid() {
+    return required(this.value) && validateEmail(this.value);
+  }
+
+  // XXX(@ryan): use getter to have scope to `this` for `this.$t`
+  get emailRules(): Array<(v: string) => string | true> {
+    return [
+      (v: string) =>
+        required(v) || (this.$t('VTextFieldEmail.Required') as string),
+      (v: string) =>
+        validateEmail(v) || (this.$t('VTextFieldEmail.Invalid') as string)
+    ];
+  }
+
+  public input(payload: string) {
+    this.$emit('input', payload);
+  }
+
+  public finished() {
+    this.$emit('finished');
+  }
+}

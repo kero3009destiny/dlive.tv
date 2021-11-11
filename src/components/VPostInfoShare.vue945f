@@ -1,0 +1,186 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { EVENTS } from '@/utils/constants';
+import { Component, Mixins, Prop } from 'vue-property-decorator';
+import DDialog from '@/components/DDialog.vue';
+import VInviteShare from '@/components/VInviteShare.vue';
+import { VPostInfoShareFrag } from '@/graphql/types';
+import MeMixin from '@/mixins/MeMixin';
+import SnackbarMixin from '@/mixins/SnackbarMixin';
+import GlobalEventBusMixin from '@/mixins/GlobalEventBusMixin';
+import { existsInStr } from '@/utils/search';
+import { dataPoint } from '@/plugins/dataCollection';
+import clickaway from 'vue-clickaway';
+import VNoSsr from '@/components/VNoSsr.vue';
+import { namespace } from 'vuex-class';
+
+const happyhourModule = namespace('happyhour');
+
+// TODO(yumin): remove scroll bar on Chrome.
+@Component({
+  components: {
+    DDialog,
+    VInviteShare,
+    VNoSsr
+  }
+})
+// TODO(@ryan):
+export default class VPostInfoShare extends Mixins(
+  MeMixin,
+  SnackbarMixin,
+  GlobalEventBusMixin,
+  clickaway.mixin
+) {
+  // TODO(@ryan):
+  get shareUrl() {
+    if (process.client) {
+      if (this.me !== null) {
+        return `${window.location.href}?ref=${this.me.username}`;
+      } else {
+        return `${window.location.href}`;
+      }
+    }
+    return 'https://dlive.tv';
+  }
+
+  get shareTitle() {
+    if (this.postInfoShare !== null) {
+      const trackingInfo = this.$store.getters['userMeta/trackingInfo'];
+      if (
+        this.type === 'livestream' &&
+        !existsInStr(trackingInfo.postStatus, 'not live')
+      ) {
+        return `${this.postInfoShare.creator.displayname} is streaming ${
+          this.postInfoShare.category.title
+        } on DLive!`;
+      }
+    }
+    return `Join me and support ${this.streamerDisplayname} on DLive!`;
+  }
+
+  get shareDescription() {
+    if (this.postInfoShare !== null) {
+      return `${this.postInfoShare.content}`;
+    }
+    return '';
+  }
+
+  get hashtags() {
+    if (this.postInfoShare !== null) {
+      return this.postInfoShare.category.title;
+    }
+    return '';
+  }
+
+  @Prop({
+    required: true
+  })
+  public streamerDisplayname!: string;
+
+  @Prop({
+    required: false,
+    default: null
+  })
+  public postInfoShare!: VPostInfoShareFrag.Fragment | null;
+
+  @Prop({
+    required: false,
+    default: 'offline'
+  })
+  public type!: 'livestream' | 'offline';
+
+  // local
+  public dialogShare = false;
+  public shareAnimation = false;
+
+  @happyhourModule.Getter('eventStatus')
+  private happyhourStatus!: 'no_happyhour' | 'prestart' | 'start' | 'end';
+
+  public mounted() {
+    this.$_smartSubscribe(EVENTS.SHARE_ANIMATION, this.showShareAnimation);
+    this.$_smartSubscribe(EVENTS.OPEN_SHARE_DIALOG, this.shareClicked);
+  }
+
+  public open(name: string) {
+    if (this.postInfoShare !== null) {
+      const trackingInfo = this.$store.getters['userMeta/trackingInfo'];
+      dataPoint('share_' + trackingInfo.postStatus, {
+        eventCategory: name,
+        eventLabel:
+          this.postInfoShare.creator.username +
+          '&' +
+          this.postInfoShare.permlink
+      });
+    }
+  }
+
+  public shareClicked() {
+    this.dialogShare = true;
+  }
+
+  public showShareAnimation() {
+    this.shareAnimation = true;
+  }
+
+  public closeShareAnimation() {
+    this.shareAnimation = false;
+  }
+}

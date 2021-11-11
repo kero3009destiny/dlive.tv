@@ -1,0 +1,283 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { ProfileReplaySnapFrag, DeletePastbroadcast } from '@/graphql/types';
+import MagicMqMixin from '@/mixins/MagicMqMixin';
+import SnackbarMixin from '@/mixins/SnackbarMixin';
+import MeMixin from '@/mixins/MeMixin';
+import DToken from '@/components/DToken.vue';
+import DSnap from '@/components/DSnap.vue';
+import DMenu from '@/components/DMenu.vue';
+import DMenuItem from '@/components/DMenuItem.vue';
+import DDialog from '@/components/DDialog.vue';
+import DTextField from '@/components/DTextField.vue';
+import DBtn from '@/components/DBtn.vue';
+import DDivider from '@/components/DDivider.vue';
+import { pastbroadcastDelete } from '@/apollo/mutation/livestreamProfile';
+import { Component, Mixins, Prop } from 'vue-property-decorator';
+
+@Component({
+  components: {
+    DToken,
+    DSnap,
+    DMenu,
+    DMenuItem,
+    DDialog,
+    DTextField,
+    DBtn,
+    DDivider
+  }
+})
+export default class VSnapProfileReplay extends Mixins(
+  MagicMqMixin,
+  SnackbarMixin,
+  MeMixin
+) {
+  @Prop({
+    required: true
+  })
+  public pastBroadcast!: ProfileReplaySnapFrag.Fragment;
+
+  get isMe() {
+    if (this.me !== null && this.pastBroadcast !== undefined) {
+      return this.me.displayname === this.pastBroadcast.creator.displayname;
+    }
+    return false;
+  }
+
+  get params() {
+    return { permlink: this.pastBroadcast.permlink };
+  }
+
+  // local
+  public replaySnapMenuShow: boolean = false;
+  public shouldShowEdit: boolean = false;
+  public showDownloadTip: boolean = false;
+  public deleting: boolean = false;
+  public shouldShowDeleteDialog: boolean = false;
+  private playPreview: boolean = false;
+
+  public async confirmDelete() {
+    this.deleting = true;
+    const variables: DeletePastbroadcast.Variables = {
+      permlink: this.pastBroadcast.permlink
+    };
+    const resp = await pastbroadcastDelete(this, variables);
+    this.deleting = false;
+    this.shouldShowDeleteDialog = false;
+    if (resp === undefined || resp.err !== null) {
+      return;
+    }
+    this.$emit('replayDeleted', this.pastBroadcast.permlink);
+  }
+
+  public onClickCopyUrl(url: string) {
+    this.$copyText(url).then(
+      () => {
+        this.$success('LiveStreamProfilePostSnap.StreamLinkCopied');
+      },
+      () => {
+        this.$error('LiveStreamProfilePostSnap.CopyError');
+      }
+    );
+  }
+
+  public replaySnapMenuClose() {
+    this.replaySnapMenuShow = false;
+  }
+
+  public toggleEditClick() {
+    this.shouldShowEdit = !this.shouldShowEdit;
+  }
+
+  public deleteClicked() {
+    this.shouldShowEdit = false;
+    this.shouldShowDeleteDialog = true;
+  }
+
+  public downloadVLC() {
+    window.open('https://www.videolan.org/', '_blank');
+  }
+
+  public downloadGuide() {
+    window.open('https://go.dlive.tv/vod-download', '_blank');
+  }
+}

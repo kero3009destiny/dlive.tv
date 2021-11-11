@@ -1,0 +1,103 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import VVideoPlayer from '@/components/VVideoPlayer.vue';
+import VDliveAvatar from '@/components/VDliveAvatar.vue';
+import VDliveName from '@/components/VDliveName.vue';
+import DBtn from '@/components/DBtn.vue';
+import { hlsUrl } from '@/utils/hls.ts';
+import { Component, Vue, Prop } from 'vue-property-decorator';
+import { LivestreamPage } from '@/graphql/types';
+import { ROUTE_LIVESTREAM } from '@/router';
+import { namespace } from 'vuex-class';
+
+const uiModule = namespace('ui');
+
+@Component({
+  components: {
+    VDliveAvatar,
+    VDliveName,
+    VVideoPlayer,
+    DBtn
+  }
+})
+export default class LivestreamChannelHosting extends Vue {
+  @Prop({
+    required: true
+  })
+  public streamer!: LivestreamPage.UserByDisplayName;
+
+  @uiModule.Getter('isMobile')
+  private isMobile!: boolean;
+
+  get hostingLivestream() {
+    if (this.streamer) {
+      return this.streamer.hostingLivestream;
+    } else {
+      return null;
+    }
+  }
+
+  get videoPlayerPlay() {
+    if (this.$refs.videoplayer) {
+      return (this.$refs.videoplayer as VVideoPlayer).isPlaying();
+    }
+    return false;
+  }
+
+  public goHostStreamerChannel() {
+    if (this.hostingLivestream !== null) {
+      return {
+        name: ROUTE_LIVESTREAM,
+        params: { displayname: this.hostingLivestream.creator.displayname }
+      };
+    }
+  }
+
+  public livestreamUrl(streamer: string) {
+    return hlsUrl(streamer);
+  }
+}

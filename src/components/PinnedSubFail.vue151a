@@ -1,0 +1,48 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { Component, Vue } from 'vue-property-decorator';
+import DBtn from '@/components/DBtn.vue';
+import DDivider from '@/components/DDivider.vue';
+
+@Component({
+  components: {
+    DBtn,
+    DDivider
+  }
+})
+export default class PinnedSubFail extends Vue {
+  public closePinnedSub() {
+    this.$emit('closePinnedSub');
+  }
+}

@@ -1,0 +1,4 @@
+var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',{staticClass:"avatar-inner position-relative overflow-hidden",style:(_vm.avatarSize + _vm.outlineStyle)},[_c('img',{key:_vm.src,staticClass:"avatar-img width-100 height-100 border-radius-50",attrs:{"src":_vm.src},on:{"error":_vm.error}})])}
+var staticRenderFns = []
+
+export { render, staticRenderFns }

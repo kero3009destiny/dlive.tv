@@ -1,0 +1,181 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import VDliveAvatar from '@/components/VDliveAvatar.vue';
+import DDivider from '@/components/DDivider.vue';
+import { Component, Prop, Mixins } from 'vue-property-decorator';
+import MeMixin from '@/mixins/MeMixin';
+import { PinnedGiftSuperchat, DonationType } from '@/graphql/types';
+import VDliveName from '@/components/VDliveName.vue';
+import PinnedGiftItemCardChat from '@/components/PinnedGiftItemCardChat.vue';
+import { ApolloQuery } from '@/decorators/apollo';
+import PINNED_GIFT_SUPERCHAT from '@/graphql/queries/PinnedGiftSuperchat.graphql';
+import ALLOWED_ACTIONS from '@/graphql/queries/AllowedActions.graphql';
+import { AllowedActions, Maybe, PinnedGiftItemFrag } from '@/graphql/types';
+import clickaway from 'vue-clickaway';
+@Component({
+  components: {
+    VDliveAvatar,
+    VDliveName,
+    DDivider,
+    PinnedGiftItemCardChat
+  }
+})
+export default class PinnedGiftItemCard extends Mixins(
+  MeMixin,
+  clickaway.mixin
+) {
+  @Prop({
+    type: Object,
+    required: true
+  })
+  public pinnedGiftItem!: PinnedGiftItemFrag.Fragment;
+
+  @Prop({
+    required: true,
+    type: String
+  })
+  public streamerName!: string;
+
+  @ApolloQuery({
+    fetchPolicy: 'network-only',
+    query: PINNED_GIFT_SUPERCHAT,
+    variables(): PinnedGiftSuperchat.Variables {
+      return {
+        input: {
+          from: this.pinnedGiftItem.user.username,
+          to: this.streamerName,
+          type: this.pinnedGiftItem.type
+        }
+      };
+    }
+  })
+  public superchat?: PinnedGiftSuperchat.Superchat[];
+
+  @ApolloQuery({
+    query: ALLOWED_ACTIONS,
+    fetchPolicy: 'network-only',
+    variables(): AllowedActions.Variables {
+      return {
+        username: this.pinnedGiftItem.user.username,
+        streamer: this.streamerName
+      };
+    },
+    skip() {
+      return !this.isLoggedIn;
+    }
+  })
+  public user?: Maybe<AllowedActions.User>;
+
+  get titleBackground() {
+    if (this.pinnedGiftItem.type === DonationType.Ninjet) {
+      return 'background: #37c1c1';
+    }
+    return 'background: #c6a404';
+  }
+  get shadowClass() {
+    switch (this.pinnedGiftItem.type) {
+      case DonationType.Ninjaghini: {
+        return 'yellow-shadow-b';
+      }
+      case DonationType.Ninjet: {
+        return 'blue-shadow-b';
+      }
+      default: {
+        return 'yellow-shadow-b';
+      }
+    }
+  }
+  get avatarBorderClass() {
+    switch (this.pinnedGiftItem.type) {
+      case DonationType.Ninjaghini: {
+        return 'border-yellow';
+      }
+      case DonationType.Ninjet: {
+        return 'border-blue';
+      }
+      default: {
+        return 'border-yellow';
+      }
+    }
+  }
+  get msgBackground() {
+    if (this.isNinjet) {
+      return 'background: #6bd6d6';
+    }
+    return 'background:#ffd300';
+  }
+  get isNinjet() {
+    return this.pinnedGiftItem.type === DonationType.Ninjet;
+  }
+  get superchatToShow() {
+    if (this.superchat !== undefined) {
+      if (this.isNinjet) {
+        return this.superchat.slice(0, 5);
+      } else {
+        return this.superchat.slice(0, 3);
+      }
+    }
+    return [];
+  }
+
+  public routeTo(displayname: string) {
+    window.open(`/${displayname}`, '_blank');
+  }
+
+  public closePinnedGiftProfileCard() {
+    this.$emit('closePinnedGiftProfileCard');
+  }
+}

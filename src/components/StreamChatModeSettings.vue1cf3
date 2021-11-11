@@ -1,0 +1,493 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import {
+  chatModeSet,
+  emoteModeSet,
+  verifiedEmailChatSet,
+  noLinkChatSet,
+  chatIntervalSet,
+  displaySettingSet,
+  followChatDelaySet
+} from '@/utils/mutations/chatroom';
+import DMenu from '@/components/DMenu.vue';
+import DBtn from '@/components/DBtn.vue';
+// import DDivider from '@/components/DDivider.vue';
+import { CHAT_MODES } from '@/models/chatroomSettings';
+import CHAT_MODE_FRAG from '@/graphql/fragments/ChatMode.graphql';
+import CHAT_MODE_INTERVAL from '@/graphql/fragments/ChatInterval.graphql';
+import { PERMISSION_EVENTS, partnerPermissionCheck } from '@/utils/permission';
+import {
+  SetChatMode,
+  ChatModeType,
+  StreamChatModeSettingsFrag,
+  SetChatInterval,
+  SetEmoteModeInput,
+  MeStreamChatModeSettingFrag,
+  FollowChatDelayType
+} from '@/graphql/types';
+import {
+  writeChatModeCache,
+  writeChatIntervalCache
+} from '@/utils/cache/chatroom';
+import { scrollToBottom } from '@/utils/chatroom';
+import { Component, Mixins, Prop } from 'vue-property-decorator';
+import SnackbarMixin from '@/mixins/SnackbarMixin';
+import MeMixin from '@/mixins/MeMixin';
+import { namespace } from 'vuex-class';
+
+interface FollowDelayOptions {
+  type: FollowChatDelayType;
+  label: string;
+}
+
+const meModule = namespace('me');
+
+@Component({
+  components: {
+    DMenu,
+    DBtn
+    // DDivider
+  }
+})
+export default class StreamChatModeSettings extends Mixins(
+  SnackbarMixin,
+  MeMixin
+) {
+  get chatMode() {
+    if (
+      this.streamerInfo !== undefined &&
+      this.streamerInfo !== null &&
+      this.streamerInfo.chatMode !== undefined &&
+      this.streamerInfo.chatMode !== null
+    ) {
+      return this.streamerInfo.chatMode;
+    }
+    return ChatModeType.Default;
+  }
+
+  get followChatDelay() {
+    if (
+      this.streamerInfo !== undefined &&
+      this.streamerInfo !== null &&
+      this.streamerInfo.followChatDelay !== undefined
+    ) {
+      for (const option of this.followDelayOptions) {
+        if (option.type === this.streamerInfo.followChatDelay) {
+          return option;
+        }
+      }
+    }
+    return this.followDelayOptions[0];
+  }
+
+  get chatModes() {
+    return CHAT_MODES;
+  }
+
+  get hasChatSetting() {
+    if (this.me !== null) {
+      return partnerPermissionCheck(
+        PERMISSION_EVENTS.ONLY_CHAT_SETTING,
+        this.me.partnerStatus
+      );
+    }
+    return false;
+  }
+
+  @Prop({
+    required: true
+  })
+  public streamerInfo!: StreamChatModeSettingsFrag.Fragment;
+
+  public apolloClient = this.$apollo.provider.defaultClient;
+  public chatInterval: number = 2;
+  public banSticker: boolean = false;
+  public verifyEmailChat: boolean = false;
+  public noLinkChat: boolean = false;
+  public banFavSticker: boolean = false;
+  public banGlobalSticker: boolean = false;
+  public followDelayOptions: FollowDelayOptions[] = [
+    { type: FollowChatDelayType.None, label: 'none' },
+    { type: FollowChatDelayType.TenMin, label: '10 min' },
+    { type: FollowChatDelayType.OneHour, label: '1 hour' },
+    { type: FollowChatDelayType.OneDay, label: '1 day' }
+  ];
+
+  // display settings
+  public donationHide: boolean = false;
+
+  public displaySettings: MeStreamChatModeSettingFrag.DisplaySetting | null = null;
+
+  @meModule.Getter('displaySetting')
+  private displaySetting!: MeStreamChatModeSettingFrag.DisplaySetting;
+
+  public mounted() {
+    this.chatInterval = this.streamerInfo.chatInterval;
+    this.banSticker = this.streamerInfo.emoteMode.NoAllEmote;
+    this.verifyEmailChat = this.streamerInfo.chatVerifiedOnly;
+    this.noLinkChat = this.streamerInfo.chatLinkDisabled;
+    this.banFavSticker = this.streamerInfo.emoteMode.NoMineEmote;
+    this.banGlobalSticker = this.streamerInfo.emoteMode.NoGlobalEmote;
+    if (this.displaySetting !== null) {
+      this.displaySettings = Object.assign({}, this.displaySetting);
+      this.displaySettings.__typename = undefined;
+      if (
+        this.displaySettings.lemon &&
+        this.displaySettings.icecream &&
+        this.displaySettings.diamond &&
+        this.displaySettings.ninjaghini &&
+        this.displaySettings.ninjet
+      ) {
+        this.donationHide = true;
+      } else {
+        this.donationHide = false;
+      }
+    }
+  }
+
+  public async changeChatMode(mode: ChatModeType) {
+    const variables: SetChatMode.Variables = {
+      chatMode: mode
+    };
+    const resp = await chatModeSet(this, variables);
+    if (resp === undefined || resp.err !== null) {
+      return;
+    }
+    this.changeChatModeCache(mode);
+  }
+
+  public changeChatModeCache(mode: ChatModeType) {
+    const param = {
+      id: this.streamerInfo.id,
+      fragment: CHAT_MODE_FRAG
+    };
+    writeChatModeCache(this.apolloClient, mode, param);
+  }
+
+  public async changeStickerMode() {
+    const emoteMode: SetEmoteModeInput = {
+      NoMineEmote: this.banFavSticker,
+      NoGlobalEmote: this.banGlobalSticker,
+      NoAllEmote: this.banSticker
+    };
+    await emoteModeSet(this, emoteMode, this.streamerInfo.id);
+  }
+
+  public async changeEmailVerifyChat() {
+    await verifiedEmailChatSet(
+      this,
+      this.verifyEmailChat,
+      this.streamerInfo.id
+    );
+  }
+
+  public async changeNoLinkChat() {
+    await noLinkChatSet(this, this.noLinkChat, this.streamerInfo.id);
+  }
+
+  public async changeChatInterval() {
+    const variables: SetChatInterval.Variables = {
+      seconds: this.chatInterval
+    };
+    const resp = await chatIntervalSet(this, variables);
+    if (resp === undefined || resp.err !== null) {
+      return;
+    }
+    this.changeChatIntervalCache();
+  }
+
+  public changeChatIntervalCache() {
+    const param = {
+      id: this.streamerInfo.id,
+      fragment: CHAT_MODE_INTERVAL
+    };
+    writeChatIntervalCache(this.apolloClient, this.chatInterval, param);
+  }
+
+  public changeDisplaySetting() {
+    this.$nextTick(async () => {
+      if (this.displaySettings !== null && this.me !== null) {
+        if (
+          this.displaySettings.lemon &&
+          this.displaySettings.icecream &&
+          this.displaySettings.diamond &&
+          this.displaySettings.ninjaghini &&
+          this.displaySettings.ninjet
+        ) {
+          this.donationHide = true;
+        } else {
+          this.donationHide = false;
+        }
+        await displaySettingSet(this, this.displaySettings, this.me.id);
+        scrollToBottom();
+      }
+    });
+  }
+
+  public changeDonation() {
+    if (this.displaySettings !== null) {
+      this.displaySettings.lemon = this.donationHide;
+      this.displaySettings.icecream = this.donationHide;
+      this.displaySettings.diamond = this.donationHide;
+      this.displaySettings.ninjaghini = this.donationHide;
+      this.displaySettings.ninjet = this.donationHide;
+      this.changeDisplaySetting();
+    }
+  }
+
+  public followChatDelayChange(option: FollowDelayOptions) {
+    followChatDelaySet(this, option.type, this.streamerInfo.id);
+  }
+}

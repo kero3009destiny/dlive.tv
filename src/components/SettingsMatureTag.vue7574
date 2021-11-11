@@ -1,0 +1,4 @@
+var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',[_c('div',{staticClass:"flex-align-center"},[_c('v-switch',{staticClass:"d-switch text-12-medium marginr-2",attrs:{"input-value":_vm.matureTagForViewer,"label":"Show Mature Tagged Content","color":"primary"},on:{"change":_vm.switchChange}})],1)])}
+var staticRenderFns = []
+
+export { render, staticRenderFns }

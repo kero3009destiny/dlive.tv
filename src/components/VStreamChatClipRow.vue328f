@@ -1,0 +1,4 @@
+var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('span',[_c('i18n',{staticClass:"text-white",attrs:{"path":"LiveStreamChatroomRow.ClipMade"}},[_c('a',{staticClass:"url-part",attrs:{"place":"here"},on:{"click":function($event){$event.stopPropagation();return _vm.clipShow($event)}}},[_vm._v(_vm._s(_vm.$t('LiveStreamChatroomRow.Here')))])])],1)}
+var staticRenderFns = []
+
+export { render, staticRenderFns }

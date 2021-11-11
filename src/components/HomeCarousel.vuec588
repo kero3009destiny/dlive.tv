@@ -1,0 +1,444 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { EVENTS } from '@/utils/constants';
+import { ApolloQuery } from '@/decorators/apollo';
+import VDliveAvatar from '@/components/VDliveAvatar.vue';
+import VDliveName from '@/components/VDliveName.vue';
+import DToken from '@/components/DToken.vue';
+import HOME_PAGE_CAROUSELS from '@/graphql/queries/HomePageCarousels.graphql';
+import { ROUTE_GAME_NAME } from '@/router';
+import { SIH_RESIZE_FEATURED_POST_LARGE, SIHresize } from '@/utils/images';
+import { getLivestreamUrl } from '@/utils/livestream.ts';
+import { HomePageCarousels, CarouselType } from '@/graphql/types';
+import { Component, Mixins } from 'vue-property-decorator';
+import { ROUTE_LIVESTREAM } from '@/router';
+import GlobalEventBusMixin from '@/mixins/GlobalEventBusMixin';
+import VVideoPlayer from '@/components/VVideoPlayer.vue';
+import MagicMqMixin from '@/mixins/MagicMqMixin';
+
+interface ElCarousel {
+  throttledArrowClick: (val: number) => void;
+  activeIndex: number;
+}
+@Component({
+  components: {
+    VVideoPlayer,
+    VDliveAvatar,
+    VDliveName,
+    DToken
+  }
+})
+export default class HomeCarousel extends Mixins(
+  GlobalEventBusMixin,
+  MagicMqMixin
+) {
+  // Computed
+  get carouselLivestreams() {
+    if (this.carousels !== undefined && this.carousels !== null) {
+      return this.carousels;
+    }
+    return [];
+  }
+  get activeCardStyle() {
+    if (this.viewPointWidth > 1366) {
+      return { width: '628', height: '440px', videoHeight: '354px' };
+    } else {
+      return { width: '516', height: '376px', videoHeight: '290px' };
+    }
+  }
+  get useStarfruit() {
+    const creator = (this.livestreamToShow
+      .item as HomePageCarousels.LivestreamInlineFragment).creator;
+    return creator.beta.starfruitEnabled;
+  }
+
+  get livestreamToShow() {
+    return this.carouselLivestreams[this.liveIndex];
+  }
+
+  get livestreamToShowIsPoster() {
+    return (
+      this.livestreamToShow !== undefined &&
+      this.livestreamToShow.type === CarouselType.Poster
+    );
+  }
+
+  get livestreamToShowIsLivestream() {
+    return (
+      this.livestreamToShow !== undefined &&
+      this.livestreamToShow.type === CarouselType.Livestream
+    );
+  }
+  @ApolloQuery({
+    prefetch: true,
+    query: HOME_PAGE_CAROUSELS,
+    fetchPolicy: 'network-only',
+    manual: true,
+    variables(): HomePageCarousels.Variables {
+      return {
+        count: 5,
+        userLanguageCode: this.$store.getters['userMeta/langCode']
+      };
+    },
+    result({ data }) {
+      if (data) {
+        this.carousels = data.carousels;
+      }
+    }
+  })
+  public carousel?: HomePageCarousels.Carousels[];
+
+  // Local
+  public liveIndex = 0;
+  public carouselInterval: number = 0;
+  public carousels: HomePageCarousels.Carousels[] | null = null;
+  public shouldFetchCarousels: boolean = true;
+
+  public mounted() {
+    this.$_smartSubscribe(EVENTS.PAGE_SCROLL_EVENT, this.streamImpression);
+    this.setPolling();
+  }
+
+  public shouldShowLivestream(item: HomePageCarousels.Carousels) {
+    return item.type === CarouselType.Livestream;
+  }
+
+  public beforeDestroy() {
+    clearInterval(this.carouselInterval);
+  }
+
+  public applySIH(carousel: HomePageCarousels.Carousels) {
+    let url = '';
+    if (carousel.type === CarouselType.Livestream) {
+      url = (carousel.item as HomePageCarousels.LivestreamInlineFragment)
+        .thumbnailUrl;
+    }
+    if (carousel.type === CarouselType.Poster) {
+      url = (carousel.item as HomePageCarousels.PosterInlineFragment)
+        .thumbnailURL;
+    }
+    return SIHresize(url, SIH_RESIZE_FEATURED_POST_LARGE);
+  }
+
+  public changeFeatureLive(index: number) {
+    this.liveIndex = index;
+  }
+
+  public clickPrev() {
+    ((this.$refs.carousel as unknown) as ElCarousel).throttledArrowClick(
+      ((this.$refs.carousel as unknown) as ElCarousel).activeIndex - 1
+    );
+  }
+  public clickNext() {
+    ((this.$refs.carousel as unknown) as ElCarousel).throttledArrowClick(
+      ((this.$refs.carousel as unknown) as ElCarousel).activeIndex + 1
+    );
+  }
+  // public isActive(index: number) {
+  //   console.log(this.$refs);
+  // }
+  public goToLivestream(index: number) {
+    if (index !== this.liveIndex) {
+      return;
+    }
+    if (this.livestreamToShow !== undefined) {
+      if (this.livestreamToShow.type === CarouselType.Livestream) {
+        this.$router.push({
+          name: ROUTE_LIVESTREAM,
+          params: {
+            displayname: (this.livestreamToShow
+              .item as HomePageCarousels.LivestreamInlineFragment).creator
+              .displayname
+          }
+        });
+      }
+      if (this.livestreamToShow.type === CarouselType.Poster) {
+        window.open(
+          (this.livestreamToShow.item as HomePageCarousels.PosterInlineFragment)
+            .redirectLink,
+          '_blank'
+        );
+      }
+    }
+  }
+
+  public livestreamUrl(livestream: HomePageCarousels.Carousels) {
+    if (
+      livestream !== undefined &&
+      livestream.type === CarouselType.Livestream
+    ) {
+      return getLivestreamUrl(
+        (livestream.item as HomePageCarousels.LivestreamInlineFragment).creator
+          .username
+      );
+    }
+    return '';
+  }
+
+  public livestreamPermlink(livestream: HomePageCarousels.Carousels) {
+    if (
+      livestream !== undefined &&
+      livestream.type === CarouselType.Livestream
+    ) {
+      return (livestream.item as HomePageCarousels.LivestreamInlineFragment)
+        .permlink;
+    } else {
+      return '';
+    }
+  }
+
+  public async refetchCarousel() {
+    if (!this.shouldFetchCarousels) {
+      return;
+    }
+    const variables: HomePageCarousels.Variables = {
+      count: 5,
+      userLanguageCode: this.$store.getters['userMeta/langCode'],
+      watching: this.liveIndex
+    };
+    try {
+      const data = await this.$apollo.query<HomePageCarousels.Query>({
+        query: HOME_PAGE_CAROUSELS,
+        fetchPolicy: 'network-only',
+        variables,
+        errorPolicy: 'none'
+      });
+      if (data && data.data && data.data.carousels === undefined) {
+        return;
+      }
+      this.carousel = data.data.carousels;
+    } catch (err) {
+      // TODO
+    }
+  }
+
+  public streamImpression() {
+    const snap = this.$refs.vanillaPlayer;
+    if (snap) {
+      if (this.elementInViewport(snap as HTMLElement)) {
+        this.shouldFetchCarousels = true;
+        return;
+      }
+    }
+    this.shouldFetchCarousels = false;
+  }
+
+  public elementInViewport(elem: HTMLElement) {
+    const bounding = elem.getBoundingClientRect();
+    return (
+      bounding.top >= 0 &&
+      bounding.left >= 0 &&
+      bounding.bottom <=
+        (window.innerHeight || document.documentElement.clientHeight) &&
+      bounding.right <=
+        (window.innerWidth || document.documentElement.clientWidth)
+    );
+  }
+
+  public imgSrc(imgUrl: string) {
+    return SIHresize(imgUrl, SIH_RESIZE_FEATURED_POST_LARGE);
+  }
+
+  public setPolling() {
+    // Disable polling options because of apollo client issue
+    this.carouselInterval = window.setInterval(this.refetchCarousel, 30000);
+  }
+
+  public routeToCategory(category: HomePageCarousels.Category) {
+    return {
+      name: ROUTE_GAME_NAME,
+      params: {
+        categoryID: category.backendID,
+        categoryName: category.title.replace(/\s+/g, '-')
+      }
+    };
+  }
+}

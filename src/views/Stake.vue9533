@@ -1,0 +1,1241 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { Component, Mixins } from 'vue-property-decorator';
+import DBtn from '@/components/DBtn.vue';
+import { Tab } from '@/models/tab';
+import DStakeCard from '@/components/DStakeCard.vue';
+import StakePartnerAddressDialog from '@/components/StakePartnerAddressDialog .vue';
+import DTab from '@/components/DTab.vue';
+import DStakeIn from '@/components/DStakeIn.vue';
+import SnackbarMixin from '@/mixins/SnackbarMixin';
+import DStakeOut from '@/components/DStakeOut.vue';
+import { Contract } from '@/models/contract';
+import { MetaInfo } from 'vue-meta';
+import { Meta } from '@/decorators/meta.ts';
+import { ApolloQuery } from '@/decorators/apollo';
+import {
+  canStakeIn,
+  canStakeOut,
+  canClaimPendingStakeOut,
+  canClaimReward
+} from '@/utils/stake';
+import BigNumber from 'bignumber.js';
+import GLOBAL_INFORMATION_LATEST_BTT_STATS from '@/graphql/queries/GlobalInformationLatestBTTStats.graphql';
+import {
+  GlobalInformationLatestBttStats,
+  PartnerStatus,
+  BttTransactionHistory,
+  BttMethod
+} from '@/graphql/types';
+import BTT_TRANSACTION_HISTORY from '@/graphql/queries/BttTransactionHistory.graphql';
+import { namespace } from 'vuex-class';
+import MeMixin from '@/mixins/MeMixin';
+import { PERMISSION_EVENTS, partnerPermissionCheck } from '@/utils/permission';
+
+/* export type myTotalStakeInterface = string | {
+  _hex: string;
+  _isBigNumber: boolean;
+} */
+
+const meModule = namespace('me');
+const enum STATUS {
+  NOT_INITIAL = 1,
+  NOT_LOGIN = 2,
+  OK = 3
+}
+type Option = 'transaction' | 'bouns';
+
+interface HistoryTransaction {
+  globalInfo: BttTransactionHistory.GlobalInfo;
+  me: BttTransactionHistory.Me;
+}
+
+@Component({
+  components: {
+    DBtn,
+    DTab,
+    DStakeCard,
+    DStakeIn,
+    DStakeOut,
+    StakePartnerAddressDialog
+  }
+})
+export default class Stake extends Mixins(SnackbarMixin, MeMixin) {
+  @Meta({
+    metaInfo(): MetaInfo {
+      return {
+        title: 'Stake in BTT and Earn with All Transactions Made on DLive',
+        meta: [
+          {
+            vmid: 'description',
+            name: 'description',
+            content: `25% of all donations and subscriptions on DLive are distributed among BTT Stakeholders.`
+          }
+        ],
+        link: [
+          {
+            rel: 'canonical',
+            href: 'https://dlive.tv/s/stake'
+          }
+        ]
+      };
+    }
+  })
+  public meta!: string;
+  public revenueFee: string =
+  new Date() > new Date(Date.UTC(2021, 0, 1, 0, 0, 0)) ? '5' : '25';
+  public stakeHeaders = [
+    { text: 'Date', value: 'timestamp', sortable: false },
+    { text: 'Type', value: 'method', sortable: false },
+    { text: 'Amount', value: 'args', sortable: false },
+    { text: 'Transaction ID', value: 'txID', sortable: false }
+  ];
+  public partnerBounsHeaders = [
+    { text: 'Date', value: 'updatedAt', sortable: false },
+    { text: 'Type', value: 'method', sortable: false },
+    { text: 'Amount', value: 'amount', sortable: false },
+    { text: 'Transaction ID', value: 'txID', sortable: false }
+  ];
+  public options: Array<{ option: Option; label: string }> = [
+    { option: 'transaction', label: 'Stake Transaction' },
+    { option: 'bouns', label: 'Partner Bonus' }
+  ];
+  public curOption: { option: Option; label: string } = this.options[0];
+
+  public readonly numTxPerFetch: number = 10;
+
+  get hasNextPage() {
+    if (this.curOptionIsTransaction && this.userTransactions != null) {
+      return this.userTransactions.pageInfo.hasNextPage;
+    }
+    if (this.curOptionIsBouns && this.partnerBounsList != null) {
+      return this.partnerBounsList.length === this.numTxPerFetch;
+    }
+    return false;
+  }
+
+  @ApolloQuery({
+    manual: true,
+    fetchPolicy: 'network-only',
+    variables(): BttTransactionHistory.Variables {
+      return {
+        addressBase58: this.tronWebAddr,
+        first: this.numTxPerFetch,
+        limit: this.numTxPerFetch,
+        payID: 100000
+      };
+    },
+    result({ data }) {
+      if (data) {
+        this.bttTransactions = data;
+      }
+      return;
+    },
+    skip() {
+      return !this.isLoggedIn;
+    },
+    query: BTT_TRANSACTION_HISTORY
+  })
+  public bttTransactions?: HistoryTransaction;
+
+  get userTransactions() {
+    if (this.bttTransactions && this.bttTransactions.globalInfo) {
+      return this.bttTransactions.globalInfo.myBTTTransactionsV2;
+    }
+    return null;
+  }
+  get transactionList() {
+    if (this.userTransactions !== null) {
+      return this.userTransactions.list;
+    }
+    return [];
+  }
+  get partnerBounsList() {
+    if (
+      this.bttTransactions &&
+      this.bttTransactions.me &&
+      this.bttTransactions.me.private
+    ) {
+      return this.bttTransactions.me.private.partnerRewardTransactions;
+    }
+    return [];
+  }
+
+  public myStakeStatus: Array<{
+    title: string;
+    pointColor: string;
+    num: number | string;
+    subIcon: string;
+    tokenIcon: string;
+  }> = [
+    {
+      title: 'My Total Stake',
+      pointColor: '#ffd300',
+      num: 0,
+      tokenIcon: require('@/assets/icon/BTT.svg'),
+      subIcon: require('@/assets/icon/my-stake-icon.svg')
+    }
+  ];
+
+  @ApolloQuery({
+    // prefetch: true,
+    manual: true,
+    fetchPolicy: 'network-only',
+    result({ data }) {
+      if (data) {
+        this.bttAllData = data.globalInfo;
+      }
+      return;
+    },
+    query: GLOBAL_INFORMATION_LATEST_BTT_STATS
+  })
+  public bttAllData?: GlobalInformationLatestBttStats.GlobalInfo;
+
+  get overallStatus(): Array<{
+    title: string;
+    pointColor: string;
+    num?: number | string;
+    subIcon?: string;
+    tokenIcon: string;
+    extraIcon?: string;
+    tip?: string;
+  }> {
+    const data = [
+      {
+        title: 'Total BTT Staked',
+        pointColor: '#4880ea',
+        num: 0,
+        tokenIcon: require('@/assets/icon/BTT.svg'),
+        subIcon: require('@/assets/icon/totalbtt.svg')
+      },
+      {
+        title: 'BTT Distributed Yesterday',
+        pointColor: '#e55b32',
+        num: 0,
+        tokenIcon: require('@/assets/icon/BTT.svg'),
+        subIcon: require('@/assets/icon/distributed-red.svg')
+      },
+      {
+        title: 'Annualized Return in BTT',
+        pointColor: '#6bd6d6',
+        num: -1,
+        tip: 'No Data',
+        tokenIcon: require('@/assets/icon/cycle-stake.svg'),
+        subIcon: require('@/assets/icon/annualized.svg')
+      },
+      {
+        title: 'Total BTT Staked by Partners',
+        pointColor: '#34b4e3',
+        num: 0,
+        tokenIcon: require('@/assets/icon/BTT.svg'),
+        subIcon: this.isVerifiedPartner
+          ? require('@/assets/icon/isvp.svg')
+          : '',
+        extraIcon: this.isGlobalPartner ? require('@/assets/icon/isgp.svg') : ''
+      },
+      {
+        title: 'BTT Bonus Distributed Yesterday to DLive Partners',
+        pointColor: '#e5ae32',
+        num: 0,
+        tokenIcon: require('@/assets/icon/BTT.svg'),
+        subIcon: this.isVerifiedPartner
+          ? require('@/assets/icon/isvp.svg')
+          : '',
+        extraIcon: this.isGlobalPartner ? require('@/assets/icon/isgp.svg') : ''
+      },
+      {
+        title: 'Annualized Return in BTT for DLive Partners',
+        pointColor: '#6bd6a9',
+        num: -1,
+        tip: 'No Data',
+        tokenIcon: require('@/assets/icon/cycle-stake.svg'),
+        subIcon: this.isVerifiedPartner
+          ? require('@/assets/icon/isvp.svg')
+          : '',
+        extraIcon: this.isGlobalPartner ? require('@/assets/icon/isgp.svg') : ''
+      }
+    ];
+    if (this.bttAllData !== undefined && this.bttAllData !== null) {
+      const latestBTTStats = this.bttAllData.latestBTTStats;
+      const latestPartnerBTTRewardStats = this.bttAllData
+        .latestPartnerBTTRewardStats;
+      const lastStakeTotal = new BigNumber(
+        latestBTTStats.lastStakes
+      ).toNumber();
+      data[0].num = new BigNumber(latestBTTStats.currentStakes).toNumber();
+      data[1].num = new BigNumber(latestBTTStats.lastReward).toNumber();
+      data[2].tip = this.toPercentageString(
+        this.calAnnualize(data[1].num, lastStakeTotal)
+      );
+      data[3].num = new BigNumber(
+        latestPartnerBTTRewardStats.lastStakes
+      ).toNumber();
+      data[4].num = new BigNumber(
+        latestPartnerBTTRewardStats.lastReward
+      ).toNumber();
+      const partnerTotal = data[4].num;
+      data[5].tip = this.toPercentageString(new BigNumber(
+        this.calAnnualize(partnerTotal, data[3].num) +
+          this.calAnnualize(data[1].num, lastStakeTotal)
+      ).toFixed(1) as number);
+      return data;
+    }
+    return data;
+  }
+  public operatingName: string = '';
+  public resType: BttMethod = BttMethod.StakeIn;
+  public txid: string = '';
+  public showUseEnergyDialog: boolean = false;
+  public showCheckTxidDialog: boolean = false;
+  // public isPaused: boolean = false;
+  public isStakeInPaused: boolean = false;
+  public isStakeOutPaused: boolean = false;
+  public isClaimPendingStakeOutPaused: boolean = false;
+  public isClaimRewardPaused: boolean = false;
+
+  public activeTab: string = 'tab-claim';
+  public tronStatus: STATUS = STATUS.NOT_INITIAL;
+  public claimPendingLoading: boolean = false;
+  public claimRewardLoading: boolean = false;
+  public tronWebAddr: string = '';
+  public canStakeIn: { _can: boolean; _errorMessage: string } | null = null;
+  public canStakeOut: { _can: boolean; _errorMessage: string } | null = null;
+  public canClaimPendingStakeOut: {
+    _can: boolean;
+    _errorMessage: string;
+    _hasPendingStakeOut: boolean;
+    _amount: number;
+    _stakeoutTimestamp: number;
+    _stakeoutAvailableTimestamp: number;
+  } | null = null;
+  public canClaimReward: {
+    _can: boolean;
+    _errorMessage: string;
+    _hasPendingStakeOut: boolean;
+    _reward: number;
+  } | null = null;
+
+  public contractAddress: { base58: string | undefined } = {
+    base58: process.env.VUE_APP_CONTRACT_ADDRESS
+  };
+
+  public contract: Contract | null = null;
+
+  @meModule.Getter('mePartnerBTTAddress')
+  private mePartnerBTTAddress!: string | null;
+  get canClaimRewardClick() {
+    return (
+      this.canClaimReward !== null &&
+      (this.canClaimReward._can || this.myStakeStatus[0].num === 0)
+    );
+  }
+
+  get havePartnerBonus() {
+    if (this.me !== null) {
+      return (
+        partnerPermissionCheck(
+          PERMISSION_EVENTS.STAKE_BONUS,
+          this.me.partnerStatus
+        ) && this.mePartnerBTTAddress
+      );
+    }
+    return false;
+  }
+
+  get partnerStatus() {
+    if (this.me !== null) {
+      return this.me.partnerStatus;
+    }
+    return PartnerStatus.None;
+  }
+
+  get isVerifiedPartner() {
+    return this.partnerStatus === PartnerStatus.VerifiedPartner;
+  }
+
+  get isGlobalPartner() {
+    return this.partnerStatus === PartnerStatus.GlobalPartner;
+  }
+
+  get claimRewardTip(): string {
+    if (this.isClaimRewardPaused) {
+      return 'Claim reward is paused now';
+    }
+    if (this.canClaimReward !== null && this.canClaimReward._can) {
+      return `Claim ${(this.canClaimReward._reward * Math.pow(10, -6)).toFixed(
+        2
+      )} BTT Stake Reward`;
+    } else if (this.myStakeStatus[0].num > 0) {
+      return 'Come back tomorrow to claim Stake Reward';
+    } else {
+      return 'Stake in now to receive Stake Reward';
+    }
+  }
+
+  get canUseTron() {
+    if (this.tronStatus === STATUS.OK) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  get energy() {
+    switch (this.operatingName) {
+      case 'stakeIn':
+        return '120,000';
+      case 'stakeOut':
+        return '150,000';
+      case 'claimPendingStakeOut':
+        return '100,000';
+      case 'claimReward':
+        return '50,000';
+      default:
+        return '0';
+    }
+  }
+
+  get needTRX() {
+    switch (this.operatingName) {
+      case 'stakeIn':
+        return '1.2';
+      case 'stakeOut':
+        return '1.5';
+      case 'claimPendingStakeOut':
+        return '1';
+      case 'claimReward':
+        return '0.5';
+      default:
+        return '0';
+    }
+  }
+
+  get stakeTabs(): Tab[] {
+    let result = Array<Tab>();
+    if (this.canUseTron) {
+      result = [
+        new Tab(
+          'Stake.ClaimReward',
+          null,
+          'tab-claim',
+          require('@/assets/icon/claim-reward-grey.svg'),
+          require('@/assets/icon/claim-reward-white.svg')
+        ),
+        new Tab(
+          'Stake.StakeIn',
+          null,
+          'tab-in',
+          require('@/assets/icon/stakein-grey.svg'),
+          require('@/assets/icon/stakein-white.svg')
+        ),
+        new Tab(
+          'Stake.StakeOut',
+          null,
+          'tab-out',
+          require('@/assets/icon/stakeout-grey.svg'),
+          require('@/assets/icon/stakeout-white.svg')
+        )
+      ];
+    }
+    return result;
+  }
+
+  public mounted() {
+    const obj = window.setInterval(async () => {
+      if (window.tronWeb && window.tronWeb.defaultAddress.base58) {
+        window.clearInterval(obj);
+        try {
+          window.tronWeb.setHeader({
+            'TRON-PRO-API-KEY': '3b1f5cba-3089-4e65-9372-2d13315f5339'
+          });
+        } catch (error) {
+          // ToDo
+        }
+        this.tronWebAddr = window.tronWeb.defaultAddress.base58;
+        this.contract = await window.tronWeb
+          .contract()
+          .at(this.contractAddress.base58);
+        this.tronStatus = STATUS.OK;
+        this.checkPaused();
+        this.loadTronInfo();
+      }
+    }, 1000);
+  }
+  public clickPartner() {
+    (this.$refs.partnerDialog as HTMLFormElement).open();
+  }
+
+  public fetchMore() {
+    if (this.curOptionIsBouns) {
+      this.fetchMorePartnerBouns();
+    } else {
+      this.fetchMoreTransactions();
+    }
+  }
+  public fetchMoreTransactions() {
+    if (
+      this.userTransactions === null ||
+      !this.userTransactions.pageInfo.hasNextPage
+    ) {
+      return;
+    }
+    this.$apollo.queries.bttTransactions.fetchMore({
+      variables: {
+        addressBase58: this.tronWebAddr,
+        first: this.numTxPerFetch,
+        after: this.userTransactions.pageInfo.endCursor
+      },
+      updateQuery: (
+        previousResult: BttTransactionHistory.Query,
+        { fetchMoreResult }: { fetchMoreResult?: BttTransactionHistory.Query }
+      ) => {
+        if (
+          fetchMoreResult === undefined ||
+          fetchMoreResult.globalInfo === null
+        ) {
+          return previousResult;
+        }
+        const moreTransactions: BttTransactionHistory.MyBttTransactionsV2 =
+          fetchMoreResult.globalInfo.myBTTTransactionsV2;
+        let prevTransactions = previousResult.globalInfo;
+        if (prevTransactions === null) {
+          prevTransactions = fetchMoreResult.globalInfo;
+        } else {
+          prevTransactions.myBTTTransactionsV2.pageInfo =
+            moreTransactions.pageInfo;
+          prevTransactions.myBTTTransactionsV2.list = [
+            ...prevTransactions.myBTTTransactionsV2.list,
+            ...moreTransactions.list
+          ];
+        }
+        return {
+          globalInfo: prevTransactions
+        };
+      }
+    });
+  }
+  public fetchMorePartnerBouns() {
+    if (this.partnerBounsList.length < this.numTxPerFetch) {
+      return;
+    }
+    this.$apollo.queries.bttTransactions.fetchMore({
+      variables: {
+        addressBase58: this.tronWebAddr,
+        payID: this.partnerBounsList[this.partnerBounsList.length - 1].payID,
+        limit: this.numTxPerFetch
+      },
+      updateQuery: (
+        previousResult: BttTransactionHistory.Query,
+        { fetchMoreResult }: { fetchMoreResult?: BttTransactionHistory.Query }
+      ) => {
+        if (
+          !fetchMoreResult ||
+          !fetchMoreResult.me ||
+          !fetchMoreResult.me.private ||
+          !fetchMoreResult.me.private.partnerRewardTransactions
+        ) {
+          return previousResult;
+        }
+        const moreTransactions: BttTransactionHistory.Private =
+          fetchMoreResult.me.private;
+        let prevMe = previousResult.me;
+        if (!prevMe || !prevMe.private) {
+          prevMe = fetchMoreResult.me;
+        } else {
+          prevMe.private.partnerRewardTransactions = [
+            ...prevMe.private.partnerRewardTransactions,
+            ...moreTransactions.partnerRewardTransactions
+          ];
+        }
+        return {
+          me: prevMe
+        };
+      }
+    });
+  }
+  public clickCheckTransaction() {
+    window.open(process.env.VUE_APP_CHECK_TRANSACTION_ADDRESS + this.txid);
+  }
+  public openTransaction(txID: string) {
+    window.open(process.env.VUE_APP_CHECK_TRANSACTION_ADDRESS + txID);
+  }
+  public changeUseEnergyDialog(name: string) {
+    if (name === 'claimReward' && this.myStakeStatus[0].num === 0) {
+      this.changeTab(this.stakeTabs[1]);
+      return;
+    }
+    this.operatingName = name;
+    this.showUseEnergyDialog = true;
+  }
+
+  public changeCheckTransactionDialog(txid: string, resMethod: BttMethod) {
+    this.txid = txid;
+    this.resType = resMethod;
+    this.showCheckTxidDialog = true;
+  }
+
+  get curOptionIsTransaction() {
+    return this.curOption.option === 'transaction';
+  }
+
+  get curOptionIsBouns() {
+    return this.curOption.option === 'bouns';
+  }
+
+  public clickContinue() {
+    switch (this.operatingName) {
+      case 'stakeIn':
+        (this.$refs.stakeIn as DStakeIn).dealStakeIn();
+        break;
+      case 'stakeOut':
+        (this.$refs.stakeOut as DStakeOut).dealStakeOut();
+        break;
+      case 'claimPendingStakeOut':
+        (this.$refs.stakeOut as DStakeOut).claimPendingStakeOut();
+        break;
+      case 'claimReward':
+        this.claimReward();
+        break;
+      default:
+        return;
+    }
+    this.showUseEnergyDialog = false;
+  }
+  public btnColor(type: string) {
+    let color = '';
+    switch (type) {
+      case 'StakeIn':
+        color = 'pending';
+        break;
+      case 'StakeOut':
+        color = 'completed';
+        break;
+      case 'ClaimReward':
+        color = 'refund_unverified';
+        break;
+      case 'ClaimPendingStakeOut':
+        color = 'failed';
+        break;
+      case 'ReceivePartnerBonus':
+        color = 'yellow';
+        break;
+    }
+    return color;
+  }
+  public statusText(type: string) {
+    let text = '';
+    switch (type) {
+      case 'StakeIn':
+        text = 'Stake In';
+        break;
+      case 'StakeOut':
+        text = 'Stake Out';
+        break;
+      case 'ClaimReward':
+        text = 'Receive Stake Reward';
+        break;
+      case 'ClaimPendingStakeOut':
+        text = 'Receive Stake Out';
+        break;
+      case 'ReceivePartnerBonus':
+        text = 'Receive Partner Bonus';
+        break;
+    }
+    return text;
+  }
+  public changeTab(tab: Tab) {
+    if (tab.href !== undefined) {
+      this.activeTab = tab.href;
+    }
+  }
+
+  public loginTronTip() {
+    this.$error('Stake.LoginTronlinkTip');
+  }
+
+  public getRevertMsg(tx: { contractResult: string[] }) {
+    const rst = tx.contractResult[0];
+    let msg = rst.substring(136); // remove prefix
+    msg = this.hex2a(msg);
+    return msg;
+  }
+
+  public calAnnualize(reward: number, stake: number) {
+    if (stake === 0) {
+      return 0;
+    }
+
+    const daily = reward / stake;
+
+    const temp = Math.floor(365 * daily * 10000) / 100;
+    let res = temp;
+
+    if (temp >= 1000000) {
+      res = new BigNumber(temp.toPrecision(3)).toNumber();
+    }
+
+    return res;
+  }
+
+  public toPercentageString(num: number) {
+    if (num === 0) {
+      return 'No Data';
+    }
+    return '+' + num + '%';
+  }
+
+  public hex2a(hexx: string) {
+    const hex = hexx.toString(); // force conversion
+    let str = '';
+    for (let i = 0; i < hex.length && hex.substr(i, 2) !== '00'; i += 2) {
+      str += String.fromCharCode(parseInt(hex.substr(i, 2), 16));
+    }
+    return str;
+  }
+
+  public async loadTronInfo() {
+    try {
+      this.getMyTotalStake();
+      this.checkAll();
+    } catch (error) {
+      this.stakeError(error);
+    }
+  }
+
+  public async getMyTotalStake() {
+    if (this.contract === null) {
+      return this.$error('Error with contract');
+    }
+    try {
+      const myTotalStake = await this.contract.stakeOf(this.tronWebAddr).call();
+      let stakes: string | number = 0;
+      /* if (typeof myTotalStake === 'object') {
+        // @ts-ignore
+        stakes = myTotalStake._hex;
+      } else {
+        stakes = myTotalStake;
+      } */
+      stakes = window.tronWeb
+        .BigNumber(window.tronWeb.toBigNumber(myTotalStake))
+        .toNumber();
+      this.myStakeStatus[0].num = stakes;
+    } catch (error) {
+      this.stakeError(error);
+    }
+  }
+
+  public async claimReward() {
+    if (this.contract === null) {
+      return this.$error('Error with contract');
+    }
+    try {
+      this.claimRewardLoading = true;
+      const res = await this.contract
+        .claimReward()
+        .send({ feeLimit: 100000000, shouldPollResponse: false });
+      this.claimRewardLoading = false;
+      this.changeCheckTransactionDialog(res.toString(), BttMethod.ClaimReward);
+      this.loadTronInfo();
+      return;
+      // this.$success('Stake.ClaimRewardSuccess');
+    } catch (err) {
+      this.claimRewardLoading = false;
+      if (err.error === 'Cannot find result in solidity node') {
+        await this.checkClaimReward();
+        if (this.canClaimReward !== null && !this.canClaimReward._can) {
+          this.loadTronInfo();
+          this.$success('Stake.ClaimRewardSuccess');
+          return;
+        }
+      }
+      this.stakeError(err);
+    }
+  }
+
+  public stakeError(err: {
+    output?: { contractResult: string[] } | undefined;
+    error?: string;
+    message?: string;
+  }) {
+    if (err.output) {
+      const msg = this.getRevertMsg(err.output);
+      this.$error(msg);
+    } else if (err.message) {
+      if (err.message === 'AccountResourceInsufficient error') {
+        this.$error('Insufficient Bandwidth');
+        return;
+      }
+      this.$error(err.message);
+    } else if (err.error) {
+      this.$error(err.error);
+    } else {
+      if (err === 'Invalid tokenValue provided') {
+        this.$error('Invalid BTT amount');
+      } else {
+        this.$error(err.toString());
+      }
+    }
+  }
+
+  public async checkAll() {
+    if (this.contract === null) {
+      return this.$error('Error with contract');
+    }
+    this.checkStakeIn();
+    this.checkStakeOut();
+    this.checkClaimPendingStakeOut();
+    this.checkClaimReward();
+  }
+
+  public async checkStakeIn() {
+    if (this.contract === null) {
+      return this.$error('Error with contract');
+    }
+    try {
+      this.canStakeIn = await canStakeIn(this.contract, this.tronWebAddr);
+    } catch (err) {
+      this.stakeError(err);
+    }
+  }
+
+  public async checkStakeOut() {
+    if (this.contract === null) {
+      return this.$error('Error with contract');
+    }
+    try {
+      this.canStakeOut = await canStakeOut(this.contract, this.tronWebAddr, 0);
+    } catch (err) {
+      this.stakeError(err);
+    }
+  }
+
+  public async checkClaimPendingStakeOut() {
+    if (this.contract === null) {
+      return this.$error('Error with contract');
+    }
+    try {
+      this.canClaimPendingStakeOut = await canClaimPendingStakeOut(
+        this.contract,
+        this.tronWebAddr
+      );
+    } catch (err) {
+      this.stakeError(err);
+    }
+  }
+
+  public async checkClaimReward() {
+    if (this.contract === null) {
+      return this.$error('Error with contract');
+    }
+    try {
+      this.canClaimReward = await canClaimReward(
+        this.contract,
+        this.tronWebAddr
+      );
+    } catch (err) {
+      this.stakeError(err);
+    }
+  }
+
+  public async checkPaused() {
+    if (this.contract === null) {
+      return this.$error('Error with contract');
+    }
+    try {
+      this.contract
+        .stakeInPaused()
+        .call()
+        .then(res => {
+          this.isStakeInPaused = res;
+        });
+      this.contract
+        .stakeOutPaused()
+        .call()
+        .then(res => {
+          this.isStakeOutPaused = res;
+        });
+      this.contract
+        .claimPendingStakeOutPaused()
+        .call()
+        .then(res => {
+          this.isClaimPendingStakeOutPaused = res;
+        });
+      this.contract
+        .claimRewardPaused()
+        .call()
+        .then(res => {
+          this.isClaimRewardPaused = res;
+        });
+      // this.isPaused = await this.contract.paused().call();
+    } catch (err) {
+      this.stakeError(err);
+    }
+  }
+}

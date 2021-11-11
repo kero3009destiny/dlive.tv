@@ -1,0 +1,62 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { EVENTS } from '@/utils/constants';
+import { VStreamChatClipRowFrag } from '@/graphql/types';
+import { Component, Prop, Mixins } from 'vue-property-decorator';
+import { ROUTE_CLIP } from '@/router';
+import { namespace } from 'vuex-class';
+import GlobalEventBusMixin from '@/mixins/GlobalEventBusMixin';
+
+const dialogModule = namespace('dialog');
+const uiModule = namespace('ui');
+
+@Component
+export default class VStreamChatClipRow extends Mixins(GlobalEventBusMixin) {
+  @Prop({
+    required: true
+  })
+  public chatClipRow!: VStreamChatClipRowFrag.Fragment;
+
+  @uiModule.Getter('isMobile')
+  private isMobile!: boolean;
+  @dialogModule.Mutation('setClipPopupDialog')
+  private setClipPopupDialog!: (state: boolean) => void;
+
+  public clipShow() {
+    if (this.isMobile) {
+      this.$router.push({
+        name: ROUTE_CLIP,
+        params: { clipID: this.chatClipRow.url }
+      });
+    } else {
+      this.$_smartPublish(EVENTS.CLIP_CLICK, {
+        clipID: this.chatClipRow.url,
+        clipList: []
+      });
+      history.pushState(
+        {},
+        'clip',
+        `${window.location.protocol}//${window.location.host}/clip/${
+          this.chatClipRow.url
+        }`
+      );
+      this.setClipPopupDialog(true);
+    }
+  }
+}

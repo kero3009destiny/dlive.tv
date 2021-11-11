@@ -1,0 +1,277 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import MeMixin from '@/mixins/MeMixin';
+import SnackbarMixin from '@/mixins/SnackbarMixin';
+import DBtn from '@/components/DBtn.vue';
+import DTextField from '@/components/DTextField.vue';
+import { partnerApplicationAdd } from '@/apollo/mutation/partnerProgress';
+import { PartnerApplicationInput, PartnerStatus } from '@/graphql/types';
+import { Component, Prop, Mixins, Watch } from 'vue-property-decorator';
+
+@Component({
+  components: {
+    DBtn,
+    DTextField
+  }
+})
+export default class PartnerProgressApply extends Mixins(
+  MeMixin,
+  SnackbarMixin
+) {
+  @Prop({
+    required: true,
+    type: String
+  })
+  public partnerStatus!: PartnerStatus;
+
+  get applyVP() {
+    return this.partnerStatus === PartnerStatus.VerifiedPartner;
+  }
+
+  get canSubmit() {
+    return (
+      this.me !== null &&
+      this.me.private !== null &&
+      this.realName !== '' &&
+      this.language !== '' &&
+      this.country !== '' &&
+      this.questionnaire !== '' &&
+      ((this.applyVP && this.vouchers.length === 2) || !this.applyVP)
+    );
+  }
+
+  public realName: string = '';
+  public language: string = '';
+  public country: string = '';
+  public twitter: string = '';
+  public facebook: string = '';
+  public instagram: string = '';
+  public discord: string = '';
+  public youtube: string = '';
+  public twitch: string = '';
+  public mixer: string = '';
+  public other: string = '';
+  public questionnaire: string = '';
+  public vouchers: string[] = [];
+
+  public async submitApply() {
+    if (this.me !== null && this.me.private !== null) {
+      const input: PartnerApplicationInput = {
+        partnerStatus: this.partnerStatus,
+        username: this.me.username,
+        displayname: this.me.displayname,
+        email: this.me.private.email,
+        phone: this.me.private.phone,
+        realName: this.realName,
+        language: this.language,
+        country: this.country,
+        twitter: this.twitter,
+        facebook: this.facebook,
+        instagram: this.instagram,
+        discord: this.discord,
+        youtube: this.youtube,
+        twitch: this.twitch,
+        mixer: this.mixer,
+        other: this.other,
+        questionnaire: this.questionnaire,
+        vouchers: this.vouchers
+      };
+      await partnerApplicationAdd(this, input);
+      this.$emit('applyClose');
+    }
+  }
+
+  @Watch('vouchers')
+  public onVouchers(val: string[]) {
+    if (val.length > 2) {
+      this.$nextTick(() => this.vouchers.pop());
+    }
+  }
+}

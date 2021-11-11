@@ -1,0 +1,100 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import {
+  SIH_RESIZE_AVATAR_LARGE,
+  SIH_RESIZE_AVATAR_MINI,
+  SIH_RESIZE_AVATAR_SMALL,
+  SIHresize
+} from '@/utils/images';
+import { Component, Prop, Vue } from 'vue-property-decorator';
+import { VDliveAvatarFrag } from '@/graphql/types';
+import VDliveAvatarShared from '@/components/VDliveAvatarShared.vue';
+
+@Component({
+  components: {
+    VDliveAvatarShared
+  }
+})
+export default class VDliveAvatar extends Vue {
+  @Prop({ required: true })
+  public userAvatar!: VDliveAvatarFrag.Fragment;
+
+  @Prop({ type: Number, required: false, default: 40 })
+  public avatarSize!: number;
+
+  @Prop({ type: Number, required: false })
+  public effectSize!: number;
+
+  @Prop({ type: String, required: false, default: 'small' })
+  public sihResize!: 'mini' | 'small' | 'large';
+
+  @Prop({ type: String, required: false, default: 'none' })
+  public outlineColor!: string;
+
+  get effect() {
+    if (this.userAvatar) {
+      return this.userAvatar.effect;
+    }
+    return '';
+  }
+
+  get effectStyle() {
+    if (this.effectSize) {
+      return `width: ${this.effectSize}px; height: ${
+        this.effectSize
+      }px; right: -${this.avatarSize / 14}px; bottom: -${this.avatarSize /
+        10.5}px`;
+    }
+    return `width: ${this.avatarSize / 2 + 2}px; height: ${this.avatarSize / 2 +
+      2}px; right: -${this.avatarSize / 14}px; bottom: -${this.avatarSize /
+      10.5}px`;
+  }
+
+  get avatarStyle() {
+    return `width: ${this.avatarSize}px; height: ${this.avatarSize}px;`;
+  }
+
+  get imgSrc() {
+    let target = SIH_RESIZE_AVATAR_SMALL;
+    switch (this.sihResize) {
+      case 'mini':
+        target = SIH_RESIZE_AVATAR_MINI;
+        break;
+      case 'small':
+        target = SIH_RESIZE_AVATAR_SMALL;
+        break;
+      case 'large':
+        target = SIH_RESIZE_AVATAR_LARGE;
+        break;
+      default:
+        target = SIH_RESIZE_AVATAR_SMALL;
+        break;
+    }
+    let rst: string | undefined;
+    if (this.userAvatar !== null && this.userAvatar !== undefined) {
+      rst = SIHresize(this.userAvatar.avatar, target);
+    }
+    if (this.$options.filters !== undefined) {
+      return this.$options.filters.orDefaultAvatar(rst);
+    }
+    return '';
+  }
+}

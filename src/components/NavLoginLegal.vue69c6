@@ -1,0 +1,146 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { Component, Vue } from 'vue-property-decorator';
+import DMenu from '@/components/DMenu.vue';
+import DMenuItem from '@/components/DMenuItem.vue';
+import DDivider from '@/components/DDivider.vue';
+import VNSFWSwitch from '@/components/VNSFWSwitch.vue';
+import NavLoginLegalLanguages from '@/components/NavLoginLegalLanguages.vue';
+import { namespace } from 'vuex-class';
+
+const userMetaModule = namespace('userMeta');
+const uiModule = namespace('ui');
+@Component({
+  components: {
+    NavLoginLegalLanguages,
+    DMenu,
+    DMenuItem,
+    DDivider,
+    VNSFWSwitch
+  }
+})
+export default class NavLoginLegal extends Vue {
+  // local
+  public shouldShowLanguageSet: boolean = false;
+  public navLoginLegalMenuShow: boolean = false;
+  @userMetaModule.Getter('NSFW')
+  private showAdultContent!: boolean;
+  @uiModule.Getter('isMobile')
+  private isMobile!: boolean;
+  public toggleMenu() {
+    this.navLoginLegalMenuShow = !this.navLoginLegalMenuShow;
+    this.shouldShowLanguageSet = false;
+  }
+}

@@ -1,0 +1,51 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { Component, Vue, Watch } from 'vue-property-decorator';
+import { namespace } from 'vuex-class';
+import { Snackbar } from '@/store/snackbar/types';
+
+const snackbarModule = namespace('snackbar');
+
+@Component
+export default class GlobalSnackbar extends Vue {
+  @snackbarModule.Mutation('resetSnackbar')
+  public resetSnackbarState!: () => void;
+  @snackbarModule.Getter('snackbar')
+  public snackbar!: Snackbar | null;
+  // local state
+  public show = false;
+  public text = '';
+  public state = '';
+
+  @Watch('snackbar')
+  public watchSnackbar(val: Snackbar | null) {
+    if (val !== null && val.text !== '') {
+      this.text = val.text;
+      this.state = val.state;
+      this.show = true;
+      this.resetSnackbarState();
+    }
+  }
+
+  public onClickClose() {
+    this.show = false;
+  }
+}

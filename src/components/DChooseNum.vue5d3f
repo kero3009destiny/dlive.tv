@@ -1,0 +1,133 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import DBtn from '@/components/DBtn.vue';
+import DTextField from '@/components/DTextField.vue';
+import SnackbarMixin from '@/mixins/SnackbarMixin';
+
+import { Component, Prop, Mixins } from 'vue-property-decorator';
+
+@Component({
+  components: {
+    DBtn,
+    DTextField
+  }
+})
+export default class DChooseNum extends Mixins(SnackbarMixin) {
+  @Prop({
+    required: false,
+    default: [],
+    type: Array
+  })
+  public alternateList!: Array<{
+    id: string;
+    num: number;
+    numTExt: string;
+  }>;
+
+  @Prop({
+    required: false,
+    default: '',
+    type: String
+  })
+  public placeholder!: string;
+
+  @Prop({
+    required: false,
+    default: '',
+    type: [String, Number]
+  })
+  public atLeast!: string | number;
+
+  @Prop({
+    required: false,
+    default: '',
+    type: String
+  })
+  public lessTip!: string;
+
+  @Prop({
+    required: true,
+    default: 'Submit',
+    type: String
+  })
+  public submitText!: string;
+
+  @Prop({
+    default: '',
+    type: String
+  })
+  public defaultId!: string;
+
+  public inputNum: number | string = '';
+
+  public currentNumId: string = this.defaultId;
+
+  get currentNum(): number | string {
+    if (this.currentNumId) {
+      const current = this.alternateList.find(
+        item => item.id === this.currentNumId
+      );
+      if (current) {
+        return current.num;
+      } else {
+        return '';
+      }
+    } else {
+      return this.inputNum;
+    }
+  }
+
+  get numVerifyCheck(): boolean {
+    return this.currentNum === '';
+  }
+
+  public chooseNum(id: string) {
+    this.currentNumId = id;
+    this.inputNum = '';
+  }
+
+  public inputChange() {
+    this.currentNumId = '';
+  }
+
+  public submitNum() {
+    if (this.atLeast && this.currentNum < this.atLeast) {
+      this.$error(this.lessTip);
+      return;
+    }
+    this.$emit('submit', this.currentNum);
+  }
+}

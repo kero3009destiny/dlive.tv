@@ -1,0 +1,110 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { VFollowFrag } from '@/graphql/types';
+import DBtn from '@/components/DBtn.vue';
+import DDialog from '@/components/DDialog.vue';
+import SnackbarMixin from '@/mixins/SnackbarMixin';
+import MeMixin from '@/mixins/MeMixin';
+import { follow, unfollow } from '@/apollo/mutation/follow';
+import { Component, Mixins, Prop } from 'vue-property-decorator';
+
+@Component({
+  components: {
+    DBtn,
+    DDialog
+  }
+})
+export default class VFollow extends Mixins(SnackbarMixin, MeMixin) {
+  @Prop({
+    type: Object,
+    required: true
+  })
+  public followee!: VFollowFrag.Fragment;
+
+  // Local
+  public showUnfollowDialog: boolean = false;
+
+  get isFollowing() {
+    if (this.followee.isFollowing !== null) {
+      return this.followee.isFollowing;
+    }
+    return false;
+  }
+
+  public handleFollow(isFollowing: boolean) {
+    if (this.requireLogin()) {
+      return;
+    }
+    if (isFollowing) {
+      this.unfollowClicked();
+    } else {
+      this.followClicked();
+    }
+  }
+
+  public unfollowClicked() {
+    this.showUnfollowDialog = true;
+  }
+
+  public async followClicked() {
+    await follow(this, this.followee.username, this.followee.id);
+  }
+
+  public async unfollowConfirm() {
+    this.showUnfollowDialog = false;
+    await unfollow(this, this.followee.username, this.followee.id);
+  }
+
+  public dialogCancel() {
+    this.showUnfollowDialog = false;
+  }
+}

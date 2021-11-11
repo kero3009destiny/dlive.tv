@@ -1,0 +1,147 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { EVENTS } from '@/utils/constants';
+import { ApolloQuery } from '@/decorators/apollo';
+import VSnapClip from '@/components/VSnapClip.vue';
+import DBtn from '@/components/DBtn.vue';
+import {
+  Maybe,
+  LivestreamProfileClips,
+  ClipSortOrder,
+  LivestreamProfileClipFrag
+} from '@/graphql/types';
+import LIVESTREAM_PROFILE_CLIPS from '@/graphql/queries/LivestreamProfileClips.graphql';
+import MeMixin from '@/mixins/MeMixin';
+import { Component, Mixins } from 'vue-property-decorator';
+import GlobalEventBusMixin from '@/mixins/GlobalEventBusMixin';
+
+@Component({
+  components: {
+    VSnapClip,
+    DBtn
+  }
+})
+export default class ProfileClips extends Mixins(MeMixin, GlobalEventBusMixin) {
+  // Computed -----------------------------------------
+  get profileClip() {
+    if (
+      this.userByDisplayName !== undefined &&
+      this.userByDisplayName !== null
+    ) {
+      return this.userByDisplayName.clips;
+    }
+    return null;
+  }
+
+  get clips() {
+    if (this.profileClip !== null) {
+      return this.profileClip.list;
+    }
+    return [];
+  }
+
+  get hasNextPage() {
+    if (this.profileClip !== null) {
+      return this.profileClip.pageInfo.hasNextPage;
+    }
+    return false;
+  }
+
+  get displayname() {
+    return this.$route.params.displayname;
+  }
+  @ApolloQuery({
+    query: LIVESTREAM_PROFILE_CLIPS,
+    variables(): LivestreamProfileClips.Variables {
+      return {
+        displayname: this.displayname,
+        first: this.numPerFetch,
+        order: ClipSortOrder.PickTime,
+        showUnpicked: false
+      };
+    }
+  })
+  public userByDisplayName?: Maybe<LivestreamProfileClips.UserByDisplayName>;
+
+  // Local
+  public numPerFetch: number = 15;
+
+  public clipSnapClick(clipID: string) {
+    this.$_smartPublish(EVENTS.CLIP_CLICK, {
+      clipID,
+      clipList: this.clips
+    });
+  }
+
+  // Function --------------------------------------
+  private fetchMoreProfileClip() {
+    if (this.profileClip === null || !this.profileClip.pageInfo.hasNextPage) {
+      return;
+    }
+    this.$apollo.queries.userByDisplayName.fetchMore({
+      variables: {
+        displayname: this.displayname,
+        first: this.numPerFetch,
+        after: this.profileClip.pageInfo.endCursor,
+        order: ClipSortOrder.PickTime,
+        showUnpicked: false
+      },
+      updateQuery: (
+        previousResult: LivestreamProfileClips.Query,
+        { fetchMoreResult }: { fetchMoreResult?: LivestreamProfileClips.Query }
+      ) => {
+        if (
+          fetchMoreResult === undefined ||
+          fetchMoreResult.userByDisplayName === null
+        ) {
+          return previousResult;
+        }
+        const moreClip: LivestreamProfileClipFrag.Clips =
+          fetchMoreResult.userByDisplayName.clips;
+        let prevClip = previousResult.userByDisplayName;
+        if (prevClip === null) {
+          prevClip = fetchMoreResult.userByDisplayName;
+        } else {
+          prevClip.clips.pageInfo = moreClip.pageInfo;
+          prevClip.clips.list = [...prevClip.clips.list, ...moreClip.list];
+        }
+        return {
+          userByDisplayName: prevClip
+        };
+      }
+    });
+  }
+}

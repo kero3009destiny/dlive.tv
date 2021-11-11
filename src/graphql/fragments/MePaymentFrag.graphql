@@ -1,0 +1,26 @@
+
+    var doc = {"kind":"Document","definitions":[{"kind":"FragmentDefinition","name":{"kind":"Name","value":"MePaymentFrag"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"User"}},"directives":[],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"},"arguments":[],"directives":[]},{"kind":"FragmentSpread","name":{"kind":"Name","value":"PaymentRequestsFrag"},"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"wallet"},"arguments":[],"directives":[],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"balance"},"arguments":[],"directives":[]}]}},{"kind":"Field","name":{"kind":"Name","value":"private"},"arguments":[],"directives":[],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"bankAddresses"},"arguments":[],"directives":[],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"FragmentSpread","name":{"kind":"Name","value":"DAddressCardFrag"},"directives":[]}]}},{"kind":"Field","name":{"kind":"Name","value":"kycStatus"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"insecure"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"streamStat"},"arguments":[],"directives":[],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"length"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"day"},"arguments":[],"directives":[]}]}},{"kind":"Field","name":{"kind":"Name","value":"canCashout"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"taxFormFilled"},"arguments":[],"directives":[]}]}}]}}],"loc":{"start":0,"end":337}};
+    doc.loc.source = {"body":"#import './PaymentRequests.graphql'\n#import './DAddressCard.graphql'\n\nfragment MePaymentFrag on User {\n  id\n  ...PaymentRequestsFrag\n  wallet {\n    balance\n  }\n  private {\n    bankAddresses {\n      ...DAddressCardFrag\n    }\n    kycStatus,\n    insecure,\n    streamStat {\n      length\n      day\n    }\n    canCashout\n    taxFormFilled\n  }\n}","name":"GraphQL request","locationOffset":{"line":1,"column":1}};
+  
+
+    var names = {};
+    function unique(defs) {
+      return defs.filter(
+        function(def) {
+          if (def.kind !== 'FragmentDefinition') return true;
+          var name = def.name.value
+          if (names[name]) {
+            return false;
+          } else {
+            names[name] = true;
+            return true;
+          }
+        }
+      )
+    }
+  doc.definitions = doc.definitions.concat(unique(require('./PaymentRequests.graphql').definitions));
+doc.definitions = doc.definitions.concat(unique(require('./DAddressCard.graphql').definitions));
+
+
+      module.exports = doc;
+    

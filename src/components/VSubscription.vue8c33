@@ -1,0 +1,410 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { EVENTS } from '@/utils/constants';
+import { VSubscriptionFrag, EmojiGroupFrag } from '@/graphql/types';
+import VSubscriptionDialogOld from '@/components/VSubscriptionDialogOld.vue';
+import VSubscriptionCreditCardDialog from '@/components/VSubscriptionCreditCardDialog.vue';
+import DBtn from '@/components/DBtn.vue';
+import clickaway from 'vue-clickaway';
+import { Component, Mixins, Prop } from 'vue-property-decorator';
+import MeMixin from '@/mixins/MeMixin';
+import SnackbarMixin from '@/mixins/SnackbarMixin';
+import EMOJI_GROUP_FRAG from '@/graphql/fragments/EmojiGroupFrag.graphql';
+import MagicMqMixin from '@/mixins/MagicMqMixin';
+import { namespace } from 'vuex-class';
+import { writeEmojiSubAddCache } from '@/utils/cache/chatroom';
+import GlobalEventBusMixin from '@/mixins/GlobalEventBusMixin';
+import { CB_SUB_PAYMENT_SUCCESS, CB_GIFT_PAYMENT_SUCCESS } from '@/router';
+import { IPAPI } from '@/api/ip';
+
+const dialogModule = namespace('dialog');
+const meModule = namespace('me');
+const userMetaModule = namespace('userMeta');
+
+@Component({
+  components: {
+    VSubscriptionDialogOld,
+    VSubscriptionCreditCardDialog,
+    DBtn
+  }
+})
+export default class VSubscription extends Mixins(
+  MeMixin,
+  SnackbarMixin,
+  clickaway.mixin,
+  MagicMqMixin,
+  GlobalEventBusMixin
+) {
+  @dialogModule.Getter('subscribe')
+  public subscribe!: boolean;
+  @dialogModule.Getter('subSuccess')
+  public subSuccess!: boolean;
+  @dialogModule.Getter('giftSuccess')
+  public giftSuccess!: boolean;
+  @meModule.Getter('meHadLemonBack')
+  public meHadLemonBack!: boolean;
+  @dialogModule.Mutation('setSubscribeDialog')
+  public setSubscribeDialog!: (status: boolean) => void;
+  @dialogModule.Mutation('setSubSuccessDialog')
+  public setSubSuccessDialog!: (status: boolean) => void;
+  @dialogModule.Mutation('setGiftSuccessDialog')
+  public setGiftSuccessDialog!: (status: boolean) => void;
+  @Prop({
+    required: true
+  })
+  public subscribee!: VSubscriptionFrag.Fragment;
+  public isResub: boolean = false;
+  public isGift: boolean = false;
+  public cashbackSuccess: boolean = false;
+  public shouldShowCreditVersion: boolean = false;
+  private apolloClient = this.$apollo.provider.defaultClient;
+  @userMetaModule.Action('getIpStats')
+  private getIP!: () => Promise<IPAPI>;
+
+  get isSubed() {
+    if (
+      this.subscribee.mySubscription !== undefined &&
+      this.subscribee.mySubscription !== null
+    ) {
+      return this.subscribee.mySubscription.isSubscribing;
+    }
+    return false;
+  }
+  public async mounted() {
+    // if (this.$route.name === CB_SUB_PAYMENT_FAIL) {
+
+    // }
+
+    await this.getShouldShowCreditVersion();
+    /* if (process.env.NODE_ENV === 'development') {
+      this.shouldShowCreditVersion = true;
+    } */
+
+    if (this.$route.name === CB_GIFT_PAYMENT_SUCCESS) {
+      this.showGiftSuccess();
+    } else if (this.$route.name === CB_SUB_PAYMENT_SUCCESS) {
+      this.showSubSuccess();
+    } else {
+      this.closeSubDialog();
+    }
+    this.$_smartSubscribe(EVENTS.SUB_CLICKED, this.subscribeButtonClicked);
+    this.$_smartSubscribe(EVENTS.GIFT_SUCCESSED, this.showGiftSuccess);
+    this.$_smartSubscribe(EVENTS.SUB_SUCCESSED, this.showSubSuccess);
+  }
+  public showSubSuccess() {
+    // this.subscribeSucceed(false);
+    this.setSubSuccessDialog(true);
+    this.setSubscribeDialog(true);
+  }
+  public showGiftSuccess() {
+    this.isGift = true;
+    this.setGiftSuccessDialog(true);
+    this.setSubscribeDialog(true);
+  }
+  public getShouldShowCreditVersion() {
+    return this.getIP()
+      .then(data => {
+        const country = data.country;
+        // TODO(@ryan): Should put unexpected errors in error handling instead of checking ourself
+        if (
+          country === 'LU' ||
+          country === 'CA' ||
+          country === 'AU' ||
+          country === 'IE' ||
+          country === 'GB' ||
+          country === 'DE' ||
+          country === 'AR' ||
+          country === 'BR' ||
+          country === 'US' ||
+          country === 'HK'
+        ) {
+          this.shouldShowCreditVersion = true;
+        }
+      })
+      .catch(() => {
+        // If network error
+      });
+  }
+
+  public subscribeButtonClicked() {
+    if (this.requireLogin()) {
+      return;
+    }
+    this.isResub = false;
+    this.isGift = false;
+    this.setSubscribeDialog(!this.subscribe);
+  }
+
+  public ResubClicked() {
+    this.isResub = true;
+    this.setSubscribeDialog(!this.subscribe);
+  }
+
+  public giftSubClicked() {
+    this.isGift = true;
+    this.setSubscribeDialog(!this.subscribe);
+  }
+
+  public closeSubDialog() {
+    this.setSubscribeDialog(false);
+  }
+
+  public subscribeSucceed(cashbacked: boolean) {
+    if (process.client && window.android !== undefined) {
+      window.android.onSubSuccess();
+    }
+    if (cashbacked) {
+      this.cashbackSuccess = true;
+    }
+    try {
+      // const data: VSubscriptionFrag.Fragment | null = this.apolloClient.readFragment(
+      //   {
+      //     id: this.subscribee.id,
+      //     fragment: SUBSCRIPTION_FRAG
+      //   }
+      // );
+      // if (data !== null) {
+      //   data.mySubscription = {
+      //     __typename: 'Sub',
+      //     isSubscribing: true,
+      //     nextBillingAt: null,
+      //     lemonSub: isLemonSub,
+      //     subType: SubType.Once,
+      //     subStreak: 0,
+      //     lastBilledDate: '',
+      //     status: SubscriptionStatus.Pending
+      //   };
+      //   this.apolloClient.writeFragment({
+      //     id: this.subscribee.id,
+      //     fragment: SUBSCRIPTION_FRAG,
+      //     data
+      //   });
+      // }
+
+      if (this.me && this.subscribee.emoji.vip.list.length > 0) {
+        const emoji: EmojiGroupFrag.List = {
+          __typename: 'StreamerEmotes',
+          streamer: {
+            __typename: 'User',
+            username: this.subscribee.username,
+            displayname: this.subscribee.displayname,
+            avatar: ''
+          },
+          emotes: this.subscribee.emoji.vip.list
+        };
+        return writeEmojiSubAddCache(
+          this.$apollo.provider.defaultClient,
+          emoji,
+          {
+            id: this.me.id,
+            fragment: EMOJI_GROUP_FRAG
+          }
+        );
+      }
+    } catch (err) {
+      // TODO
+    }
+    this.closeSubDialog();
+  }
+}

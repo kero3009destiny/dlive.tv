@@ -1,0 +1,4 @@
+var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',{staticClass:"login-wallet"},[(_vm.stepOne)?_c('v-card-text',[_c('v-progress-circular',{attrs:{"size":100,"color":"amber","indeterminate":""}})],1):_vm._e(),(_vm.stepTwo)?_c('login-register-final',{attrs:{"redirect-url":_vm.redirectUrl,"token":_vm.accessToken,"register-method":"wallet"},on:{"success":_vm.closing}}):_vm._e(),(_vm.twoFAShow)?_c('two-f-a-popup',{attrs:{"twofactor-token":_vm.twofactorToken},on:{"input":_vm.toggleTwoFAPopup,"verifySuccess":_vm.closing}}):_vm._e()],1)}
+var staticRenderFns = []
+
+export { render, staticRenderFns }

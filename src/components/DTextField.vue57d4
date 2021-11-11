@@ -1,0 +1,248 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { colorMap } from '@/utils/constants';
+import { Component, Vue, Prop } from 'vue-property-decorator';
+
+@Component
+export default class DTextField extends Vue {
+  // basic field
+
+  @Prop({
+    required: false,
+    type: String
+  })
+  public inputType!: string;
+  @Prop({
+    required: true,
+    type: String
+  })
+  public value!: string;
+  @Prop({
+    required: false,
+    default: '',
+    type: String
+  })
+  public placeholder!: string;
+  @Prop({
+    required: false,
+    default: false,
+    type: Boolean
+  })
+  public readonly!: boolean;
+  @Prop({
+    required: false,
+    default: false,
+    type: Boolean
+  })
+  public loading!: boolean;
+  @Prop({
+    required: false,
+    default: false,
+    type: Boolean
+  })
+  public isLight!: boolean;
+  @Prop({
+    required: false,
+    default: false,
+    type: Boolean
+  })
+  public disabled!: boolean;
+  @Prop({
+    required: false,
+    default: 'text',
+    type: String
+  })
+  public type!: string;
+  @Prop({
+    required: false,
+    default: false,
+    type: Boolean
+  })
+  public append!: boolean;
+  @Prop({
+    required: false,
+    default: false,
+    type: Boolean
+  })
+  public preappend!: boolean;
+  @Prop({
+    required: false,
+    default: undefined
+  })
+  public counter!: number | boolean;
+  @Prop({
+    required: false,
+    default: undefined
+  })
+  public maxlength!: string;
+
+  // rules
+  @Prop({
+    required: false,
+    default: () => []
+  })
+  public rule!: Array<(v: string) => boolean>;
+  @Prop({
+    required: false,
+    default: () => []
+  })
+  public errorMsg!: string[];
+
+  // css style
+  @Prop({
+    required: false,
+    default: false,
+    type: Boolean
+  })
+  public hideDetails!: boolean;
+
+  @Prop({
+    required: false,
+    default: '40px',
+    type: String
+  })
+  public totalHeight!: string;
+  @Prop({
+    required: false,
+    default: '12px',
+    type: String
+  })
+  public fontSize!: string;
+  @Prop({
+    required: false,
+    default: 'grey-darken-3',
+    type: String
+  })
+  public background!: string;
+
+  @Prop({
+    required: false,
+    default: '#707070',
+    type: String
+  })
+  public borderColor!: string;
+
+  // type (no border; border; single line)
+  @Prop({
+    required: false,
+    default: false,
+    type: Boolean
+  })
+  public singleLine!: boolean;
+
+  @Prop({
+    required: false,
+    default: true,
+    type: Boolean
+  })
+  public hasBorder!: boolean;
+
+  @Prop({
+    required: false,
+    default: false,
+    type: Boolean
+  })
+  public autofocus!: boolean;
+
+  get backgroundColor() {
+    if (this.singleLine) {
+      return `background-color: rgba(${colorMap.get(
+        this.background
+      )},1.0); border-bottom:solid 1px ${this.borderColor}`;
+    } else if (this.hasBorder) {
+      return `background-color: rgba(${colorMap.get(
+        this.background
+      )},1.0); border:solid 1px ${this.borderColor}`;
+    }
+    return `background-color: rgba(${colorMap.get(this.background)},1.0);`;
+  }
+
+  get textFieldBgColor() {
+    return `rgba(${colorMap.get(this.background)},1.0)`;
+  }
+
+  public valueChange(val: string) {
+    this.$emit('input', val);
+  }
+  public onFocus() {
+    this.$emit('focus');
+  }
+  public onBlur() {
+    this.$emit('blur');
+  }
+}

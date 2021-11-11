@@ -1,0 +1,4 @@
+var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',{directives:[{name:"show",rawName:"v-show",value:(_vm.showCropper),expression:"showCropper"}]},[_c('div',{style:(_vm.componentSize)},[_c('vue-cropper',{ref:"cropper",attrs:{"drag-mode":"crop","min-crop-box-height":32,"min-crop-box-width":32,"aspect-ratio":_vm.aspectRatio,"img-style":_vm.componentSize,"guides":false,"view-mode":0,"auto-crop-area":1,"src":_vm.imgSrc,"alt":"Source Image"}})],1),(_vm.imgSrc !== '')?_c('div',{staticClass:"cropper-btns flex-justify-between flex-align-center mt-1"},[_c('div',{staticClass:"clickable text-12-medium",on:{"click":_vm.onClickCancel}},[_vm._v(" "+_vm._s(_vm.$t('VImageCropper.Cancel'))+" ")]),_c('d-btn',{attrs:{"type":"btnC"},on:{"click":_vm.onClickCropImage}},[_vm._v(" "+_vm._s(_vm.$t('VImageCropper.Done'))+" ")])],1):_vm._e()])}
+var staticRenderFns = []
+
+export { render, staticRenderFns }

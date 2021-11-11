@@ -1,0 +1,545 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// FIXME: remove eslint ignore
+/* eslint @typescript-eslint/no-explicit-any: 0 */
+import { EVENTS } from '@/utils/constants';
+import { DanmakuEntry, VideoQuality } from '@/models/video';
+import SIGN_URL_GENERATE from '@/graphql/mutations/SignURLGenerate.graphql';
+import { VVideoPlayerFrag } from '@/graphql/types';
+import GlobalEventBusMixin from '@/mixins/GlobalEventBusMixin';
+import { HlsTracker } from '@/utils/hlsTracker/hlsTracker';
+import Hls from 'hls.js';
+import { Component, Mixins, Prop, Watch } from 'vue-property-decorator';
+import { DPlayerOptionsMp4 } from '@/models/dplayerOptionsMp4';
+import {
+  DPlayerOptionsHls,
+  DPlayerOptionsHlsJs
+} from '@/models/dplayerOptionsHls';
+import { IMAAds } from '@/models/ads';
+import { DPlayerOptionsHlsP } from '@/models/dplayerOptionsHlsP';
+import MeMixin from '@/mixins/MeMixin';
+import SnackbarMixin from '@/mixins/SnackbarMixin';
+import {
+  GlobalHls,
+  getGlobalHls,
+  LinoHlsConfig
+} from '@/utils/globalHls/globalHls';
+import VNoSsr from '@/components/VNoSsr.vue';
+import VVideoPlayerTwitch from '@/components/VVideoPlayerTwitch.vue';
+import { VideoPage, GenerateSignUrl } from '@/graphql/types';
+import { encodeS3URI } from '@/utils/encoder';
+import { VisibleTimer } from '@/utils/visible';
+import { namespace } from 'vuex-class';
+const uiModule = namespace('ui');
+type Binding = [string, any];
+interface ResolvedUrl {
+  url: string | null;
+  err: number | null;
+}
+type ResolutionUrl = VideoPage.Resolution;
+// XXX(yumin): The component,
+// 1. It handles video url decode.
+// 2. It decides Hls mode.
+@Component({
+  components: {
+    VLinoDplayer: () =>
+      import('@/components/VLinoDplayer.vue' /* webpackChunkName: "player" */),
+    VNoSsr,
+    VVideoPlayerTwitch
+  }
+})
+export default class VVideoPlayer extends Mixins(
+  MeMixin,
+  GlobalEventBusMixin,
+  SnackbarMixin
+) {
+  @Prop({
+    required: true
+  })
+  public mode!: 'video' | 'livestream' | 'pastbroadcast' | 'rerun';
+  @Prop({
+    default: ''
+  })
+  public src!: string | ResolutionUrl[];
+  @Prop({
+    default: false
+  })
+  public useAsPlaceHolder!: boolean;
+  @Prop({
+    required: true
+  })
+  public mediaInfo!: VVideoPlayerFrag.Fragment | null;
+  @Prop({
+    default: false
+  })
+  public enableDanmaku!: boolean;
+  @Prop({
+    default: false
+  })
+  public lowestRenditionOnly!: boolean;
+  @Prop({
+    default: false
+  })
+  public useStarfruit!: boolean;
+  @Prop({
+    default: null
+  })
+  public startAt!: number | null;
+  @Prop({
+    required: false,
+    default: false
+  })
+  public showClipandTheatre!: boolean;
+  @Prop({
+    required: false,
+    default: false
+  })
+  public mute!: boolean;
+  @Prop({
+    required: false,
+    default: false
+  })
+  public adsEnabled!: boolean;
+  @Prop({
+    required: false,
+    default: false
+  })
+  public showAds!: boolean;
+  @Prop({
+    required: false,
+    default: ''
+  })
+  public adsTag!: string;
+
+  public srcReady: boolean = false;
+  public playerOptions: any = null; // dplayer video options
+  public dpInstance: any | undefined = undefined; // the dplayer instance.
+  // tracking
+  public hlsTracker: HlsTracker | undefined = undefined;
+  private globalHls: GlobalHls | null = null;
+  private bindedCbs: Binding[] = [];
+  private visibleTimer: VisibleTimer | null = null;
+  private oldSrc: string | ResolutionUrl[] = '';
+
+  @uiModule.Getter('isMobile')
+  private isMobile!: boolean;
+
+  public mounted() {
+    this.globalHls = getGlobalHls();
+    // XXX(yumin): seems that class initialization does not do its work?
+    // removing this line will cause push of undefined.
+    this.bindedCbs = [];
+    this.updatePlayerOptions();
+    this.oldSrc = this.src;
+
+    if (this.mode === 'livestream') {
+      this.initHlsMonitor();
+    }
+    this.visibleTimer = new VisibleTimer(
+      30 * 60 * 1000,
+      this.lowerRendition,
+      this.restoreRendition
+    );
+  }
+
+  public lowerRendition() {
+    if (this.globalHls !== null) {
+      this.globalHls.pushRendition(0);
+    }
+  }
+
+  public restoreRendition() {
+    if (this.globalHls !== null) {
+      this.globalHls.popRendition();
+    }
+  }
+
+  public beforeDestroy() {
+    if (this.visibleTimer) {
+      this.visibleTimer.destroy();
+      this.visibleTimer = null;
+    }
+    if (this.mode === 'video') {
+      return;
+    }
+    if (this.globalHls && this.globalHls.getHls()) {
+      for (const binding of this.bindedCbs) {
+        const h = this.globalHls.getHls();
+        if (h !== null) {
+          h.off(binding[0], binding[1]);
+        }
+      }
+    }
+    this.$hlsDetachMedia();
+    if (this.hlsTracker) {
+      this.hlsTracker.destroy();
+    }
+  }
+
+  // Ning: called by livestream query arguments in livestream.vue
+  public isPlaying() {
+    if (
+      document.hasFocus() &&
+      this.dpInstance &&
+      !this.dpInstance.video.paused
+    ) {
+      return true;
+    }
+    return false;
+  }
+
+  @Watch('src')
+  public onSrcChange() {
+    if (JSON.stringify(this.src) !== JSON.stringify(this.oldSrc)) {
+      this.updatePlayerOptions();
+    }
+    this.oldSrc = this.src;
+  }
+
+  public onPlayerCreate(dp: any) {
+    this.dpInstance = dp;
+    // init tracker here.
+    if (this.hlsTracker) {
+      this.hlsTracker.bindPlayer(dp);
+    }
+    // init danmaku here.
+    if (this.enableDanmaku) {
+      this.dpInstance.danmaku.opacity(0.9);
+      this.dpInstance.danmaku.speed = 11;
+      this.$_smartSubscribe(EVENTS.DANMAKU_SEND, (messages: DanmakuEntry[]) => {
+        for (const dt of messages) {
+          this.dpInstance.danmaku.send(dt);
+        }
+      });
+      this.$_smartSubscribe(EVENTS.DANMAKU_DRAW, (messages: DanmakuEntry[]) => {
+        for (const dt of messages) {
+          this.dpInstance.danmaku.draw(dt);
+        }
+      });
+    }
+    this.dpInstance.on('theater_toggle', () => {
+      this.$emit('theater');
+    });
+    this.dpInstance.on('clip', () => {
+      this.$emit('clip');
+    });
+  }
+
+  public initHlsMonitor() {
+    let title = 'unknown';
+    let language = 'unknown';
+    let permlink = 'unknown';
+    if (
+      this.mediaInfo !== undefined &&
+      this.mediaInfo !== null &&
+      this.mediaInfo.category !== undefined &&
+      this.mediaInfo.language !== undefined &&
+      this.mediaInfo.permlink !== undefined
+    ) {
+      title = this.mediaInfo.category.title;
+      language = this.mediaInfo.language.language;
+      permlink = this.mediaInfo.permlink;
+    }
+    this.hlsTracker = new HlsTracker(
+      this.$hlsSafeOn,
+      {
+        permlink,
+        title,
+        language,
+        m3u8: this.src as string,
+        url: window ? window.location.href : 'unknown'
+      },
+      this.me !== null ? this.me.username : null
+    );
+  }
+
+  // XXX(yumin): return promised video url or null when error.
+  // The returned promise is never rejected, can partial success in promise.all.
+  // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise/all
+  public async cookieGen(objURL: string): Promise<ResolvedUrl> {
+    if (!this.isBtfs(objURL)) {
+      try {
+        const { data } = await this.$apollo.mutate<GenerateSignUrl.Mutation>({
+          mutation: SIGN_URL_GENERATE,
+          variables: {
+            hash: objURL
+          }
+        });
+        const resp = data.signURLGenerate;
+        return {
+          url: resp.url,
+          err: resp.err === null ? null : resp.err.code
+        };
+      } catch (err) {
+        // TODO(yumin): error handling.
+      }
+    }
+    return { url: objURL, err: null };
+  }
+
+  public isBtfs(url: string) {
+    return url.indexOf('btfs') !== -1;
+  }
+
+  public async updatePlayerOptions() {
+    if (this.useAsPlaceHolder) {
+      this.playerOptions = {};
+      this.srcReady = true;
+      return;
+    }
+    if (this.mode === 'video') {
+      const urls = this.src as ResolutionUrl[];
+      if (urls.length === 0) {
+        return;
+      }
+      this.makeVideoPlayerOptions(urls).then((dt: any) => {
+        this.playerOptions = dt;
+        this.srcReady = true;
+      });
+    } else if (
+      this.mode === 'livestream' ||
+      this.mode === 'pastbroadcast' ||
+      this.mode === 'rerun'
+    ) {
+      if (this.src !== '') {
+        const options = await this.makeHlsPlayerOptions();
+        if (options === null) {
+          this.srcReady = false;
+        } else {
+          this.srcReady = true;
+          this.playerOptions = options;
+        }
+      }
+    }
+  }
+
+  public async makeHlsQualities(): Promise<VideoQuality[]> {
+    const qualities: VideoQuality[] = [];
+    if (this.$hlsLevels() === null) {
+      // TODO(@ryan): Error handling
+      return qualities;
+      // throw new Error('[makeHlsQualities] levels not created?');
+    }
+    try {
+      let levels = await this.$hlsLevels();
+      if (levels === null) {
+        return [];
+      }
+      if (this.lowestRenditionOnly) {
+        levels = [levels[0]];
+      }
+      // XXX(yumin): add AUTO mode only when it's transcoded,
+      // does not return because you still need to add other renditions.
+      if (levels.length > 1) {
+        qualities.push({
+          name: 'AUTO',
+          url: '-1',
+          type: 'hls-p'
+        });
+      }
+      for (let i = 0; i < levels.length; i++) {
+        const level = levels[i];
+        qualities.push({
+          name: this.$hlsGetLevelName(level, 'SOURCE'),
+          url: i.toString(),
+          type: 'hls-p'
+        });
+      }
+    } catch (err) {
+      // TODO(@ryan): error handling
+    }
+    return qualities;
+  }
+
+  public async makeVideoQualities(
+    urls: ResolutionUrl[]
+  ): Promise<VideoQuality[]> {
+    const changeUrlPromises: Array<Promise<ResolvedUrl>> = [];
+    for (const url of urls) {
+      const tempUrl = this.isBtfs(url.url) ? url.url : encodeS3URI(url.url);
+      changeUrlPromises.push(this.cookieGen(tempUrl));
+    }
+
+    const qualities: VideoQuality[] = [];
+    await Promise.all(changeUrlPromises).then((resolved: ResolvedUrl[]) => {
+      for (let i = 0; i < urls.length; i++) {
+        if (resolved[i].url !== null) {
+          qualities.push({
+            name: urls[i].resolution,
+            url: resolved[i].url as string,
+            type: 'auto'
+          });
+        } else if (resolved[i].err !== null) {
+          this.$errCode(resolved[i].err as number);
+        }
+      }
+    });
+    return qualities;
+  }
+
+  public async makeVideoPlayerOptions(
+    urls: ResolutionUrl[]
+  ): Promise<DPlayerOptionsMp4> {
+    if (urls.length === 0) {
+      return DPlayerOptionsMp4.empty();
+    }
+    const qualities = await this.makeVideoQualities(urls);
+    if (qualities.length === 0) {
+      throw Error('video not exist:' + this.src);
+    }
+    // TODO(yumin): should be meansured by bandwidth in future.
+    const defaultQuality = 0;
+    // this undefined means to use the default value in constructor
+    return new DPlayerOptionsMp4(
+      undefined,
+      qualities,
+      defaultQuality,
+      qualities[defaultQuality].url,
+      this.mute
+    );
+  }
+
+  public async makeHlsPlayerOptions(): Promise<DPlayerOptionsHls | null> {
+    if (!Hls.isSupported()) {
+      return new DPlayerOptionsHlsJs(
+        undefined,
+        undefined,
+        this.mode === 'livestream',
+        this.enableDanmaku,
+        this.lowestRenditionOnly
+          ? this.src + '?mobileweb=true'
+          : this.src + '?web=true',
+        this.mode === 'rerun' || this.mode === 'livestream' ? false : undefined,
+        this.isMobile || !this.showClipandTheatre ? false : true, // clip icon
+        this.isMobile || !this.showClipandTheatre ? false : true // theatre icon
+      );
+    }
+    let src = this.src;
+    if (this.lowestRenditionOnly) {
+      src += '?mobileweb=true';
+    } else {
+      src += '?web=true';
+    }
+    const optionalConf: LinoHlsConfig = {};
+    if (this.startAt !== null) {
+      optionalConf.startAt = this.startAt;
+    }
+    if (this.mode === 'pastbroadcast' || this.mode === 'rerun') {
+      optionalConf.lowBufferSize = true;
+    }
+    this.$hlsReloadSource(src as string, optionalConf);
+    let qualities: VideoQuality[] = [];
+    try {
+      qualities = await this.makeHlsQualities();
+    } catch (err) {
+      // no-op.
+    }
+    if (qualities.length === 0) {
+      return null;
+    }
+    const defaultQuality = 0; // XXX(yumin): 0 is the auto mode.
+    return new DPlayerOptionsHlsP(
+      undefined,
+      this.mode === 'livestream',
+      this.enableDanmaku,
+      Hls,
+      this.$hlsInst(),
+      qualities,
+      defaultQuality,
+      this.mode === 'rerun' || this.mode === 'livestream' ? false : undefined,
+      this.isMobile || !this.showClipandTheatre ? false : true, // clip icon
+      this.isMobile || !this.showClipandTheatre ? false : true, // theatre icon
+      new IMAAds(this.adsEnabled, this.showAds, this.adsTag)
+    );
+  }
+
+  private $hlsReloadSource(src: string, conf: LinoHlsConfig) {
+    if (this.globalHls) {
+      this.globalHls.reloadSource(src, conf);
+    }
+  }
+
+  private $hlsRefresh() {
+    if (this.globalHls) {
+      this.globalHls.refresh();
+    }
+  }
+
+  private $hlsDetachMedia() {
+    if (this.globalHls) {
+      this.globalHls.detachMedia();
+    }
+  }
+
+  private $hlsLevels() {
+    if (this.globalHls) {
+      return this.globalHls.getLevels();
+    } else {
+      return null;
+    }
+  }
+
+  private $hlsInst() {
+    if (this.globalHls) {
+      return this.globalHls.getHls();
+    }
+    return null;
+  }
+
+  // The RAII event binding.
+  // XXX(yumin): @p event should be Hls.Events.. but I don't know how to specify
+  // this string enum type in ts.
+  private $hlsSafeOn(event: any, cb: any) {
+    if (this.globalHls) {
+      const h = this.globalHls.getHls();
+      if (h !== null) {
+        this.bindedCbs.push([event, cb]);
+        h.on(event, cb);
+      }
+    }
+  }
+
+  private $hlsGetLevelName(l: any, failover: string): string {
+    if (l.name) {
+      return l.name;
+    }
+    if (l.attrs && l.attrs.VIDEO === 'src') {
+      return 'SOURCE';
+    }
+    if (l.height) {
+      return l.height.toString() + 'P';
+    }
+    return failover;
+  }
+
+  private ended() {
+    if (this.dpInstance && this.dpInstance.video) {
+      this.$emit('ended', this.dpInstance.video.currentTime);
+    }
+  }
+
+  private loadeddata() {
+    if (this.dpInstance && this.dpInstance.video) {
+      this.$emit('loadeddata', this.dpInstance.video.currentTime);
+    }
+  }
+}

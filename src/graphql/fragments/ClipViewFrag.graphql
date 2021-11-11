@@ -1,0 +1,27 @@
+
+    var doc = {"kind":"Document","definitions":[{"kind":"FragmentDefinition","name":{"kind":"Name","value":"ClipViewFrag"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"Clip"}},"directives":[],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"permlink"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"clippedBy"},"arguments":[],"directives":[],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"username"},"arguments":[],"directives":[]},{"kind":"FragmentSpread","name":{"kind":"Name","value":"VDliveAvatarFrag"},"directives":[]},{"kind":"FragmentSpread","name":{"kind":"Name","value":"VDliveNameFrag"},"directives":[]}]}},{"kind":"Field","name":{"kind":"Name","value":"streamer"},"arguments":[],"directives":[],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"username"},"arguments":[],"directives":[]},{"kind":"FragmentSpread","name":{"kind":"Name","value":"VDliveAvatarFrag"},"directives":[]},{"kind":"FragmentSpread","name":{"kind":"Name","value":"VDliveNameFrag"},"directives":[]},{"kind":"FragmentSpread","name":{"kind":"Name","value":"VFollowFrag"},"directives":[]}]}},{"kind":"Field","name":{"kind":"Name","value":"upvotes"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"views"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"picked"},"arguments":[],"directives":[{"kind":"Directive","name":{"kind":"Name","value":"include"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"if"},"value":{"kind":"Variable","name":{"kind":"Name","value":"isLoggedIn"}}}]}]},{"kind":"Field","name":{"kind":"Name","value":"description"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"shares"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"hasUpvoted"},"arguments":[],"directives":[{"kind":"Directive","name":{"kind":"Name","value":"include"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"if"},"value":{"kind":"Variable","name":{"kind":"Name","value":"isLoggedIn"}}}]}]},{"kind":"Field","name":{"kind":"Name","value":"comments"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"url"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"thumbnailUrl"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"pastbroadcast"},"arguments":[],"directives":[],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"},"arguments":[],"directives":[]}]}}]}}],"loc":{"start":0,"end":490}};
+    doc.loc.source = {"body":"#import './VDliveAvatar.graphql'\n#import './VDliveName.graphql'\n#import './VFollow.graphql'\n\nfragment ClipViewFrag on Clip {\n  id\n  permlink\n  clippedBy {\n    username\n    ...VDliveAvatarFrag\n    ...VDliveNameFrag\n  }\n  streamer {\n    username\n    ...VDliveAvatarFrag\n    ...VDliveNameFrag\n    ...VFollowFrag\n  }\n  upvotes\n  views\n  picked @include(if: $isLoggedIn)\n  description\n  shares\n  hasUpvoted @include(if: $isLoggedIn)\n  comments\n  url\n  thumbnailUrl\n  pastbroadcast {\n    id\n  }\n}","name":"GraphQL request","locationOffset":{"line":1,"column":1}};
+  
+
+    var names = {};
+    function unique(defs) {
+      return defs.filter(
+        function(def) {
+          if (def.kind !== 'FragmentDefinition') return true;
+          var name = def.name.value
+          if (names[name]) {
+            return false;
+          } else {
+            names[name] = true;
+            return true;
+          }
+        }
+      )
+    }
+  doc.definitions = doc.definitions.concat(unique(require('./VDliveAvatar.graphql').definitions));
+doc.definitions = doc.definitions.concat(unique(require('./VDliveName.graphql').definitions));
+doc.definitions = doc.definitions.concat(unique(require('./VFollow.graphql').definitions));
+
+
+      module.exports = doc;
+    

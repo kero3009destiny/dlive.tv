@@ -1,0 +1,337 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// import CLAIM_WALLET_ACCOUNT from '@/graphql/mutations/ClaimWalletAccountNew.graphql';
+import DTextField from '@/components/DTextField.vue';
+import DBtn from '@/components/DBtn.vue';
+import VSendCode from '@/components/VSendCode.vue';
+import PHONE_VERIFY from '@/graphql/mutations/PhoneVerify.graphql';
+import MeMixin from '@/mixins/MeMixin';
+import SnackbarMixin from '@/mixins/SnackbarMixin';
+import VueCountdown from '@chenfengyuan/vue-countdown';
+import { Component, Mixins, Prop } from 'vue-property-decorator';
+import {
+  VerificationCodePhone,
+  PhoneVerify,
+  DeviceType
+} from '@/graphql/types';
+import VERIFICATION_CODE_PHONE from '@/graphql/mutations/VerificationCodePhone.graphql';
+import { allCountries } from '@/utils/countrycode';
+import { setMePhone } from '@/apollo/cache/me';
+import { claimWalletAccount } from '@/apollo/mutation/claimWalletAccount';
+import { optionsValidator } from '@/utils/prop';
+import VGrecaptcha from '@/components/VGrecaptcha.vue';
+import { namespace } from 'vuex-class';
+import { RecaptchaError } from '@/models/error';
+
+const userMetaModule = namespace('userMeta');
+
+@Component({
+  components: {
+    VueCountdown,
+    DBtn,
+    DTextField,
+    VSendCode,
+    VGrecaptcha
+  }
+})
+export default class SettingsPhoneVerificationInput extends Mixins(
+  SnackbarMixin,
+  MeMixin
+) {
+  get phoneWithCountryCode(): string {
+    return this.inputCountry + this.phone;
+  }
+
+  get phoneVerifyCheck() {
+    if (
+      this.inputCountry &&
+      this.phone &&
+      this.phoneVerificationCode &&
+      this.phoneErrors.length === 0 &&
+      this.verifyCodeErrors.length === 0
+    ) {
+      return false;
+    } else {
+      return true;
+    }
+  }
+
+  // public mounted() {
+  //   getIP(this.$store).then(ipStats => {
+  //     console.log(ipStats);
+  //     this.chosenCountryIndex = this.allCountries.findIndex(
+  //       (el: CountryCode) => el.iso2 === ipStats.country
+  //     );
+  //   });
+  // }
+
+  // Computed
+  get verifiedPhoneNumber() {
+    return (
+      this.phone.length !== 0 &&
+      this.phoneErrors.length === 0 &&
+      this.inputCountry.length !== 0
+    );
+  }
+  get inputCountry() {
+    const res = this.allCountries.find(
+      item => item.displayName === this.inputCountryName
+    );
+    if (res) {
+      return res.dialCode;
+    } else {
+      return '';
+    }
+  }
+  @Prop({
+    required: false,
+    type: Boolean,
+    default: true
+  })
+  public inSettings!: boolean;
+  @Prop({
+    required: false,
+    type: Boolean,
+    default: false
+  })
+  public isChanging!: boolean;
+
+  @Prop({
+    required: false,
+    default: '',
+    type: String,
+    validator: optionsValidator(['getPaid', ''])
+  })
+  public walletButtonType!: 'getPaid' | ''; // Effective only if inSettings is false
+
+  // Local
+  public showDialog: boolean = false;
+  public phoneIsResendShowing: boolean = false;
+  public phoneIsSendShowing: boolean = true;
+  public phoneCounting: boolean = false;
+  public isLoading: boolean = false;
+  public signupLoading: boolean = false;
+
+  // FormValidationMixin
+  public phone: string = '';
+  public phoneErrors: string[] = [];
+  public inputCountryName: string = '';
+  public verifyCodeErrors: string[] = [];
+  public phoneVerificationCode = '';
+  public allCountries = allCountries;
+
+  private verifyCodeLength: number = 6;
+
+  @userMetaModule.Action('fetchFingerprint')
+  private getFingerprint!: () => Promise<string>;
+
+  public onPhoneInput(phone: string) {
+    this.phone = phone;
+    if (/[^0-9]/.test(this.phone)) {
+      this.phoneErrors = ['Invalid phone number'];
+    } else {
+      this.phoneErrors = [];
+    }
+  }
+
+  public onPhoneVerifyCodeInput(code: string) {
+    this.phoneVerificationCode = code;
+    if (this.phoneVerificationCode.length !== this.verifyCodeLength) {
+      this.verifyCodeErrors = ['Invalid verification code'];
+    } else {
+      this.verifyCodeErrors = [];
+    }
+  }
+
+  get hasPhoneNumber() {
+    if (this.me && this.me.private && this.me.private.phone) {
+      return this.me.private.phone !== '';
+    }
+    return false;
+  }
+
+  // Lifecycle Hooks ----------------------------------------------------------------------------------
+  //   public created() {
+  //     if (this.me && this.me.private && this.me.private.phone) {
+  //       this.phone = this.me.private.phone;
+  //     }
+  //   }
+
+  public phoneCountdown() {
+    this.phoneIsSendShowing = false;
+    this.phoneIsResendShowing = false;
+    this.phoneCounting = true;
+  }
+
+  public phoneCountdownend() {
+    this.phoneCounting = false;
+    this.phoneIsResendShowing = true;
+  }
+
+  public async sendPhoneCodeClicked() {
+    this.isLoading = true;
+    if (this.phone.length === 0 || this.phoneErrors.length !== 0) {
+      this.$error('SettingsPhoneVerification.ValidPhone');
+      this.isLoading = false;
+      return;
+    }
+    if (this.inputCountry.length === 0) {
+      this.$error('SettingsPhoneVerification.CountryCode');
+      this.isLoading = false;
+      return;
+    }
+    try {
+      await this.getFingerprint();
+      const recaptcha = await (this.$refs.grecaptcha as VGrecaptcha).execute();
+      if (recaptcha === null) {
+        this.$error('LoginEmailRegisterCallback.RecaptchaFailed');
+        throw new RecaptchaError();
+      }
+      const { data } = await this.$apollo.mutate<
+        VerificationCodePhone.Mutation
+      >({
+        mutation: VERIFICATION_CODE_PHONE,
+        variables: {
+          phone: this.phoneWithCountryCode,
+          recaptchaToken: recaptcha,
+          deviceType: DeviceType.Web
+        }
+      });
+      // console.log(data);
+      const resp = data.sendVerificationCodeToPhone;
+      this.isLoading = false;
+      if (resp.err !== null) {
+        this.$errCode(resp.err.code);
+        return;
+      }
+      this.phoneCountdown();
+      this.$success('SettingsPhoneVerification.MsgSent');
+      (this.$refs.vsendcode as VSendCode).countdownStart();
+    } catch (err) {
+      this.isLoading = false;
+      // TODO(@ryan): Error handling
+    }
+  }
+
+  public async verifyPhoneClicked() {
+    this.signupLoading = true;
+    try {
+      const { data } = await this.$apollo.mutate<PhoneVerify.Mutation>({
+        mutation: PHONE_VERIFY,
+        variables: {
+          phone: this.phoneWithCountryCode,
+          code: this.phoneVerificationCode
+        }
+      });
+      const resp = data.verifyPhone;
+      this.signupLoading = false;
+      if (resp.err !== null) {
+        this.$errCode(resp.err.code);
+        return;
+      }
+      setMePhone(
+        this.$apollo.provider.defaultClient,
+        `+${this.phoneWithCountryCode}`
+      );
+      this.$success('SettingsPhoneVerification.VerifySuccess');
+      if (!this.inSettings) {
+        claimWalletAccount(this);
+        this.$emit('closeDialog');
+      } else {
+        this.$emit('closeChanging');
+      }
+    } catch (err) {
+      this.isLoading = false;
+      // TODO(@ryan): error handling
+    }
+  }
+  // chosenCountryIndex = -1;
+}

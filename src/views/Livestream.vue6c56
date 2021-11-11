@@ -1,0 +1,609 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { EVENTS } from '@/utils/constants';
+import { ApolloQuery } from '@/decorators/apollo';
+import VLivestreamChatroom from '@/components/VLivestreamChatroom.vue';
+import LivestreamChannelHeader from '@/components/LivestreamChannelHeader.vue';
+import VLivestreamChatroomEmpty from '@/components/VLivestreamChatroomEmpty.vue';
+import LivestreamInfo from '@/components/LivestreamInfo.vue';
+import LivestreamChannelSuspended from '@/components/LivestreamChannelSuspended.vue';
+import LivestreamChannelDeactivated from '@/components/LivestreamChannelDeactivated.vue';
+import LivestreamProfile from '@/components/LivestreamProfile.vue';
+import LivestreamProfileMobile from '@/components/LivestreamProfileMobile.vue';
+import LivestreamChannelHosting from '@/components/LivestreamChannelHosting.vue';
+import LivestreamChannelRerun from '@/components/LivestreamChannelRerun.vue';
+import LivestreamChannelLivestream from '@/components/LivestreamChannelLivestream.vue';
+import LivestreamChannelMobileApp from '@/components/LivestreamChannelMobileApp.vue';
+// import HappyHourPopup from '@/components/HappyHourPopup.vue';
+import { Component, Mixins, Prop, Watch } from 'vue-property-decorator';
+import LIVESTREAM_PAGE from '@/graphql/queries/Livestream.graphql';
+import FOLLOWEES_NOTIFICATION_SETTING from '@/graphql/queries/FolloweesNotificationSetting.graphql';
+import LIVESTREAM_PAGE_REFETCH from '@/graphql/queries/LivestreamRefetch.graphql';
+import ME_LIVESTREAM from '@/graphql/queries/MeLivestream.graphql';
+import {
+  LivestreamPage,
+  Maybe,
+  MeLivestream,
+  LivestreamPageRefetch,
+  BanStatus,
+  ClipSortOrder,
+  FolloweesNotificationSetting
+} from '@/graphql/types';
+import { MetaInfo } from 'vue-meta';
+import { Meta } from '@/decorators/meta.ts';
+import MeMixin from '@/mixins/MeMixin';
+import GlobalEventBusMixin from '@/mixins/GlobalEventBusMixin';
+import VPageNotFound from '@/components/VPageNotFound.vue';
+import VNoSsr from '@/components/VNoSsr.vue';
+import { redirectToAndroid } from '@/utils/useragent';
+import { namespace } from 'vuex-class';
+import { requestNotificationPermission } from '@/web-notification';
+import { numberToBMK } from '@/filters/filters';
+import { metaContentDefault } from '@/utils/meta';
+const uiModule = namespace('ui');
+
+type LIVESTREAM_UNDEFINED_STATUS = 0;
+const LIVESTREAM_UNDEFINED_STATUS = 0;
+const userMetaModule = namespace('userMeta');
+const accessTokenModule = namespace('accessToken');
+const happyhourModule = namespace('happyhour');
+
+enum PlaySourceType {
+  LIVESTREAM,
+  HOSTING,
+  RERUN
+}
+
+@Component({
+  components: {
+    LivestreamProfile,
+    LivestreamChannelSuspended,
+    LivestreamChannelDeactivated,
+    LivestreamChannelLivestream,
+    VLivestreamChatroom,
+    VLivestreamChatroomEmpty,
+    LivestreamProfileMobile,
+    LivestreamInfo,
+    VPageNotFound,
+    VNoSsr,
+    LivestreamChannelHeader,
+    LivestreamChannelHosting,
+    LivestreamChannelRerun,
+    LivestreamChannelMobileApp
+    // HappyHourPopup
+  }
+})
+export default class Livestream extends Mixins(MeMixin, GlobalEventBusMixin) {
+  get streamer() {
+    if (this.userByDisplayName === LIVESTREAM_UNDEFINED_STATUS) {
+      return undefined;
+    }
+    return this.userByDisplayName;
+  }
+
+  get livestream() {
+    if (this.streamer) {
+      return this.streamer.livestream;
+    } else {
+      return null;
+    }
+  }
+
+  get isChannelSuspended() {
+    if (this.streamer !== undefined && this.streamer !== null) {
+      return this.streamer.banStatus === BanStatus.AccountSuspended;
+    }
+    return false;
+  }
+
+  get isChannelDeactivated() {
+    if (this.streamer !== undefined && this.streamer !== null) {
+      return this.streamer.deactivated;
+    }
+    return false;
+  }
+
+  get isChannelNotFound() {
+    if (this.streamer !== undefined && this.streamer === null) {
+      return true;
+    }
+    return false;
+  }
+
+  get isPlaying() {
+    if (this.$refs.channelLivestream) {
+      return (this.$refs.channelLivestream as LivestreamChannelLivestream)
+        .videoPlayerPlay;
+    }
+    if (this.$refs.channelHosting) {
+      return (this.$refs.channelHosting as LivestreamChannelHosting)
+        .videoPlayerPlay;
+    }
+    return false;
+  }
+
+  get isChannelNormal() {
+    if (
+      this.streamer !== undefined &&
+      this.streamer !== null &&
+      !this.isChannelSuspended &&
+      !this.isChannelDeactivated
+    ) {
+      return true;
+    }
+    return false;
+  }
+  get isMe() {
+    if (this.me !== null) {
+      return this.displayname === this.me.displayname;
+    }
+    return false;
+  }
+
+  get leftPartStyle() {
+    if (this.isMobile) {
+      return 'width:100%; height:100%';
+    } else {
+      if (this.theatreMode) {
+        return 'height:100%;width:100%';
+      } else {
+        return 'padding: 0px 12px;width:100%; height:100%';
+      }
+    }
+  }
+
+  get styleInner() {
+    if (this.theatreMode) {
+      return 'border-radius: 0px 0px 5px 5px;height:100%';
+    }
+    return 'border-radius: 0px 0px 5px 5px;display: flex;flex-direction: column';
+  }
+
+  get playSourceType(): PlaySourceType {
+    if (this.streamer !== null && this.streamer !== undefined) {
+      if (this.streamer.hostingLivestream !== null) {
+        return PlaySourceType.HOSTING;
+      }
+      if (this.streamer.livestream != null) {
+        return PlaySourceType.LIVESTREAM;
+      }
+      if (this.streamer.rerun != null) {
+        return PlaySourceType.RERUN;
+      }
+    }
+    return PlaySourceType.LIVESTREAM;
+  }
+
+  get isCloseNotice() {
+    if (
+      this.followeesNotificationSetting &&
+      this.followeesNotificationSetting.length > 0
+    ) {
+      return this.followeesNotificationSetting[0].enabled === false;
+    }
+    return false;
+  }
+
+  @Meta({
+    metaInfo(): MetaInfo {
+      return {
+        title: this.displayname + ' · DLive',
+        meta: [
+          {
+            name: 'twitter:card',
+            content: 'summary'
+          },
+          { property: 'fb:app_id', content: '2035237893356330' },
+          {
+            property: 'og:title',
+            content: this.displayname + ' · DLive'
+          },
+          { property: 'og:site_name', content: 'DLive' },
+          { property: 'og:type', content: 'website' },
+          {
+            property: 'og:url',
+            content: 'https://dlive.tv' + this.$route.path
+          },
+          {
+            property: 'og:image',
+            content:
+              (this.userByDisplayName && this.userByDisplayName.avatar) ||
+              'https://community.dlive.tv/wp-content/uploads/2019/06/Social_Icon-png.png'
+          },
+          { property: 'og:image:width', content: '128' },
+          { property: 'og:image:height', content: '128' },
+          {
+            property: 'og:description',
+            content:
+              (this.userByDisplayName &&
+                this.userByDisplayName.displayname &&
+                this.userByDisplayName.followers &&
+                `${numberToBMK(
+                  this.userByDisplayName.followers.totalCount
+                )} Followers - Watch ${
+                  this.userByDisplayName.displayname
+                } stream` +
+                  `${
+                    this.userByDisplayName.livestream
+                      ? ` ${this.userByDisplayName.livestream.category.title}`
+                      : ''
+                  }` +
+                  ` live on DLive.tv! Join DLive, a rewarding live streaming community on blockchain.`) ||
+              metaContentDefault
+          },
+          {
+            vmid: 'description',
+            name: 'description',
+            content:
+              (this.userByDisplayName &&
+                this.userByDisplayName.displayname &&
+                this.userByDisplayName.followers &&
+                `${numberToBMK(
+                  this.userByDisplayName.followers.totalCount
+                )} Followers - Watch ${
+                  this.userByDisplayName.displayname
+                } stream` +
+                  `${
+                    this.userByDisplayName.livestream
+                      ? ` ${this.userByDisplayName.livestream.category.title}`
+                      : ''
+                  }` +
+                  ` live on DLive.tv! Join DLive, a rewarding live streaming community on blockchain.`) ||
+              metaContentDefault
+          }
+        ],
+        link: [
+          {
+            rel: 'canonical',
+            href:
+              (this.userByDisplayName &&
+                this.userByDisplayName.displayname &&
+                `https://dlive.tv/${this.userByDisplayName.displayname}`) ||
+              'https://dlive.tv'
+          }
+        ]
+      };
+    }
+  })
+  public meta!: string;
+  @ApolloQuery({
+    query: FOLLOWEES_NOTIFICATION_SETTING,
+    fetchPolicy: 'network-only',
+    skip() {
+      return !this.streamer;
+    },
+    variables(): FolloweesNotificationSetting.Variables {
+      return {
+        followees: [this.streamer.username]
+      };
+    }
+  })
+  public followeesNotificationSetting?: FolloweesNotificationSetting.FolloweesNotificationSetting[];
+  @ApolloQuery({
+    prefetch: true,
+    query: LIVESTREAM_PAGE,
+    fetchPolicy: 'network-only',
+    manual: true,
+    variables(): LivestreamPage.Variables {
+      return {
+        displayname: this.displayname,
+        add: this.isPlaying,
+        isLoggedIn: this.isLoggedIn,
+        isMe: this.isMe,
+        showUnpicked: false,
+        order: ClipSortOrder.PickTime
+      };
+    },
+    // skip() {
+    //   return this.displayname === undefined || this.displayname === '';
+    // },
+    result({ data }) {
+      if (data === undefined || data === null) {
+        return;
+      }
+      const resp = data.userByDisplayName as LivestreamPage.UserByDisplayName;
+      if (resp === undefined) {
+        return;
+      }
+      if (this.userByDisplayName === LIVESTREAM_UNDEFINED_STATUS) {
+        this.userByDisplayName = resp;
+        return;
+      }
+      // if (errors !== undefined && errors !== null && errors.length !== 0) {
+      //   return;
+      // }
+      if (
+        resp !== null &&
+        resp.livestream !== undefined &&
+        resp.livestream !== null
+      ) {
+        this.userByDisplayName = resp;
+      }
+      if (
+        resp !== null &&
+        (resp.livestream === undefined || resp.livestream === null)
+      ) {
+        resp.livestream = this.userByDisplayName.livestream;
+        this.userByDisplayName = resp;
+      }
+      if (process.client && resp !== null) {
+        this.recordUserInfo(resp);
+      }
+    }
+  })
+  public fetchLivestream?: Maybe<LivestreamPage.UserByDisplayName>;
+
+  @Prop({
+    required: true,
+    type: String,
+    validator: (a: string) => a !== ''
+  })
+  public displayname!: string;
+
+  public inited: boolean = false;
+  public livestreamInited: boolean = false;
+  public chatPopped: boolean = false;
+  public clickedIn: boolean = false;
+  public ranking: number = -1;
+  public livestreamInterval: number = 0;
+  public userByDisplayName:
+  | Maybe<LivestreamPage.UserByDisplayName>
+  | LIVESTREAM_UNDEFINED_STATUS = LIVESTREAM_UNDEFINED_STATUS;
+
+  @ApolloQuery({
+    query: ME_LIVESTREAM,
+    fetchPolicy: 'network-only',
+    manual: true,
+    skip() {
+      return !this.isLoggedIn;
+    },
+    variables() {
+      return {
+        isLoggedIn: this.isLoggedIn
+      };
+    },
+    result() {
+      return;
+    }
+  })
+  public notUsed?: Maybe<MeLivestream.Me>;
+  private PlaySourceTypeHosting = PlaySourceType.HOSTING;
+  private PlaySourceTypeLivestream = PlaySourceType.LIVESTREAM;
+  private PlaySourceTypeRerun = PlaySourceType.RERUN;
+
+  @userMetaModule.Getter('notificationTimer')
+  private notificationTimer!: string | null;
+  @userMetaModule.Mutation('setNotificationTimer')
+  private setNotificationTimer!: (timer: string) => void;
+  @accessTokenModule.Mutation('resetAccessToken')
+  private resetAccessToken!: () => void;
+  @happyhourModule.Getter('happyHourPopup')
+  private happyHourPopup!: 0 | 1 | false;
+  @uiModule.Getter('isMobile')
+  private isMobile!: boolean;
+  @uiModule.Getter('theatreMode')
+  private theatreMode!: boolean;
+  @uiModule.Mutation('setTheatreMode')
+  private setTheatreMode!: (theatreMode: boolean) => void;
+
+  public mounted() {
+    // android redirect
+    let androidRedirectUrl = `dlive://dlive.tv/${
+      this.$route.params.displayname
+    }`;
+    if (this.$route.query.ref !== undefined) {
+      androidRedirectUrl = androidRedirectUrl + `?ref=${this.$route.query.ref}`;
+    }
+    if (
+      redirectToAndroid(
+        androidRedirectUrl,
+        !this.$route.query.gxc,
+        this.setPolling
+      )
+    ) {
+      return;
+    }
+    this.setPolling();
+    let timeout = 5 * 1000 * 60;
+    if (this.notificationTimer === null) {
+      this.requestNofication(timeout);
+    } else {
+      if (Number(this.notificationTimer) - Date.now() > 5 * 1000 * 60) {
+        timeout = Number(this.notificationTimer) - Date.now();
+      }
+      this.requestNofication(timeout);
+    }
+
+    this.$_smartSubscribe(EVENTS.REFETCH_LIVESTREAM, this.refetchLivestream);
+  }
+  public beforeDestroy() {
+    clearInterval(this.livestreamInterval);
+    this.setTheatreMode(false);
+  }
+
+  public requestNofication(timeout: number) {
+    setTimeout(() => {
+      if (
+        Notification &&
+        Notification.permission === 'default' &&
+        this.livestream !== null &&
+        this.isLoggedIn
+      ) {
+        requestNotificationPermission();
+        this.setNotificationTimer(String(Date.now() + 7 * 24 * 60 * 60 * 1000));
+      }
+    }, timeout);
+  }
+
+  public async refetchLivestream() {
+    if (!this.isChannelNormal) {
+      return;
+    }
+    const variables: LivestreamPageRefetch.Variables = {
+      displayname: this.displayname,
+      add: this.isPlaying,
+      isLoggedIn: this.isLoggedIn
+    };
+    try {
+      const data = await this.$apollo.query<LivestreamPageRefetch.Query>({
+        query: LIVESTREAM_PAGE_REFETCH,
+        fetchPolicy: 'network-only',
+        variables,
+        errorPolicy: 'none'
+      });
+      // if (data.errors !== undefined && data.errors.length !== 0) {
+      //   throw data.errors;
+      // }
+      if (data.data.userByDisplayName === null) {
+        return;
+      }
+      if (
+        data.data.userByDisplayName.livestream !== null &&
+        this.userByDisplayName !== 0 &&
+        this.userByDisplayName !== null &&
+        this.userByDisplayName.livestream === null
+      ) {
+        this.userByDisplayName.livestream =
+          data.data.userByDisplayName.livestream;
+      }
+      this.recordUserInfo(data.data.userByDisplayName);
+    } catch (err) {
+      // TODO
+      // To avoid refetching when accessToken expired
+      if (this.me !== null && this.checkError(err.toString())) {
+        this.resetAccessToken();
+      }
+    }
+  }
+
+  public popped() {
+    this.chatPopped = true;
+  }
+
+  public recordUserInfo(
+    resp:
+    | LivestreamPage.UserByDisplayName
+    | LivestreamPageRefetch.UserByDisplayName
+  ) {
+    let livestreamStatus;
+    if (resp.livestream !== null || resp.hostingLivestream !== null) {
+      livestreamStatus = 'channel(live)';
+    } else {
+      livestreamStatus = 'channel(not live)';
+    }
+    this.$store.commit('userMeta/setPageStatus', livestreamStatus);
+  }
+
+  public checkError(error: string) {
+    if (error.indexOf('Require login') !== -1) {
+      return true;
+    }
+    return false;
+  }
+
+  @Watch('displayname', { immediate: true })
+  public onDisplayname() {
+    this.userByDisplayName = LIVESTREAM_UNDEFINED_STATUS;
+  }
+
+  private setPolling() {
+    // Disable polling options because of apollo client issue
+    this.livestreamInterval = window.setInterval(this.refetchLivestream, 30000);
+  }
+}

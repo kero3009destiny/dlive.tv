@@ -1,0 +1,28 @@
+
+    var doc = {"kind":"Document","definitions":[{"kind":"FragmentDefinition","name":{"kind":"Name","value":"PinnedSubFrag"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"User"}},"directives":[],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"username"},"arguments":[],"directives":[]},{"kind":"FragmentSpread","name":{"kind":"Name","value":"VDliveAvatarFrag"},"directives":[]},{"kind":"FragmentSpread","name":{"kind":"Name","value":"VDliveNameFrag"},"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"subSetting"},"arguments":[],"directives":[],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"badgeText"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"badgeColor"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"textColor"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"benefits"},"arguments":[],"directives":[]}]}},{"kind":"FragmentSpread","name":{"kind":"Name","value":"VFollowFrag"},"directives":[]},{"kind":"FragmentSpread","name":{"kind":"Name","value":"PinnedSubOnGoingFrag"},"directives":[]}]}}],"loc":{"start":0,"end":343}};
+    doc.loc.source = {"body":"#import './VDliveAvatar.graphql'\n#import './VDliveName.graphql'\n#import './VFollow.graphql'\n#import './PinnedSubOnGoing.graphql'\n\nfragment PinnedSubFrag on User {\n  id\n  username\n  ...VDliveAvatarFrag\n  ...VDliveNameFrag\n  subSetting {\n    badgeText,\n    badgeColor,\n    textColor,\n    benefits\n  }\n  ...VFollowFrag\n  ...PinnedSubOnGoingFrag\n}","name":"GraphQL request","locationOffset":{"line":1,"column":1}};
+  
+
+    var names = {};
+    function unique(defs) {
+      return defs.filter(
+        function(def) {
+          if (def.kind !== 'FragmentDefinition') return true;
+          var name = def.name.value
+          if (names[name]) {
+            return false;
+          } else {
+            names[name] = true;
+            return true;
+          }
+        }
+      )
+    }
+  doc.definitions = doc.definitions.concat(unique(require('./VDliveAvatar.graphql').definitions));
+doc.definitions = doc.definitions.concat(unique(require('./VDliveName.graphql').definitions));
+doc.definitions = doc.definitions.concat(unique(require('./VFollow.graphql').definitions));
+doc.definitions = doc.definitions.concat(unique(require('./PinnedSubOnGoing.graphql').definitions));
+
+
+      module.exports = doc;
+    

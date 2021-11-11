@@ -1,0 +1,4 @@
+var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',{staticClass:"width-100 padding-4"},[_c('div',{staticClass:"flex-align-center"},[_c('i18n',{staticClass:"text-14-medium text-white",attrs:{"path":"GiftSub.GiftSubClaimFail","tag":"div"}}),_vm._m(0)],1),_c('d-divider',{staticClass:"margint-4 marginb-3"}),_c('div',{staticClass:"flex-justify-start margint-4"},[_c('d-btn',{staticClass:"text-12-medium",attrs:{"type":"btnB","text-color":"blue","bg-color":"blue"},on:{"click":_vm.closePinnedSub}},[_vm._v(" "+_vm._s(_vm.$t('GiftSub.DismissButton'))+" ")])],1)],1)}
+var staticRenderFns = [function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',[_c('img',{staticClass:"marginl-3",attrs:{"src":require("@/assets/icon/pinned-sub-fail.svg"),"width":"66px"}})])}]
+
+export { render, staticRenderFns }

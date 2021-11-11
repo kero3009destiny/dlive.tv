@@ -1,0 +1,117 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { VCategoryCardFrag } from '@/graphql/types';
+import { Component, Mixins, Prop } from 'vue-property-decorator';
+import GlobalEventBusMixin from '@/mixins/GlobalEventBusMixin';
+import { EVENTS } from '@/utils/constants';
+import VDliveWatchingCount from '@/components/VDliveWatchingCount.vue';
+import { SIH_RESIZE_CATEGORY_MEDIUM, SIHresize } from '@/utils/images';
+// import * as animationData from '../assets/lottie/arrow/data.json';
+import Lottie from '@/components/lottie.vue';
+@Component({
+  components: {
+    VDliveWatchingCount,
+    Lottie
+  }
+})
+export default class HomeCategory extends Mixins(GlobalEventBusMixin) {
+  @Prop({
+    required: true
+  })
+  public homeCategory!: VCategoryCardFrag.Fragment[];
+
+  // local
+  public categoryId: number = 0;
+  public defaultOptions = {};
+  public mounted() {
+    this.$_smartSubscribe(EVENTS.CHANGE_LANGUAGE, this.changeLanguage);
+
+    this.defaultOptions = {
+      animationData: require('../assets/lottie/arrow/data.json'),
+      loop: false
+    };
+  }
+
+  get categories() {
+    if (this.homeCategory) {
+      return this.homeCategory;
+    }
+    return [];
+  }
+
+  public imgSrc(imgUrl: string) {
+    return SIHresize(imgUrl, SIH_RESIZE_CATEGORY_MEDIUM);
+  }
+
+  public changeLanguage() {
+    this.categoryId = 0;
+  }
+
+  public changeCategory(index: number) {
+    if (this.categoryId !== index) {
+      this.categoryId = index;
+      this.$emit('changeCategory', this.categories[index]);
+    }
+  }
+}

@@ -1,0 +1,4 @@
+var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',{directives:[{name:"on-clickaway",rawName:"v-on-clickaway",value:(_vm.menuClose),expression:"menuClose"}],staticClass:"d-menu position-absolute bg-grey-darken-3 border-radius-5 overflow-hidden",on:{"click":_vm.menuClose}},[_vm._t("default")],2)}
+var staticRenderFns = []
+
+export { render, staticRenderFns }

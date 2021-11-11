@@ -1,0 +1,177 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { VSubscriptionFrag, MeBalance } from '@/graphql/types';
+import { GIFT_SUB } from '@/models/giftSub';
+import { Component, Mixins, Prop, Vue } from 'vue-property-decorator';
+import { ApolloQuery } from '@/decorators/apollo';
+import ME_BALANCE from '@/graphql/queries/MeBalance.graphql';
+import MeMixin from '@/mixins/MeMixin';
+import { Maybe } from '@/graphql/types';
+import SnackbarMixin from '@/mixins/SnackbarMixin';
+import DBtn from '@/components/DBtn.vue';
+import DToken from '@/components/DToken.vue';
+import { addGiftSub } from '@/apollo/mutation/giftSub';
+
+@Component({
+  components: {
+    DBtn,
+    DToken
+  }
+})
+export default class VSubscription extends Mixins(MeMixin, SnackbarMixin) {
+  @Prop({
+    required: true
+  })
+  public subscribee!: VSubscriptionFrag.Fragment;
+
+  @Prop({
+    required: false,
+    default: true
+  })
+  public shouldShowBack!: boolean;
+
+  @ApolloQuery({
+    query: ME_BALANCE,
+    fetchPolicy: 'network-only',
+    manual: true,
+    skip() {
+      return !this.isLoggedIn;
+    },
+    result({ data }: { data: MeBalance.Query }) {
+      if (data !== undefined && data !== null && data.me !== null) {
+        Vue.set(this, 'meBalance', data.me);
+      }
+    }
+  })
+  public meBalance?: Maybe<MeBalance.Me>;
+
+  // local
+  private giftSubMode: 0 | 1 | 2 | 3 | 4 = 1;
+
+  get subSettings() {
+    return GIFT_SUB;
+  }
+
+  get enoughBalance() {
+    if (this.meBalance && this.$options.filters !== undefined) {
+      const myBalance = this.$options.filters.coinToLino(
+        this.meBalance.wallet.balance
+      );
+      if (myBalance >= this.subSettings[this.giftSubMode].cost) {
+        return true;
+      } else {
+        return false;
+      }
+    }
+    return false;
+  }
+
+  public async onClickGiftSub() {
+    if (this.requireLogin()) {
+      return;
+    }
+    try {
+      await addGiftSub(
+        this,
+        this.subscribee.username,
+        null,
+        this.subSettings[this.giftSubMode].count
+      );
+      this.closeSubDialog();
+    } catch (err) {
+      this.closeSubDialog();
+    }
+  }
+
+  public backClicked() {
+    this.$emit('backClicked');
+  }
+  public closeSubDialog() {
+    this.$emit('closeSubDialog');
+  }
+}

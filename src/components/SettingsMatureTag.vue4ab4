@@ -1,0 +1,60 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import MeMixin from '@/mixins/MeMixin';
+import SnackbarMixin from '@/mixins/SnackbarMixin';
+
+import { Component, Mixins } from 'vue-property-decorator';
+import { namespace } from 'vuex-class';
+
+const userMetaModule = namespace('userMeta');
+
+@Component({
+  components: {}
+})
+export default class SettingsMatureTag extends Mixins(SnackbarMixin, MeMixin) {
+  // Local
+  @userMetaModule.Getter('matureTagForViewer')
+  private matureTagForViewer!: boolean;
+  @userMetaModule.Action('setMatureTagForViewerSwitch')
+  private setMatureTagForViewerSwitch!: (matureTagForViewer: boolean) => void;
+
+  public switchChange(state: boolean) {
+    if (state === true) {
+      this.setMatureTagForViewerSwitch(true);
+      this.$emit('changeMatureTagForViewerSwitch', true);
+    }
+    if (state === false) {
+      this.setMatureTagForViewerSwitch(false);
+      this.$emit('changeMatureTagForViewerSwitch', false);
+    }
+  }
+}

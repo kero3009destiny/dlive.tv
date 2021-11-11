@@ -1,0 +1,190 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { ApolloQuery } from '@/decorators/apollo';
+import VSnapProfileReplay from '@/components/VSnapProfileReplay.vue';
+import DBtn from '@/components/DBtn.vue';
+import { Maybe, LivestreamProfileReplay, PartnerStatus } from '@/graphql/types';
+import { writePastbroadcastDeleteCache } from '@/apollo/cache/livestreamProfile';
+import LIVESTREAM_PROFILE_REPLAY from '@/graphql/queries/LivestreamProfileReplay.graphql';
+import MeMixin from '@/mixins/MeMixin';
+import { Component, Mixins } from 'vue-property-decorator';
+
+@Component({
+  components: {
+    VSnapProfileReplay,
+    DBtn
+  }
+})
+export default class ProfileReplay extends Mixins(MeMixin) {
+  @ApolloQuery({
+    query: LIVESTREAM_PROFILE_REPLAY,
+    variables(): LivestreamProfileReplay.Variables {
+      return {
+        displayname: this.displayname,
+        first: this.numReplayPerFetch
+      };
+    }
+  })
+  public userByDisplayName?: Maybe<LivestreamProfileReplay.UserByDisplayName>;
+
+  // Computed -----------------------------------------
+  get isSelf() {
+    if (this.me !== null) {
+      return this.me.displayname === this.displayname;
+    } else {
+      return false;
+    }
+  }
+
+  get deleteDay() {
+    if (this.me !== null) {
+      switch (this.me.partnerStatus) {
+        case PartnerStatus.GlobalPartner:
+          return '45';
+        case PartnerStatus.VerifiedPartner:
+          return '25';
+        default:
+          return '3';
+      }
+    }
+    return '3';
+  }
+
+  get profileReplay() {
+    if (
+      this.userByDisplayName !== undefined &&
+      this.userByDisplayName !== null
+    ) {
+      return this.userByDisplayName.pastBroadcasts;
+    }
+    return null;
+  }
+
+  get replays() {
+    if (this.profileReplay !== null) {
+      return this.profileReplay.list;
+    }
+    return [];
+  }
+
+  get hasNextPage() {
+    if (this.profileReplay !== null) {
+      return this.profileReplay.pageInfo.hasNextPage;
+    }
+    return false;
+  }
+
+  get displayname() {
+    return this.$route.params.displayname;
+  }
+
+  // Local
+  private readonly numReplayPerFetch: number = 20;
+
+  // Function --------------------------------------
+  public replayDeleted(permlink: string) {
+    if (
+      this.userByDisplayName === undefined ||
+      this.userByDisplayName === null
+    ) {
+      return;
+    }
+    const err = writePastbroadcastDeleteCache(
+      this.$apollo.provider.defaultClient,
+      permlink,
+      this.userByDisplayName.id
+    );
+    if (err !== undefined) {
+      throw err;
+    }
+  }
+
+  private fetchMoreProfileReplay() {
+    if (
+      this.profileReplay === null ||
+      !this.profileReplay.pageInfo.hasNextPage
+    ) {
+      return;
+    }
+    this.$apollo.queries.userByDisplayName.fetchMore({
+      variables: {
+        displayname: this.displayname,
+        first: this.numReplayPerFetch,
+        after: this.profileReplay.pageInfo.endCursor
+      },
+      updateQuery: (
+        previousResult: LivestreamProfileReplay.Query,
+        { fetchMoreResult }: { fetchMoreResult?: LivestreamProfileReplay.Query }
+      ) => {
+        if (
+          fetchMoreResult === undefined ||
+          fetchMoreResult.userByDisplayName === null
+        ) {
+          return previousResult;
+        }
+        const moreReplay: LivestreamProfileReplay.PastBroadcasts =
+          fetchMoreResult.userByDisplayName.pastBroadcasts;
+        let prevReplay = previousResult.userByDisplayName;
+        if (prevReplay === null) {
+          prevReplay = fetchMoreResult.userByDisplayName;
+        } else {
+          prevReplay.pastBroadcasts.pageInfo = moreReplay.pageInfo;
+          prevReplay.pastBroadcasts.list = [
+            ...prevReplay.pastBroadcasts.list,
+            ...moreReplay.list
+          ];
+        }
+        return {
+          userByDisplayName: prevReplay
+        };
+      }
+    });
+  }
+}

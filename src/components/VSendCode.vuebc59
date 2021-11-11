@@ -1,0 +1,82 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import DBtn from '@/components/DBtn.vue';
+import { Component, Prop, Vue } from 'vue-property-decorator';
+import VueCountdown from '@chenfengyuan/vue-countdown';
+
+@Component({
+  components: {
+    VueCountdown,
+    DBtn
+  }
+})
+export default class VSendCode extends Vue {
+  @Prop({ required: false, default: 'VSendCode.SendCode' })
+  public sendI18n!: string;
+
+  @Prop({ required: false, default: 'VSendCode.Resend' })
+  public resendI18n!: string;
+
+  @Prop({ required: true })
+  public isValid!: boolean;
+
+  @Prop({ required: true })
+  public isLoading!: boolean;
+
+  public stage: 'send' | 'countdown' | 'resend' = 'send';
+
+  get disabled() {
+    return !this.isValid || this.stageCountDown;
+  }
+
+  get stageSend() {
+    return this.stage === 'send';
+  }
+  get stageCountDown() {
+    return this.stage === 'countdown';
+  }
+  get stageResend() {
+    return this.stage === 'resend';
+  }
+  public sendClicked() {
+    this.$emit('sendClicked');
+  }
+  public countdownend() {
+    this.stage = 'resend';
+  }
+  // parent should call this
+  public countdownStart() {
+    this.stage = 'countdown';
+  }
+}

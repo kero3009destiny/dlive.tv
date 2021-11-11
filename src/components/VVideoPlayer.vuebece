@@ -1,0 +1,4 @@
+var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',{staticStyle:{"height":"100%"}},[_c('v-no-ssr',{staticStyle:{"height":"100%"}},[(_vm.useStarfruit)?_c('v-video-player-twitch',{attrs:{"src":_vm.src}}):_vm._e(),(!_vm.useStarfruit && _vm.srcReady)?_c('v-lino-dplayer',{staticStyle:{"height":"100%"},attrs:{"options":_vm.playerOptions,"ads-enabled":_vm.adsEnabled},on:{"onPlayerCreate":_vm.onPlayerCreate,"ended":_vm.ended,"loadeddata":_vm.loadeddata}}):_vm._e()],1)],1)}
+var staticRenderFns = []
+
+export { render, staticRenderFns }

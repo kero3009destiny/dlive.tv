@@ -1,0 +1,57 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { Component, Mixins, Prop } from 'vue-property-decorator';
+import { addPanel } from '@/apollo/mutation/profileAbout';
+import SnackbarMixin from '@/mixins/SnackbarMixin';
+import { LivestreamAboutFrag } from '@/graphql/types';
+import DBtn from '@/components/DBtn.vue';
+
+@Component({
+  components: {
+    DBtn
+  }
+})
+export default class ProfileAboutEditNew extends Mixins(SnackbarMixin) {
+  @Prop({
+    required: true
+  })
+  public userAbout!: LivestreamAboutFrag.Fragment;
+
+  get hasPanel() {
+    if (this.userAbout.panels.length > 0) {
+      return true;
+    }
+    return false;
+  }
+  public async addNewPanel() {
+    try {
+      await addPanel(this, this.userAbout.id);
+    } catch (err) {
+      throw err;
+    }
+  }
+}

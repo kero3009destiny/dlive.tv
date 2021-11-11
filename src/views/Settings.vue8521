@@ -1,0 +1,183 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import SettingsDisplayNameAndAvatar from '@/components/SettingsDisplayNameAndAvatar.vue';
+import SettingsPhoneVerification from '@/components/SettingsPhoneVerification.vue';
+import SettingsEmail from '@/components/SettingsEmail.vue';
+import SettingsPassword from '@/components/SettingsPassword.vue';
+import SettingsSystemLanguage from '@/components/SettingsSystemLanguage.vue';
+import SettingsDeactivateAccount from '@/components/SettingsDeactivateAccount.vue';
+import SettingsDeleteAccount from '@/components/SettingsDeleteAccount.vue';
+import SettingsTwoFA from '@/components/SettingsTwoFA.vue';
+import SettingsXTag from '@/components/SettingsXTag.vue';
+import SettingsMatureTag from '@/components/SettingsMatureTag.vue';
+import VUploadImage from '@/components/VUploadImage.vue';
+import MeMixin from '@/mixins/MeMixin';
+import { modeIsCn } from '@/utils/mode';
+import { Component, Mixins, Prop } from 'vue-property-decorator';
+import { ROUTE_HOME } from '@/router';
+
+@Component({
+  components: {
+    VUploadImage,
+    SettingsPhoneVerification,
+    SettingsEmail,
+    SettingsTwoFA,
+    SettingsPassword,
+    SettingsDisplayNameAndAvatar,
+    SettingsSystemLanguage,
+    SettingsDeactivateAccount,
+    SettingsDeleteAccount,
+    SettingsXTag,
+    SettingsMatureTag
+  }
+})
+export default class Settings extends Mixins(
+  MeMixin
+  // FormValidationMixin,
+) {
+  @Prop({
+    type: String,
+    required: false,
+    default: ''
+  })
+  public openTab!: string;
+
+  get modeIsCn() {
+    return modeIsCn();
+  }
+
+  // local
+  public panel = [false, false, false];
+
+  public mounted() {
+    if (!this.$store.getters['accessToken/token']) {
+      this.$router.push({ name: ROUTE_HOME });
+    }
+    if (this.openTab === 'email') {
+      this.panel = [false, false, true];
+    }
+    if (this.openTab === 'phone') {
+      this.panel = [false, true, false];
+    }
+    if (this.openTab === 'avatar') {
+      this.panel = [true, false, false];
+    }
+  }
+}

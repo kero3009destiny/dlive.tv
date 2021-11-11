@@ -1,0 +1,386 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { ApolloQuery } from '@/decorators/apollo';
+import { fetchMoreLoading } from '@/utils/fetchdata';
+import { StateChanger } from 'vue-infinite-loading';
+import VDliveAvatar from '@/components/VDliveAvatar.vue';
+import VDliveName from '@/components/VDliveName.vue';
+import DBtn from '@/components/DBtn.vue';
+import DMenu from '@/components/DMenu.vue';
+import DTextField from '@/components/DTextField.vue';
+import { debounce } from 'throttle-debounce';
+import STREAM_CHAT_BANNED_USERS from '@/graphql/queries/StreamChatBannedUsers.graphql';
+import STREAM_CHAT_BMODERATORS from '@/graphql/queries/StreamChatModerators.graphql';
+import {
+  moderatorRemove,
+  streamChatUserUnban
+} from '@/utils/mutations/chatroom';
+import {
+  writeUnbanCache,
+  writeRemoveModertorCache
+} from '@/utils/cache/chatroom';
+import {
+  StreamChatBannedUsers,
+  StreamChatModerators,
+  Maybe,
+  StreamChatMemberManageTabFrag,
+  RoomRole
+} from '@/graphql/types';
+import { Component, Mixins, Prop } from 'vue-property-decorator';
+import SnackbarMixin from '@/mixins/SnackbarMixin';
+import VInfiniteLoading from '@/components/VInfiniteLoading.vue';
+
+const enum TAB {
+  MUTED = 'MUTED',
+  MODS = 'MODS'
+}
+
+@Component({
+  components: {
+    VDliveAvatar,
+    VDliveName,
+    VInfiniteLoading,
+    DBtn,
+    DMenu,
+    DTextField
+  }
+})
+export default class StreamChatMemberManageTab extends Mixins(SnackbarMixin) {
+  @ApolloQuery({
+    query: STREAM_CHAT_BANNED_USERS,
+    fetchPolicy: 'network-only',
+    manual: true,
+    initDebounce: true,
+    debounce: 500,
+    variables(): StreamChatBannedUsers.Variables {
+      return {
+        displayname: this.displayname,
+        first: this.numUserPerfetch,
+        search: this.search
+      };
+    },
+    skip() {
+      return this.type !== TAB.MUTED;
+    },
+    result({ data, error }) {
+      if (data !== undefined && error === undefined) {
+        this.streamChatBannedUsers = data.userByDisplayName;
+      }
+    }
+  })
+  public streamChatBannedUsers?: Maybe<StreamChatBannedUsers.UserByDisplayName>;
+
+  @ApolloQuery({
+    query: STREAM_CHAT_BMODERATORS,
+    fetchPolicy: 'network-only',
+    manual: true,
+    initDebounce: true,
+    debounce: 500,
+    variables(): StreamChatModerators.Variables {
+      return {
+        displayname: this.displayname,
+        first: this.numUserPerfetch,
+        search: this.search
+      };
+    },
+    skip() {
+      return this.type !== TAB.MODS;
+    },
+    result({ data, error }) {
+      if (data !== undefined && error === undefined) {
+        this.streamChatModerators = data.userByDisplayName;
+      }
+    }
+  })
+  public streamChatModerators?: Maybe<StreamChatModerators.UserByDisplayName>;
+
+  @Prop({
+    type: String,
+    required: true
+  })
+  public type!: TAB;
+
+  @Prop({
+    required: true
+  })
+  public streamerInfo!: StreamChatMemberManageTabFrag.Fragment;
+
+  get username() {
+    if (this.streamerInfo !== undefined && this.streamerInfo !== null) {
+      return this.streamerInfo.username;
+    }
+    return '';
+  }
+
+  get displayname() {
+    if (this.streamerInfo !== undefined && this.streamerInfo !== null) {
+      return this.streamerInfo.displayname;
+    }
+    return '';
+  }
+
+  get users() {
+    if (this.type === TAB.MUTED) {
+      return this.bannedUsers;
+    } else {
+      return this.moderators;
+    }
+  }
+
+  get bannedUsers() {
+    if (
+      this.streamChatBannedUsers !== undefined &&
+      this.streamChatBannedUsers !== null
+    ) {
+      return this.streamChatBannedUsers.chatBannedUsers.list;
+    }
+    return [];
+  }
+
+  get moderators() {
+    if (
+      this.streamChatModerators !== undefined &&
+      this.streamChatModerators !== null
+    ) {
+      return this.streamChatModerators.chatModerators.list;
+    }
+    return [];
+  }
+
+  get isModerator() {
+    if (this.streamerInfo !== null) {
+      return this.streamerInfo.myRoomRole === RoomRole.Moderator;
+    }
+    return false;
+  }
+
+  get buttonText() {
+    if (this.type === TAB.MUTED) {
+      return 'Unmute';
+    } else {
+      return 'Remove';
+    }
+  }
+
+  public search: string = '';
+  public apolloClient = this.$apollo.provider.defaultClient;
+  public numUserPerfetch: number = 20;
+  public infiniteId: number = +new Date();
+  public debouncedResetLoading: () => void = debounce(1500, this.resetLoading);
+
+  public fetchMoreUsers($state: StateChanger) {
+    if (this.type === TAB.MUTED) {
+      fetchMoreLoading($state, this.fetchMoreBannedUsers);
+    }
+    if (this.type === TAB.MODS) {
+      fetchMoreLoading($state, this.fetchMoreModerators);
+    }
+  }
+
+  public fetchMoreBannedUsers(): Promise<boolean> {
+    return new Promise(resolve => {
+      if (
+        this.streamChatBannedUsers === undefined ||
+        this.streamChatBannedUsers === null ||
+        !this.streamChatBannedUsers.chatBannedUsers.pageInfo.hasNextPage
+      ) {
+        resolve(false);
+        return;
+      }
+      this.$apollo.queries.streamChatBannedUsers.fetchMore({
+        variables: {
+          displayname: this.displayname,
+          first: this.numUserPerfetch,
+          after: this.streamChatBannedUsers.chatBannedUsers.pageInfo.endCursor,
+          search: this.search
+        },
+        updateQuery: (
+          previousResult: StreamChatBannedUsers.Query,
+          { fetchMoreResult }: { fetchMoreResult?: StreamChatBannedUsers.Query }
+        ) => {
+          if (
+            fetchMoreResult === undefined ||
+            fetchMoreResult.userByDisplayName === null
+          ) {
+            resolve(false);
+            return previousResult;
+          }
+          const moreBannedUsers: StreamChatBannedUsers.ChatBannedUsers =
+            fetchMoreResult.userByDisplayName.chatBannedUsers;
+          let prevBannedUsers = previousResult.userByDisplayName;
+          if (!moreBannedUsers.pageInfo.hasNextPage) {
+            resolve(false);
+          } else {
+            resolve(true);
+          }
+          if (prevBannedUsers === null) {
+            prevBannedUsers = fetchMoreResult.userByDisplayName;
+          } else {
+            prevBannedUsers.chatBannedUsers.pageInfo = moreBannedUsers.pageInfo;
+            prevBannedUsers.chatBannedUsers.list = [
+              ...prevBannedUsers.chatBannedUsers.list,
+              ...moreBannedUsers.list
+            ];
+          }
+          return {
+            userByDisplayName: prevBannedUsers
+          };
+        }
+      });
+    });
+  }
+
+  public fetchMoreModerators(): Promise<boolean> {
+    return new Promise(resolve => {
+      if (
+        this.streamChatModerators === undefined ||
+        this.streamChatModerators === null ||
+        !this.streamChatModerators.chatModerators.pageInfo.hasNextPage
+      ) {
+        resolve(false);
+        return;
+      }
+      this.$apollo.queries.streamChatModerators.fetchMore({
+        variables: {
+          displayname: this.displayname,
+          first: this.numUserPerfetch,
+          after: this.streamChatModerators.chatModerators.pageInfo.endCursor,
+          search: this.search
+        },
+        updateQuery: (
+          previousResult: StreamChatModerators.Query,
+          { fetchMoreResult }: { fetchMoreResult?: StreamChatModerators.Query }
+        ) => {
+          if (
+            fetchMoreResult === undefined ||
+            fetchMoreResult.userByDisplayName === null
+          ) {
+            resolve(false);
+            return previousResult;
+          }
+          const moreModerators: StreamChatModerators.ChatModerators =
+            fetchMoreResult.userByDisplayName.chatModerators;
+          let prevModerators = previousResult.userByDisplayName;
+          if (!moreModerators.pageInfo.hasNextPage) {
+            resolve(false);
+          } else {
+            resolve(true);
+          }
+          if (prevModerators === null) {
+            prevModerators = fetchMoreResult.userByDisplayName;
+          } else {
+            prevModerators.chatModerators.pageInfo = moreModerators.pageInfo;
+            prevModerators.chatModerators.list = [
+              ...prevModerators.chatModerators.list,
+              ...moreModerators.list
+            ];
+          }
+          return {
+            userByDisplayName: prevModerators
+          };
+        }
+      });
+    });
+  }
+
+  public onKeywordChange() {
+    this.debouncedResetLoading();
+  }
+
+  public resetLoading() {
+    this.infiniteId += 1;
+  }
+
+  public handleUser(
+    user: StreamChatBannedUsers.List | StreamChatModerators.List
+  ) {
+    if (this.type === TAB.MUTED) {
+      this.UnbanUser(user);
+    } else {
+      this.removeModerator(user);
+    }
+  }
+
+  public async UnbanUser(user: StreamChatBannedUsers.List) {
+    await streamChatUserUnban(this, this.streamerInfo.username, user.username);
+    // XXX(jiayi): TODO @connection to combine all banned users from different search
+    const err = writeUnbanCache(
+      this.$apollo.provider.defaultClient,
+      this.streamerInfo.id,
+      user.username
+    );
+    if (err !== undefined) {
+      throw err;
+    }
+  }
+
+  public async removeModerator(user: StreamChatModerators.List) {
+    await moderatorRemove(this, user.username, this.username);
+    const err = writeRemoveModertorCache(
+      this.$apollo.provider.defaultClient,
+      this.streamerInfo.id,
+      user.username
+    );
+    if (err !== undefined) {
+      throw err;
+    }
+  }
+}

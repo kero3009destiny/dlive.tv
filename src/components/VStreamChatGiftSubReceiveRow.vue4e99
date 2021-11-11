@@ -1,0 +1,4 @@
+var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('i18n',{attrs:{"path":"LiveStreamChatroomRow.GiftSubReceiveRow","tag":"span"}},[_c('span',{attrs:{"place":"gifter"}},[_vm._v(" "+_vm._s(_vm.chatGiftSubReceiveRow.gifter)+" ")])])}
+var staticRenderFns = []
+
+export { render, staticRenderFns }

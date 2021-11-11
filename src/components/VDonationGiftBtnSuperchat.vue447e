@@ -1,0 +1,93 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import MeMixin from '@/mixins/MeMixin';
+import DBtn from '@/components/DBtn.vue';
+import { Component, Mixins, Prop } from 'vue-property-decorator';
+import { Gift } from '@/models/gift';
+import { DonationType } from '@/graphql/types';
+import { namespace } from 'vuex-class';
+const uiModule = namespace('ui');
+
+@Component({
+  components: {
+    DBtn
+  }
+})
+export default class VDonationGiftBtnSuperchat extends Mixins(MeMixin) {
+  @Prop({
+    required: true
+  })
+  public gift!: Gift;
+
+  public superchatInput: string = '';
+
+  @uiModule.Getter('theatreMode')
+  private theatreMode!: boolean;
+
+  get placeholder() {
+    if (this.gift.type === DonationType.Ninjet) {
+      return 'VDonationGiftBtnSuperchat.PlaceholderNinjet';
+    } else if (this.gift.type === DonationType.Ninjaghini) {
+      return 'VDonationGiftBtnSuperchat.PlaceholderNinjaghini';
+    } else {
+      return 'VDonationGiftBtnSuperchat.PlaceholderDiamond';
+    }
+  }
+
+  get inputLimit() {
+    if (this.gift.type === DonationType.Ninjet) {
+      return '150';
+    } else if (this.gift.type === DonationType.Ninjaghini) {
+      return '100';
+    } else {
+      return '50';
+    }
+  }
+  get superchatBtn() {
+    if (this.superchatInput.length === 0) {
+      return 'VDonationGiftBtnSuperchat.SendWithoutMessage';
+    }
+    return 'VDonationGiftBtnSuperchat.Send';
+  }
+  public superchatSend() {
+    this.$emit('superchatSend', this.superchatInput);
+  }
+}

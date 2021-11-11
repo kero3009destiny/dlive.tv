@@ -1,0 +1,377 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { EVENTS } from '@/utils/constants';
+// import GlobalSnackbar from '@/components/GlobalSnackbar.vue';
+// import GlobalMe from '@/components/GlobalMe.vue';
+// import ReferSystem from '@/components/ReferSystem.vue';
+// import AdsSystem from '@/components/AdsSystem.vue';
+// import VerifySystem from '@/components/VerifySystem.vue';
+import DialogSystem from '@/components/DialogSystem.vue';
+// import NotificationSystem from '@/components/NotificationSystem.vue';
+// import GlobalInfo from '@/components/GlobalInfo.vue';
+import CashInResult from '@/components/CashInResult.vue';
+// import EmailConfirmBanner from '@/components/EmailConfirmBanner.vue';
+// import DailyReportDialog from '@/components/DailyReportDialog.vue';
+// import AppSidebar from '@/components/AppSidebar.vue';
+// import TopNavBar from '@/components/TopNavBar.vue';
+import { Meta } from '@/decorators/meta.ts';
+import { Component, Mixins } from 'vue-property-decorator';
+import DownloadAppDialog from '@/components/DownloadAppDialog.vue';
+import DownloadAppBar from '@/components/DownloadAppBar.vue';
+// import CashInPopup from '@/components/CashInPopup.vue';
+import { debounce } from 'throttle-debounce';
+import VNoSsr from '@/components/VNoSsr.vue';
+import ClipPopup from '@/components/ClipPopup.vue';
+import {
+  ROUTE_HOME,
+  ROUTE_MOBILE_HOME,
+  ROUTE_BROWSE,
+  ROUTE_FOLLOWING,
+  ROUTE_LIVESTREAM,
+  ROUTE_POPUP_CHAT,
+  ROUTE_CLIP_IFRAME,
+  ROUTE_MOBILE_SEARCH,
+  ROUTE_DASHBOARD,
+  ROUTE_KYC_VERIFY,
+  ROUTE_LIVESTREAM_IFRAME
+} from '@/router';
+import { addScrollListener } from '@/utils/chatroom';
+import GlobalEventBusMixin from '@/mixins/GlobalEventBusMixin';
+import { namespace } from 'vuex-class';
+import MeMixin from '@/mixins/MeMixin';
+import SnackbarMixin from '@/mixins/SnackbarMixin';
+import CashInButton from '@/components/CashInButton.vue';
+import { notificationStart } from '@/web-notification';
+import { metaContentDefault } from '@/utils/meta';
+import IS_BLOCKED_REGION from '@/graphql/queries/IsBlockedRegion.graphql';
+import { IPAPI } from '@/api/ip';
+import { IsBlockedRegion } from '@/graphql/types';
+const uiModule = namespace('ui');
+const dialogModule = namespace('dialog');
+const bannerModule = namespace('banner');
+const userMetaModule = namespace('userMeta');
+
+@Component({
+  components: {
+    // GlobalSnackbar,
+    // GlobalMe,
+    // GlobalInfo,
+    // AppSidebar,
+    DownloadAppBar,
+    DownloadAppDialog,
+    // CashInPopup,
+    VNoSsr,
+    CashInButton,
+    // TopNavBar,
+    // ReferSystem,
+    // AdsSystem,
+    // NotificationSystem,
+    CashInResult,
+    // EmailConfirmBanner,
+    // VerifySystem,
+    DialogSystem,
+    // DailyReportDialog,
+    ClipPopup,
+    AppSidebar: () => import('@/components/AppSidebar.vue'),
+    TopNavBar: () => import('@/components/TopNavBar.vue'),
+    DailyReportDialog: () => import('@/components/DailyReportDialog.vue'),
+    CashInPopup: () => import('@/components/CashInPopup.vue'),
+    ReferSystem: () => import('@/components/ReferSystem.vue'),
+    EmailConfirmBanner: () => import('@/components/EmailConfirmBanner.vue'),
+    GlobalMe: () => import('@/components/GlobalMe.vue'),
+    GlobalSnackbar: () => import('@/components/GlobalSnackbar.vue'),
+    GlobalInfo: () => import('@/components/GlobalInfo.vue'),
+    AdsSystem: () => import('@/components/AdsSystem.vue'),
+    NotificationSystem: () => import('@/components/NotificationSystem.vue'),
+    VerifySystem: () => import('@/components/VerifySystem.vue'),
+    DailyCheckInPopup: () => import('@/components/DailyCheckInPopup.vue'),
+    LinkSystem: () => import('@/components/LinkSystem.vue'),
+    HeaderBanner: () => import('@/components/HeaderBanner.vue')
+  }
+})
+export default class App extends Mixins(
+  MeMixin,
+  GlobalEventBusMixin,
+  SnackbarMixin
+) {
+  @Meta({
+    metaInfo: {
+      title: 'DLive · Live Stream on Blockchain',
+      meta: [
+        {
+          vmid: 'description',
+          name: 'description',
+          content: metaContentDefault
+        }
+      ]
+    }
+  })
+  public meta!: string;
+
+  public showApp: boolean = false;
+  public blockMessage: string = '';
+  get ROUTE_HOME() {
+    return ROUTE_HOME;
+  }
+  get ROUTE_BROWSE() {
+    return ROUTE_BROWSE;
+  }
+  get ROUTE_FOLLOWING() {
+    return ROUTE_FOLLOWING;
+  }
+  get ROUTE_LIVESTREAM() {
+    return ROUTE_LIVESTREAM;
+  }
+  get ROUTE_CLIP_IFRAME() {
+    return ROUTE_CLIP_IFRAME;
+  }
+
+  get ROUTE_LIVESTREAM_IFRAME() {
+    return ROUTE_LIVESTREAM_IFRAME;
+  }
+
+  get isHomePage() {
+    return (
+      this.$route.name === ROUTE_HOME || this.$route.name === ROUTE_MOBILE_HOME
+    );
+  }
+
+  get isBrowsePage() {
+    return this.$route.name === ROUTE_BROWSE;
+  }
+
+  get isFollowingPage() {
+    return this.$route.name === ROUTE_FOLLOWING;
+  }
+
+  get isChannelPage() {
+    return this.$route.name === ROUTE_LIVESTREAM;
+  }
+
+  get isPopupPage() {
+    return this.$route.name === ROUTE_POPUP_CHAT;
+  }
+
+  get isClipIframePage() {
+    return this.$route.name === ROUTE_CLIP_IFRAME;
+  }
+  get isMobileSearchPage() {
+    return this.$route.name === ROUTE_MOBILE_SEARCH;
+  }
+  get isLivestreamIframePage() {
+    return this.$route.name === ROUTE_LIVESTREAM_IFRAME;
+  }
+
+  get isDashboardPage() {
+    return this.$route.name === ROUTE_DASHBOARD;
+  }
+
+  get isKycVerifyPage() {
+    return this.$route.name === ROUTE_KYC_VERIFY;
+  }
+
+  get hasSidebar() {
+    return (
+      !this.isPopupPage &&
+      !this.isDashboardPage &&
+      !this.isMobile &&
+      !this.theatreMode &&
+      !this.isClipIframePage &&
+      !this.isLivestreamIframePage &&
+      !this.isKycVerifyPage
+    );
+  }
+
+  get hasTopNavBar() {
+    return (
+      !this.isClipIframePage &&
+      !this.isLivestreamIframePage &&
+      !this.isKycVerifyPage &&
+      !this.isMobileSearchPage
+    );
+  }
+  get needCheckIp() {
+    const time = new Date();
+    const startTime = new Date(Date.UTC(2021, 0, 20, 8, 0, 0));
+    const endTime = new Date(Date.UTC(2021, 0, 21, 7, 59, 0));
+    return time >= startTime && time <= endTime;
+  }
+  // Local
+
+  @userMetaModule.Action('getIpStats')
+  private getIP!: () => Promise<IPAPI>;
+
+  @uiModule.Mutation('resetViewPointWidth')
+  private resetViewPointWidth!: () => void;
+  @uiModule.Getter('isMobile')
+  private isMobile!: boolean;
+  @uiModule.Getter('theatreMode')
+  private theatreMode!: boolean;
+  @dialogModule.Getter('cashIn')
+  private cashInDialog!: boolean;
+  @dialogModule.Getter('dailyCheckIn')
+  private dailyCheckInDialog!: boolean;
+  @bannerModule.Getter('headerBanner')
+  private headerBanner!: boolean;
+  // @userMetaModule.Action('fetchFingerprint')
+  // private getFingerprint!: () => Promise<string>;
+
+  // public created() {
+  //   this.getFingerprint();
+  // }
+
+  public mounted() {
+    if (this.needCheckIp) {
+      this.getIP().then(async (res: IPAPI) => {
+        try {
+          if (res && res.country_code === 'US') {
+            const { data } = await this.$apollo.query<IsBlockedRegion.Query>({
+              query: IS_BLOCKED_REGION,
+              fetchPolicy: 'network-only',
+              variables: {
+                info: {
+                  ip: res.ip,
+                  city: res.city,
+                  region: res.region,
+                  regionCode: res.region_code,
+                  country: res.country,
+                  countryCode: res.country_code,
+                  continentCode: res.continent_code,
+                  utcOffset: res.utc_offset
+                }
+              }
+            });
+            if (data && data.isBlockedRegion && data.isBlockedRegion.blocked) {
+              if (data.isBlockedRegion.err) {
+                this.blockMessage = data.isBlockedRegion.err.message;
+              }
+              return;
+            }
+          }
+          this.showApp = true;
+        } catch (error) {
+          this.showApp = true;
+        }
+      });
+    } else {
+      this.showApp = true;
+    }
+    this.resetViewPointWidth();
+    window.onresize = debounce(200, this.resetViewPointWidth);
+    this.impressionEvent();
+    this.webNotification();
+
+    // const head = document.getElementsByTagName('head')[0];
+    //    const s2 = document.createElement('script');
+    //     s2.innerHTML = ` window.onAmazonLoginReady = function() {
+    //         console.log('app onAmazonLoginReady:', this,amazon);
+    //         amazon.Login.setClientId(
+    //           'amzn1.application-oa2-client.f36fbf1267b54575853f86a3c06cb8cf'
+    //         );
+    //       };
+    //       window.onAmazonPaymentsReady = function() {
+    //         console.log('app onAmazonPaymentsReady:', this,amazon);
+    //       };
+    //       `;
+
+    //     head.appendChild(s2);
+
+    //     const s1 = document.createElement('script');
+    //     if (process.env.VUE_APP_AMAZON_PAY_JS !== undefined) {
+    //       s1.src = process.env.VUE_APP_AMAZON_PAY_JS + '?sellerId=A2G4JTO27CAJI5';
+    //     } else {
+    //       s1.src =
+    //         'https://static-na.payments-amazon.com/OffAmazonPayments/us/js/Widgets.js?sellerId=A2G4JTO27CAJI5';
+    //     }
+    //     s1.async = true;
+    //     head.appendChild(s1);
+  }
+
+  public impressionEvent() {
+    const container = document.getElementById('router-view');
+    addScrollListener(
+      container,
+      debounce(1000, () => {
+        this.$_smartPublish(EVENTS.PAGE_SCROLL_EVENT, null);
+      })
+    );
+  }
+
+  public webNotification() {
+    if (!this.isClipIframePage) {
+      notificationStart(this);
+    }
+  }
+}

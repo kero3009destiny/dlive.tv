@@ -1,0 +1,373 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import DDialog from '@/components/DDialog.vue';
+import DBtn from '@/components/DBtn.vue';
+import DTextField from '@/components/DTextField.vue';
+import { AddTaxInfoInput } from '@/graphql/types';
+import { taxInfoAdd } from '@/apollo/mutation/payment';
+import {
+  TaxClassification,
+  ExemptPayeeCode,
+  ExemptFATCACode,
+  States
+} from '@/utils/IRS';
+import SnackbarMixin from '@/mixins/SnackbarMixin';
+import { Component, Prop, Mixins } from 'vue-property-decorator';
+
+@Component({
+  components: {
+    DDialog,
+    DTextField,
+    DBtn
+  }
+})
+export default class IRSForm extends Mixins(SnackbarMixin) {
+  @Prop({
+    required: true,
+    type: Boolean
+  })
+  public IRSFormShow!: boolean;
+
+  get TaxClassification() {
+    return TaxClassification;
+  }
+  get ExemptPayeeCode() {
+    return ExemptPayeeCode;
+  }
+  get ExemptFATCACode() {
+    return ExemptFATCACode;
+  }
+  get States() {
+    return States;
+  }
+
+  get canSubmit() {
+    if (
+      this.fullName !== '' &&
+      this.taxpayerID !== '' &&
+      this.taxPayerType !== null &&
+      this.address !== null &&
+      this.city !== null &&
+      this.state !== '' &&
+      this.zipCode !== '' &&
+      this.signature !== '' &&
+      this.signatureDate !== ''
+    ) {
+      return true;
+    }
+    return false;
+  }
+
+  // local
+  public fullName: string = '';
+  public businessName: string = '';
+  public taxpayerID: string = '';
+  public taxClassification: string = '';
+  public exemptPayeeCode: string = '';
+  public FATCAExemptCode: string = '';
+  public address: string = '';
+  public city: string = '';
+  public state: string = '';
+  public zipCode: string = '';
+  public signature: string = '';
+  public signatureDate: string = '';
+  public electronicDelivery: boolean = false;
+  public taxPayerType: 'SSN' | 'EIN' | null = null;
+
+  public async taxInfoAdd() {
+    if (this.taxPayerType === null) {
+      return;
+    }
+    const input: AddTaxInfoInput = {
+      fullName: this.fullName,
+      businessName: this.businessName,
+      taxPayerID: this.taxpayerID,
+      taxClassification: this.taxClassification,
+      exemptPayeeCode: this.exemptPayeeCode,
+      exemptFATCACode: this.FATCAExemptCode,
+      address: this.address,
+      city: this.city,
+      state: this.state,
+      zipcode: this.zipCode,
+      signature: this.signature,
+      signatureDate: this.signatureDate,
+      electronicDelivery: this.electronicDelivery,
+      taxPayerType: this.taxPayerType
+    };
+    const resp = await taxInfoAdd(this, input);
+    if (resp) {
+      this.changeState();
+    }
+  }
+
+  public changeState() {
+    this.$emit('closeIRSForm');
+  }
+}

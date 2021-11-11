@@ -1,0 +1,47 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { HomePageLivestream } from '@/graphql/types';
+import { Component, Prop, Vue } from 'vue-property-decorator';
+import VSnapLivestream from '@/components/VSnapLivestream.vue';
+
+@Component({
+  components: {
+    VSnapLivestream
+  }
+})
+export default class HomeLivestreams extends Vue {
+  @Prop({
+    required: true
+  })
+  public homeLivestreams!: HomePageLivestream.Livestreams;
+
+  @Prop({
+    required: true
+  })
+  public showAdultContent!: boolean;
+
+  @Prop({
+    required: true
+  })
+  public matureTagForViewer!: boolean;
+}

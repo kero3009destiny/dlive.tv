@@ -1,0 +1,20 @@
+
+
+
+
+
+
+
+
+
+
+import { VStreamChatResubRowFrag } from '@/graphql/types';
+import { Component, Prop, Vue } from 'vue-property-decorator';
+
+@Component
+export default class VStreamChatResubRow extends Vue {
+  @Prop({
+    required: true
+  })
+  public chatResubRow!: VStreamChatResubRowFrag.Fragment;
+}

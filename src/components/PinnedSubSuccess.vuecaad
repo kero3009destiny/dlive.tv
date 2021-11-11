@@ -1,0 +1,103 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { Component, Prop, Vue } from 'vue-property-decorator';
+import { PinnedSubFrag } from '@/graphql/types';
+import DDivider from '@/components/DDivider.vue';
+
+import DBtn from '@/components/DBtn.vue';
+@Component({
+  components: {
+    DBtn,
+    DDivider
+  }
+})
+export default class PinnedSubSuccess extends Vue {
+  @Prop({
+    required: true
+  })
+  public streamerInfo!: PinnedSubFrag.Fragment;
+
+  get subSetting() {
+    return this.streamerInfo.subSetting;
+  }
+
+  get badgeStyle() {
+    if (this.subSetting === undefined || this.subSetting === null) {
+      return '';
+    }
+    const style = `background: ${this.subSetting.badgeColor}; color: ${
+      this.subSetting.textColor
+    }`;
+    return style;
+  }
+
+  public closePinnedSub() {
+    this.$emit('closePinnedSub');
+  }
+}

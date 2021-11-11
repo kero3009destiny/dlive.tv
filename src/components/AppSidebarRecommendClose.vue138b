@@ -1,0 +1,80 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { Component, Vue } from 'vue-property-decorator';
+import DDivider from '@/components/DDivider.vue';
+import { ROUTE_LIVESTREAM } from '@/router';
+import { SidebarRecommendation } from '@/graphql/types';
+import { namespace } from 'vuex-class';
+import AppSidebarAvatar from '@/components/AppSidebarAvatar.vue';
+
+const globalInfoModule = namespace('globalInfo');
+
+@Component({
+  components: {
+    DDivider,
+    AppSidebarAvatar
+  }
+})
+export default class AppSidebarChannelsClose extends Vue {
+  get showChannels() {
+    const liveChannels: SidebarRecommendation.RecommendChannels[] = [];
+    for (const liveItem of this.recommendChannels) {
+      if (liveItem.user.livestream !== null) {
+        liveChannels.push(liveItem);
+      }
+    }
+    return liveChannels.slice(0, 3);
+  }
+  get shouldShowRecommend() {
+    return this.showChannels.length > 0;
+  }
+
+  @globalInfoModule.Getter('recommendChannels')
+  private recommendChannels!: SidebarRecommendation.RecommendChannels[];
+
+  public routeTo(displayname: string) {
+    return { name: ROUTE_LIVESTREAM, params: { displayname } };
+  }
+}

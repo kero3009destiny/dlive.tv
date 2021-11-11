@@ -1,0 +1,4 @@
+var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return (_vm.livestreamChatroom !== null)?_c('div',{staticClass:"chatroom flex-column width-100 position-relative bg-grey-darken-5",attrs:{"id":"chatroom"}},[(_vm.hasHeader)?_c('stream-chatroom-header',{attrs:{"is-popped":_vm.isPopped,"stream-chatroom-header":_vm.livestreamChatroom,"displayname":_vm.displayname},on:{"popped":_vm.popped}}):_vm._e(),_c('stream-chatroom-list',{style:(_vm.chatroomListStyle),attrs:{"chats":_vm.chats,"streamer-info":_vm.livestreamChatroom}}),_c('stream-chatroom-input',{ref:"streamChatroomInput",attrs:{"channel-info":_vm.streamerInfo,"stream-chatroom-input":_vm.livestreamChatroom,"chats":_vm.chats},on:{"sendMessage":_vm.handleSendChat,"clearMessage":_vm.handleClearMessage,"purgeMessage":_vm.handlePurgeMessage}})],1):_vm._e()}
+var staticRenderFns = []
+
+export { render, staticRenderFns }

@@ -1,0 +1,31 @@
+
+    var doc = {"kind":"Document","definitions":[{"kind":"FragmentDefinition","name":{"kind":"Name","value":"MeDashboardFrag"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"User"}},"directives":[],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"private"},"arguments":[],"directives":[],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"emailVerified"},"arguments":[],"directives":[]}]}},{"kind":"FragmentSpread","name":{"kind":"Name","value":"DashboardStreamSettingsFrag"},"directives":[]},{"kind":"FragmentSpread","name":{"kind":"Name","value":"DashboardHostSettingFrag"},"directives":[]},{"kind":"FragmentSpread","name":{"kind":"Name","value":"DashboardStreamChatroomFrag"},"directives":[]},{"kind":"FragmentSpread","name":{"kind":"Name","value":"DashboardActivityFeedFrag"},"directives":[]},{"kind":"FragmentSpread","name":{"kind":"Name","value":"DashboardOfflineImageSettingFrag"},"directives":[]},{"kind":"FragmentSpread","name":{"kind":"Name","value":"DashboardRerunSettingsFrag"},"directives":[]},{"kind":"FragmentSpread","name":{"kind":"Name","value":"DashboardSubscriptionSettingFrag"},"directives":[]}]}}],"loc":{"start":0,"end":628}};
+    doc.loc.source = {"body":"#import './DashboardStreamSettings.graphql'\n#import './DashboardHostSetting.graphql'\n#import './DashboardStreamChatroom.graphql'\n#import './DashboardActivityFeed.graphql'\n#import './DashboardOfflineImageSetting.graphql'\n#import './DashboardRerunSettingsFrag.graphql'\n#import './DashboardSubscriptionSetting.graphql'\n\nfragment MeDashboardFrag on User {\n  id\n  private {\n    emailVerified\n  }\n  ...DashboardStreamSettingsFrag\n  ...DashboardHostSettingFrag\n  ...DashboardStreamChatroomFrag\n  ...DashboardActivityFeedFrag\n  ...DashboardOfflineImageSettingFrag\n  ...DashboardRerunSettingsFrag\n  ...DashboardSubscriptionSettingFrag\n}\n","name":"GraphQL request","locationOffset":{"line":1,"column":1}};
+  
+
+    var names = {};
+    function unique(defs) {
+      return defs.filter(
+        function(def) {
+          if (def.kind !== 'FragmentDefinition') return true;
+          var name = def.name.value
+          if (names[name]) {
+            return false;
+          } else {
+            names[name] = true;
+            return true;
+          }
+        }
+      )
+    }
+  doc.definitions = doc.definitions.concat(unique(require('./DashboardStreamSettings.graphql').definitions));
+doc.definitions = doc.definitions.concat(unique(require('./DashboardHostSetting.graphql').definitions));
+doc.definitions = doc.definitions.concat(unique(require('./DashboardStreamChatroom.graphql').definitions));
+doc.definitions = doc.definitions.concat(unique(require('./DashboardActivityFeed.graphql').definitions));
+doc.definitions = doc.definitions.concat(unique(require('./DashboardOfflineImageSetting.graphql').definitions));
+doc.definitions = doc.definitions.concat(unique(require('./DashboardRerunSettingsFrag.graphql').definitions));
+doc.definitions = doc.definitions.concat(unique(require('./DashboardSubscriptionSetting.graphql').definitions));
+
+
+      module.exports = doc;
+    

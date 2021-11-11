@@ -1,0 +1,4 @@
+var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('vue-recaptcha',{ref:"recaptcha",attrs:{"size":"invisible","sitekey":_vm.siteKey},on:{"verify":_vm.onVerify,"expired":_vm.onExpire}})}
+var staticRenderFns = []
+
+export { render, staticRenderFns }

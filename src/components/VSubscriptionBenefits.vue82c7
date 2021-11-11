@@ -1,0 +1,145 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { VSubscriptionFrag } from '@/graphql/types';
+import { Component, Prop, Vue } from 'vue-property-decorator';
+interface BenefitTab {
+  icon: string;
+  benefitTips: string;
+  cardImg: string;
+}
+@Component({
+  components: {}
+})
+export default class VSubscriptionBenefits extends Vue {
+  @Prop({
+    required: true
+  })
+  public subscribee!: VSubscriptionFrag.Fragment;
+
+  // @Prop({
+  //   required: false,
+  //   default: false,
+  //   type: Boolean
+  // })
+  // public isResub!: boolean;
+  public currentBenefits: string = '0';
+  get subBenefits() {
+    if (this.subscribee && this.subscribee.isSubscribing) {
+      return this.$t('subscribe.MySubBenefits');
+    } else {
+      return this.$t('subscribe.SubBenefits');
+    }
+  }
+  get extraBenefit() {
+    const b = this.subscribee.subSetting;
+    if (b && b.benefits && b.benefits.length > 4) {
+      return b.benefits[b.benefits.length - 1];
+    } else {
+      return '';
+    }
+  }
+  get benefitTabList() {
+    return [
+      {
+        icon: require('@/assets/icon/sub-benefit-badge.svg'),
+        benefitTips: this.$t('subscribe.GetBadgeAndBeNoticed', {
+          displayname: this.subscribee.displayname
+        }) as string,
+        cardImg: require('@/assets/icon/sub-benefit-badge-card.svg')
+      },
+      {
+        icon: require('@/assets/icon/sub-benefit-chat.svg'),
+        benefitTips: this.$t('subscribe.ImmuneToSlowMode') as string,
+        cardImg: require('@/assets/icon/sub-benefit-chat-card.svg')
+      },
+      {
+        icon: require('@/assets/icon/sub-benefit-color.svg'),
+        benefitTips: this.$t('subscribe.SubStreak') as string,
+        cardImg: require('@/assets/icon/sub-benefit-color-card.svg')
+      },
+      {
+        icon: require('@/assets/icon/sub-benefit-emote.svg'),
+        benefitTips: this.$t('subscribe.UnlockStickerAndEmote') as string,
+        cardImg: require('@/assets/icon/sub-benefit-emote-card.svg')
+      }
+    ];
+  }
+}

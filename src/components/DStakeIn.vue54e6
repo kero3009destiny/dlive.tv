@@ -1,0 +1,189 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import SnackbarMixin from '@/mixins/SnackbarMixin';
+import { Component, Mixins, Prop } from 'vue-property-decorator';
+import DTextField from '@/components/DTextField.vue';
+import DBtn from '@/components/DBtn.vue';
+import { Contract } from '@/models/contract';
+import { countDown } from '@/utils/timerHelper';
+import { BttMethod } from '@/graphql/types';
+@Component({
+  components: {
+    DTextField,
+    DBtn
+  }
+})
+export default class DStakeIn extends Mixins(SnackbarMixin) {
+  @Prop({
+    required: true,
+    default: ''
+  })
+  public contract!: Contract;
+
+  @Prop({
+    required: true,
+    default: null
+  })
+  public canStakeIn!: { _can: boolean; _errorMessage: string };
+
+  @Prop({
+    required: true,
+    default: null
+  })
+  public canClaimPendingStakeOut!: {
+    _can: boolean;
+    _errorMessage: string;
+    _hasPendingStakeOut: boolean;
+    _amount: number;
+    _stakeoutTimestamp: number;
+    _stakeoutAvailableTimestamp: number;
+  };
+
+  @Prop({
+    required: true,
+    default: 0
+  })
+  public myStake!: number;
+
+  @Prop({
+    required: true,
+    default: false
+  })
+  public isPaused!: boolean;
+
+  public stakeLoading: boolean = false;
+  public stakeInNum: string = '';
+
+  get stakeVerifyCheck() {
+    if (this.stakeInNum) {
+      return false;
+    } else {
+      return true;
+    }
+  }
+
+  get stakeInTip() {
+    if (this.isPaused) {
+      return 'Stake in is paused now';
+    }
+    if (this.canStakeIn !== null && !this.canStakeIn._can) {
+      if (
+        this.canStakeIn._errorMessage ===
+        'Must claim previous rewards before stake in more'
+      ) {
+        return this.$t('Stake.StakeMustReward') as string;
+      }
+      if (
+        this.canStakeIn._errorMessage ===
+        'Cannot stake in with ongoing stake out'
+      ) {
+        return this.stakeInMustStakeOutTip();
+      }
+    }
+    return '';
+  }
+  public stakeInMustStakeOutTip() {
+    if (this.canClaimPendingStakeOut === null) {
+      return '';
+    } else {
+      const remainingTime = countDown(
+        this.canClaimPendingStakeOut._stakeoutAvailableTimestamp,
+        'DHM'
+      ) as { day: string; hour: string; min: string };
+      if (Number(remainingTime.day) > 0) {
+        return `You must claim Staked Out BTT in ${Number(
+          remainingTime.day
+        )} Days before Staking In`;
+      } else if (Number(remainingTime.hour) > 0) {
+        return `You must claim Staked Out BTT in ${Number(
+          remainingTime.hour
+        )} Hours before Staking In`;
+      } else if (Number(remainingTime.min) > 0) {
+        return `You must claim Staked Out BTT in ${Number(
+          remainingTime.min
+        )} Mins before Staking In`;
+      } else {
+        return `You must claim Staked Out BTT before Staking In`;
+      }
+    }
+  }
+  public clickStakeIn() {
+    this.$emit('clickDeal', 'stakeIn');
+  }
+
+  public async dealStakeIn() {
+    this.stakeLoading = true;
+    try {
+      const res = await this.contract.stakeIn().send({
+        feeLimit: 100000000,
+        tokenId: process.env.VUE_APP_CONTRACT_TOKENID,
+        tokenValue: Number(this.stakeInNum) * Math.pow(10, 6),
+        shouldPollResponse: false
+      });
+      this.stakeLoading = false;
+      this.$emit('callbackTxid', res, BttMethod.StakeIn);
+      this.$emit('updateStatus');
+      return;
+      // this.$success('Stake.StakeInSuccess');
+    } catch (err) {
+      this.stakeLoading = false;
+      if (err.error === 'Cannot find result in solidity node') {
+        const myTotalStake = await this.contract
+          .stakeOf(window.tronWeb.defaultAddress.base58)
+          .call();
+        if (
+          myTotalStake.toNumber() * Math.pow(10, -6) - this.myStake ===
+          Number(this.stakeInNum)
+        ) {
+          this.$emit('updateStatus');
+          this.$success('Stake.StakeInSuccess');
+          return;
+        }
+      }
+      this.$emit('error', err);
+    }
+  }
+}

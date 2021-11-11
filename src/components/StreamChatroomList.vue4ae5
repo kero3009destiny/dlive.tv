@@ -1,0 +1,458 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import {
+  StreamMessageSubscription,
+  VStreamChatroomListFrag,
+  MeStreamChatModeSettingFrag,
+  ChatType,
+  DonationType
+} from '@/graphql/types';
+import {
+  addScrollListener,
+  removeScrollListener,
+  isBottom,
+  scrollToBottom
+} from '@/utils/chatroom';
+import VStreamChatRow from '@/components/VStreamChatRow.vue';
+import StreamChatroomListCard from '@/components/StreamChatroomListCard.vue';
+import { Component, Mixins, Prop } from 'vue-property-decorator';
+import PinnedGifts from '@/components/PinnedGifts.vue';
+import PinnedSub from '@/components/PinnedSub.vue';
+import PinnedStreak from '@/components/PinnedStreak.vue';
+import { emoteRegex } from '@/utils/emote';
+import { namespace } from 'vuex-class';
+import clickaway from 'vue-clickaway';
+import { ChatText } from '@/models/chat';
+import MeMixin from '@/mixins/MeMixin';
+import { ROUTE_POPUP_CHAT } from '@/router';
+import HappyhourTicketsEntrance from '@/components/HappyhourTicketsEntrance.vue';
+import { ROUTE_LIVESTREAM } from '@/router';
+import GlobalEventBusMixin from '@/mixins/GlobalEventBusMixin';
+import { EVENTS } from '@/utils/constants';
+
+const meModule = namespace('me');
+const uiModule = namespace('ui');
+
+@Component({
+  components: {
+    VStreamChatRow,
+    PinnedGifts,
+    PinnedSub,
+    StreamChatroomListCard,
+    PinnedStreak,
+    HappyhourTicketsEntrance
+  }
+})
+export default class StreamChatroomList extends Mixins(
+  clickaway.mixin,
+  MeMixin,
+  GlobalEventBusMixin
+) {
+  get showMoreIcon() {
+    return this.moreMessage;
+  }
+
+  @Prop({
+    required: true
+  })
+  public chats!: StreamMessageSubscription.StreamMessageReceived[];
+
+  @Prop({
+    required: true
+  })
+  public streamerInfo!: VStreamChatroomListFrag.Fragment;
+
+  public moreMessage: boolean = false;
+  public shouldShowCard: boolean = false;
+  public selectedChat: StreamMessageSubscription.StreamMessageReceived | null = null;
+  public selectedEmote: ChatText | null = null;
+  public isShowingEmote: boolean = false;
+  // block week event
+  public date: Date = new Date();
+  public startDate: Date = new Date(Date.UTC(2019, 9, 28, 12, 0, 0));
+  public endDate: Date = new Date(Date.UTC(2019, 10, 16, 8, 0, 0));
+
+  @uiModule.Getter('isMobile')
+  private isMobile!: boolean;
+
+  @meModule.Getter('displaySetting')
+  private displaySetting!: MeStreamChatModeSettingFrag.DisplaySetting;
+
+  get isPopupPage() {
+    return this.$route.name === ROUTE_POPUP_CHAT;
+  }
+
+  get chatDisabled() {
+    return this.streamerInfo.chatDisabled;
+  }
+
+  get channelIsDlive() {
+    return (
+      this.streamerInfo !== undefined && this.streamerInfo.username === 'dlive'
+    );
+  }
+
+  get channelIsStage1() {
+    return (
+      this.streamerInfo !== undefined &&
+      this.streamerInfo.username === 'blockshow-stage1'
+    );
+  }
+
+  get channelIsStage2() {
+    return (
+      this.streamerInfo !== undefined &&
+      this.streamerInfo.username === 'blockshow-stage2'
+    );
+  }
+
+  get hasBanner() {
+    return (
+      this.date >= this.startDate &&
+      this.date <= this.endDate &&
+      (this.channelIsDlive || this.channelIsStage1 || this.channelIsStage2)
+    );
+  }
+
+  get bannerSrc1() {
+    if (this.channelIsDlive) {
+      return require('@/assets/icon/mobile-go-stage-one-banner.png');
+    }
+    if (this.channelIsStage1) {
+      return require('@/assets/icon/mobile-go-stage-two-banner.png');
+    }
+    if (this.channelIsStage2) {
+      return require('@/assets/icon/mobile-go-stage-one-banner.png');
+    }
+    return '';
+  }
+
+  get bannerSrc2() {
+    if (this.channelIsDlive) {
+      return require('@/assets/icon/mobile-go-stage-two-banner.png');
+    }
+    if (this.channelIsStage1) {
+      return require('@/assets/icon/mobile-go-dlive-banner.jpg');
+    }
+    if (this.channelIsStage2) {
+      return require('@/assets/icon/mobile-go-dlive-banner.jpg');
+    }
+    return '';
+  }
+
+  public mounted() {
+    const messageBody = document.getElementById('chat-body');
+    this.$_smartSubscribe(EVENTS.EMOTE_DIALOG, (showing: boolean) => {
+      this.isShowingEmote = showing;
+    });
+    addScrollListener(messageBody, this.scrollEventHandler);
+    this.scrollToBottom();
+  }
+
+  public beforeDestroy() {
+    const messageBody = document.getElementById('chat-body');
+    removeScrollListener(messageBody, this.scrollEventHandler);
+  }
+
+  public showCard(chat: StreamMessageSubscription.StreamMessageReceived) {
+    // show card if not on mobile and not on select
+    if (this.isShowingEmote) {
+      return;
+    }
+    if (!this.isMobile || this.isPopupPage) {
+      const selection = window.getSelection();
+      if (selection && selection.toString().length === 0) {
+        this.shouldShowCard = true;
+        this.selectedChat = chat;
+      }
+    }
+  }
+
+  public closeCard() {
+    this.shouldShowCard = false;
+  }
+
+  public scrollEventHandler() {
+    if (isBottom()) {
+      this.moreMessage = false;
+    } else {
+      this.moreMessage = true;
+    }
+  }
+
+  public scrollToBottom() {
+    this.$nextTick(() => {
+      scrollToBottom();
+    });
+  }
+
+  public msgFilter(chat: StreamMessageSubscription.StreamMessageReceived) {
+    if (this.displaySetting !== null && this.streamerInfo.isMe) {
+      switch (chat.type) {
+        case ChatType.Message: {
+          const emoteList = (chat as StreamMessageSubscription.ChatTextInlineFragment).content.match(
+            emoteRegex
+          );
+          if (
+            this.displaySetting.chat &&
+            (emoteList === null || emoteList.length === 0)
+          ) {
+            return false;
+          }
+          if (
+            this.displaySetting.stickers &&
+            (emoteList !== null && emoteList.length !== 0)
+          ) {
+            return false;
+          }
+          break;
+        }
+        case ChatType.Clip: {
+          if (this.displaySetting.chat) {
+            return false;
+          }
+          break;
+        }
+        case ChatType.Gift: {
+          const giftMsg = chat as StreamMessageSubscription.ChatGiftInlineFragment;
+          switch (giftMsg.gift) {
+            case DonationType.Lemon: {
+              if (this.displaySetting.lemon) {
+                return false;
+              }
+              break;
+            }
+            case DonationType.IceCream: {
+              if (this.displaySetting.icecream) {
+                return false;
+              }
+              break;
+            }
+            case DonationType.Diamond: {
+              if (this.displaySetting.diamond) {
+                return false;
+              }
+              break;
+            }
+            case DonationType.Ninjaghini: {
+              if (this.displaySetting.ninjaghini) {
+                return false;
+              }
+              break;
+            }
+            case DonationType.Ninjet: {
+              if (this.displaySetting.ninjet) {
+                return false;
+              }
+              break;
+            }
+          }
+          break;
+        }
+        case ChatType.Follow: {
+          if (this.displaySetting.follow) {
+            return false;
+          }
+          break;
+        }
+        case ChatType.Subscription: {
+          if (this.displaySetting.subscription) {
+            return false;
+          }
+          break;
+        }
+        case ChatType.ExtendSub: {
+          if (this.displaySetting.subscription) {
+            return false;
+          }
+          break;
+        }
+        case ChatType.GiftSub: {
+          if (this.displaySetting.subscription) {
+            return false;
+          }
+          break;
+        }
+        case ChatType.GiftSubReceive: {
+          if (this.displaySetting.subscription) {
+            return false;
+          }
+          break;
+        }
+        case ChatType.Host: {
+          if (this.displaySetting.hosting) {
+            return false;
+          }
+          break;
+        }
+        case ChatType.Mod: {
+          if (this.displaySetting.moderation) {
+            return false;
+          }
+          break;
+        }
+        default:
+          return true;
+      }
+    }
+    return true;
+  }
+
+  public bannerRedirect(index: number) {
+    if (this.channelIsDlive) {
+      if (index === 1) {
+        this.$router.push({
+          name: ROUTE_LIVESTREAM,
+          params: { displayname: 'blockshow-stage-one' }
+        });
+      } else {
+        this.$router.push({
+          name: ROUTE_LIVESTREAM,
+          params: { displayname: 'blockshow-stage-two' }
+        });
+      }
+    }
+    if (this.channelIsStage1) {
+      if (index === 1) {
+        this.$router.push({
+          name: ROUTE_LIVESTREAM,
+          params: { displayname: 'blockshow-stage-two' }
+        });
+      } else {
+        this.$router.push({
+          name: ROUTE_LIVESTREAM,
+          params: { displayname: 'DLive' }
+        });
+      }
+    }
+    if (this.channelIsStage2) {
+      if (index === 1) {
+        this.$router.push({
+          name: ROUTE_LIVESTREAM,
+          params: { displayname: 'blockshow-stage-one' }
+        });
+      } else {
+        this.$router.push({
+          name: ROUTE_LIVESTREAM,
+          params: { displayname: 'DLive' }
+        });
+      }
+    }
+  }
+
+  public joinLinoTelegram() {
+    window.open('https://link.lino.network/sfbw-telegram', '_blank');
+  }
+}

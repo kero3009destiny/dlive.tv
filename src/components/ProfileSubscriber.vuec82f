@@ -1,0 +1,161 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { ApolloQuery } from '@/decorators/apollo';
+import { ROUTE_LIVESTREAM } from '@/router';
+import VDliveAvatar from '@/components/VDliveAvatar.vue';
+import VDliveName from '@/components/VDliveName.vue';
+import { StateChanger } from 'vue-infinite-loading';
+import { fetchMoreLoading } from '@/utils/fetchdata';
+import { Maybe, LivestreamProfileSubscriber } from '@/graphql/types';
+import LIVESTREAM_PROFILE_SUBSCRIBER from '@/graphql/queries/LivestreamProfileSubscriber.graphql';
+import { Component, Vue } from 'vue-property-decorator';
+import VInfiniteLoading from '@/components/VInfiniteLoading.vue';
+
+@Component({
+  components: {
+    VDliveAvatar,
+    VDliveName,
+    VInfiniteLoading
+  }
+})
+export default class ProfileSubscriber extends Vue {
+  get profileSubscriber() {
+    if (
+      this.userByDisplayName !== undefined &&
+      this.userByDisplayName !== null &&
+      this.userByDisplayName.private !== null
+    ) {
+      return this.userByDisplayName.private.subscribers;
+    }
+    return null;
+  }
+
+  get displayname() {
+    return this.$route.params.displayname;
+  }
+
+  get subscribers() {
+    if (this.profileSubscriber !== null) {
+      return this.profileSubscriber.list;
+    }
+    return [];
+  }
+  @ApolloQuery({
+    query: LIVESTREAM_PROFILE_SUBSCRIBER,
+    variables(): LivestreamProfileSubscriber.Variables {
+      return {
+        displayname: this.displayname,
+        first: this.numUsersPerFetch
+      };
+    }
+  })
+  public userByDisplayName?: Maybe<
+    LivestreamProfileSubscriber.UserByDisplayName
+  >;
+  private readonly numUsersPerFetch = 20;
+
+  // Function -------------------------------------------------------
+  public routeTo(displayname: string) {
+    this.$router.push({
+      name: ROUTE_LIVESTREAM,
+      params: { displayname }
+    });
+  }
+
+  public _fetchMoreSubscriber($state: StateChanger) {
+    fetchMoreLoading($state, this.fetchMoreSubscriber);
+  }
+
+  public fetchMoreSubscriber(): Promise<boolean> {
+    return new Promise(resolve => {
+      if (
+        this.profileSubscriber === null ||
+        !this.profileSubscriber.pageInfo.hasNextPage
+      ) {
+        resolve(false);
+        return;
+      }
+      this.$apollo.queries.userByDisplayName.fetchMore({
+        variables: {
+          displayname: this.displayname,
+          first: this.numUsersPerFetch,
+          after: this.profileSubscriber.pageInfo.endCursor
+        },
+        updateQuery: (
+          previousResult: LivestreamProfileSubscriber.Query,
+          {
+            fetchMoreResult
+          }: { fetchMoreResult?: LivestreamProfileSubscriber.Query }
+        ) => {
+          if (
+            fetchMoreResult === undefined ||
+            fetchMoreResult.userByDisplayName === null ||
+            fetchMoreResult.userByDisplayName.private === null
+          ) {
+            resolve(false);
+            return previousResult;
+          }
+          const moreSubscribers: LivestreamProfileSubscriber.Subscribers =
+            fetchMoreResult.userByDisplayName.private.subscribers;
+          let prevSubscribers = previousResult.userByDisplayName;
+          if (!moreSubscribers.pageInfo.hasNextPage) {
+            resolve(false);
+          } else {
+            resolve(true);
+          }
+          if (prevSubscribers === null || prevSubscribers.private === null) {
+            prevSubscribers = fetchMoreResult.userByDisplayName;
+          } else {
+            prevSubscribers.private.subscribers.pageInfo =
+              moreSubscribers.pageInfo;
+            prevSubscribers.private.subscribers.list = [
+              ...prevSubscribers.private.subscribers.list,
+              ...moreSubscribers.list
+            ];
+          }
+          return {
+            userByDisplayName: prevSubscribers
+          };
+        }
+      });
+    });
+  }
+}

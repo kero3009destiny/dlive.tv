@@ -1,0 +1,251 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// import { userUpdateAbout } from '@/apollo/mutation/livestreamProfile';
+// import { writeProfileAboutCache } from '@/apollo/cache/livestreamProfile';
+// import PROFILE_ABOUT_FRAG from '@/graphql/fragments/ProfileAbout.graphql';
+import { Component, Mixins, Prop, Watch } from 'vue-property-decorator';
+import { LivestreamAboutFrag, PanelUpdateInput } from '@/graphql/types';
+import SnackbarMixin from '@/mixins/SnackbarMixin';
+import ProfileAboutPanel from '@/components/ProfileAboutPanel.vue';
+import DBtn from '@/components/DBtn.vue';
+import DTextField from '@/components/DTextField.vue';
+import DDialog from '@/components/DDialog.vue';
+import VUploadImage from '@/components/VUploadImage.vue';
+import uploadPanel from '@/api/uploadPanel';
+import { updatePanel, deletePanel } from '@/apollo/mutation/profileAbout';
+
+@Component({
+  components: {
+    DBtn,
+    ProfileAboutPanel,
+    DTextField,
+    DDialog,
+    VUploadImage
+  }
+})
+export default class ProfileAbout extends Mixins(SnackbarMixin) {
+  @Prop({
+    required: true
+  })
+  public userAboutEditPanel!: LivestreamAboutFrag.Panels;
+
+  @Prop({
+    required: true
+  })
+  public userAbout!: LivestreamAboutFrag.Fragment;
+
+  // Local
+  public uploadPanel = uploadPanel;
+  public isEditing = false;
+
+  public title: string | null = this.userAboutEditPanel.title;
+  public imageLink: string | null = this.userAboutEditPanel.imageLinkURL;
+  public body: string | null = this.userAboutEditPanel.body;
+  public imageUrl: string | null = this.userAboutEditPanel.imageURL;
+  public hasChangeEdit: boolean = false;
+  public showDeleteConfirm: boolean = false;
+
+  private showChangeAvatar: boolean = false;
+
+  public onClickChangeAvatar() {
+    this.showChangeAvatar = true;
+  }
+
+  public onAvatarDone(url: string) {
+    this.showChangeAvatar = false;
+    (this.$refs.changeAvatar as VUploadImage).reset();
+    this.imageUrl = url;
+  }
+
+  public async submitClicked() {
+    let imageLinkURLPared = '';
+    if (this.imageLink !== null && this.imageLink !== '') {
+      if (this.imageLink.startsWith('http')) {
+        imageLinkURLPared = this.imageLink;
+      } else {
+        imageLinkURLPared = 'https://' + this.imageLink;
+      }
+    }
+    const input: PanelUpdateInput = {
+      id: this.userAboutEditPanel.id,
+      title: this.title ? this.title : '',
+      imageURL: this.imageUrl ? this.imageUrl : '',
+      imageLinkURL: imageLinkURLPared,
+      body: this.body ? this.body : ''
+    };
+    try {
+      await updatePanel(this, input, this.userAbout.id);
+      this.hasChangeEdit = false;
+    } catch (err) {
+      this.$error('profileAbout.InvalidImageLinkURL');
+      throw err;
+    }
+  }
+
+  public async deleteClicked() {
+    this.showDeleteConfirm = true;
+  }
+
+  public async deleteClickedConfirm() {
+    try {
+      await deletePanel(this, this.userAboutEditPanel.id, this.userAbout.id);
+      this.showDeleteConfirm = false;
+    } catch (err) {
+      this.showDeleteConfirm = false;
+      throw err;
+    }
+  }
+
+  @Watch('title')
+  public onTitleChanges() {
+    this.hasChangeEdit = true;
+  }
+  @Watch('imageLink')
+  public onImageLinkChanges() {
+    this.hasChangeEdit = true;
+  }
+  @Watch('body')
+  public onBodyChanges() {
+    this.hasChangeEdit = true;
+  }
+  @Watch('imageUrl')
+  public onImageUrlChanges() {
+    this.hasChangeEdit = true;
+  }
+}

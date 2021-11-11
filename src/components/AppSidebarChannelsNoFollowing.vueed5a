@@ -1,0 +1,4 @@
+var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',{staticClass:"bg-grey-darken-3 border-radius-5 padding-3"},[_c('i18n',{staticClass:"margint-2 marginb-3 flex-justify-center",attrs:{"path":"AppSidebar.FollowAndGetUpdates","tag":"div"}}),_c('img',{staticClass:"width-100 marginb-2",attrs:{"src":require("@/assets/icon/sidebar-recommand.png")}})],1)}
+var staticRenderFns = []
+
+export { render, staticRenderFns }

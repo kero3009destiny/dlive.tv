@@ -1,0 +1,25 @@
+
+    var doc = {"kind":"Document","definitions":[{"kind":"FragmentDefinition","name":{"kind":"Name","value":"DashboardStreamChatroomFrag"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"User"}},"directives":[],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"FragmentSpread","name":{"kind":"Name","value":"MeLivestreamChatroomFrag"},"directives":[]}]}}],"loc":{"start":0,"end":125}};
+    doc.loc.source = {"body":"#import './MeLivestreamChatroomFrag.graphql'\n\nfragment DashboardStreamChatroomFrag on User {\n  ...MeLivestreamChatroomFrag\n}\n","name":"GraphQL request","locationOffset":{"line":1,"column":1}};
+  
+
+    var names = {};
+    function unique(defs) {
+      return defs.filter(
+        function(def) {
+          if (def.kind !== 'FragmentDefinition') return true;
+          var name = def.name.value
+          if (names[name]) {
+            return false;
+          } else {
+            names[name] = true;
+            return true;
+          }
+        }
+      )
+    }
+  doc.definitions = doc.definitions.concat(unique(require('./MeLivestreamChatroomFrag.graphql').definitions));
+
+
+      module.exports = doc;
+    

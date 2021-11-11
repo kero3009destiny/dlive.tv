@@ -1,0 +1,24 @@
+
+    var doc = {"kind":"Document","definitions":[{"kind":"FragmentDefinition","name":{"kind":"Name","value":"ClipViewCacheFrag"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"Clip"}},"directives":[],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"permlink"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"upvotes"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"views"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"picked"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"description"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"shares"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"hasUpvoted"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"comments"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"thumbnailUrl"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"pastbroadcast"},"arguments":[],"directives":[],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"},"arguments":[],"directives":[]}]}}]}}],"loc":{"start":0,"end":172}};
+    doc.loc.source = {"body":"fragment ClipViewCacheFrag on Clip {\n  id\n  permlink\n  upvotes\n  views\n  picked\n  description\n  shares\n  hasUpvoted\n  comments\n  thumbnailUrl\n  pastbroadcast {\n    id\n  }\n}","name":"GraphQL request","locationOffset":{"line":1,"column":1}};
+  
+
+    var names = {};
+    function unique(defs) {
+      return defs.filter(
+        function(def) {
+          if (def.kind !== 'FragmentDefinition') return true;
+          var name = def.name.value
+          if (names[name]) {
+            return false;
+          } else {
+            names[name] = true;
+            return true;
+          }
+        }
+      )
+    }
+  
+
+      module.exports = doc;
+    

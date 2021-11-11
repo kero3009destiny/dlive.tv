@@ -1,0 +1,130 @@
+
+    var doc = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"LivestreamPage"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"displayname"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}},"directives":[]},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"add"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Boolean"}}},"directives":[]},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"isLoggedIn"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Boolean"}}},"directives":[]},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"isMe"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Boolean"}}},"directives":[]},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"order"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"ClipSortOrder"}}},"directives":[]},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"showUnpicked"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Boolean"}}},"directives":[]}],"directives":[],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"userByDisplayName"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"displayname"},"value":{"kind":"Variable","name":{"kind":"Name","value":"displayname"}}}],"directives":[],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"},"arguments":[],"directives":[]},{"kind":"FragmentSpread","name":{"kind":"Name","value":"VDliveAvatarFrag"},"directives":[]},{"kind":"FragmentSpread","name":{"kind":"Name","value":"VDliveNameFrag"},"directives":[]},{"kind":"FragmentSpread","name":{"kind":"Name","value":"LivestreamChannelHeaderFrag"},"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"offlineImage"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"banStatus"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"deactivated"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"avatar"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"chatBannedEmoji"},"arguments":[],"directives":[{"kind":"Directive","name":{"kind":"Name","value":"include"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"if"},"value":{"kind":"Variable","name":{"kind":"Name","value":"isLoggedIn"}}}]}]},{"kind":"Field","name":{"kind":"Name","value":"bttReceiverAddress"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"myRoomRole"},"arguments":[],"directives":[{"kind":"Directive","name":{"kind":"Name","value":"include"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"if"},"value":{"kind":"Variable","name":{"kind":"Name","value":"isLoggedIn"}}}]}]},{"kind":"Field","name":{"kind":"Name","value":"isMe"},"arguments":[],"directives":[{"kind":"Directive","name":{"kind":"Name","value":"include"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"if"},"value":{"kind":"Variable","name":{"kind":"Name","value":"isLoggedIn"}}}]}]},{"kind":"Field","name":{"kind":"Name","value":"isSubscribing"},"arguments":[],"directives":[{"kind":"Directive","name":{"kind":"Name","value":"include"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"if"},"value":{"kind":"Variable","name":{"kind":"Name","value":"isLoggedIn"}}}]}]},{"kind":"FragmentSpread","name":{"kind":"Name","value":"LivestreamInfoFrag"},"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"lastStreamedAt"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"donateDisabled"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"subscribeDisabled"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"livestream"},"arguments":[],"directives":[],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"permlink"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"createdAt"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"ageRestriction"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"earnRestriction"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"watchTime"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"add"},"value":{"kind":"Variable","name":{"kind":"Name","value":"add"}}}],"directives":[]},{"kind":"FragmentSpread","name":{"kind":"Name","value":"VVideoPlayerFrag"},"directives":[]}]}},{"kind":"Field","name":{"kind":"Name","value":"hostingLivestream"},"arguments":[],"directives":[],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"creator"},"arguments":[],"directives":[],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"},"arguments":[],"directives":[]},{"kind":"FragmentSpread","name":{"kind":"Name","value":"VDliveAvatarFrag"},"directives":[]},{"kind":"FragmentSpread","name":{"kind":"Name","value":"VDliveNameFrag"},"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"username"},"arguments":[],"directives":[]}]}},{"kind":"FragmentSpread","name":{"kind":"Name","value":"VVideoPlayerFrag"},"directives":[]}]}},{"kind":"Field","name":{"kind":"Name","value":"rerun"},"arguments":[],"directives":[],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"entries"},"arguments":[],"directives":[],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"pastbroadcast"},"arguments":[],"directives":[],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"FragmentSpread","name":{"kind":"Name","value":"RerunReplayFrag"},"directives":[]}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"startSecond"},"arguments":[],"directives":[]}]}},{"kind":"FragmentSpread","name":{"kind":"Name","value":"LivestreamProfileFrag"},"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"beta"},"arguments":[],"directives":[],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"starfruitEnabled"},"arguments":[],"directives":[]}]}}]}}]}}],"loc":{"start":0,"end":1525}};
+    doc.loc.source = {"body":"#import '../fragments/LivestreamInfo.graphql'\n#import '../fragments/VDliveAvatar.graphql'\n#import '../fragments/VDliveName.graphql'\n#import '../fragments/LivestreamProfile.graphql'\n#import '../fragments/VVideoPlayer.graphql'\n#import '../fragments/VFollow.graphql'\n#import '../fragments/LivestreamChannelHeader.graphql'\n#import '../fragments/RerunReplayFrag.graphql'\n\nquery LivestreamPage(\n  $displayname: String!\n  $add: Boolean!\n  $isLoggedIn: Boolean!\n  $isMe: Boolean!\n  $order: ClipSortOrder!\n  $showUnpicked: Boolean!\n) {\n  userByDisplayName(displayname: $displayname) {\n    id\n    ...VDliveAvatarFrag\n    ...VDliveNameFrag\n    ...LivestreamChannelHeaderFrag\n    offlineImage\n    banStatus\n    deactivated\n    avatar\n    chatBannedEmoji @include(if: $isLoggedIn)\n    bttReceiverAddress\n    myRoomRole @include(if: $isLoggedIn)\n    isMe @include(if: $isLoggedIn)\n    isSubscribing @include(if: $isLoggedIn)\n    ...LivestreamInfoFrag\n    lastStreamedAt\n    donateDisabled\n    subscribeDisabled\n    livestream {\n      id\n      permlink\n      createdAt\n      ageRestriction\n      earnRestriction\n      watchTime(add: $add)\n      ...VVideoPlayerFrag\n    }\n    hostingLivestream {\n      id\n      creator {\n        id\n        ...VDliveAvatarFrag\n        ...VDliveNameFrag\n        username\n      }\n      ...VVideoPlayerFrag\n    }\n    rerun {\n      entries {\n        pastbroadcast {\n          ...RerunReplayFrag\n        }\n      }\n      startSecond\n    }\n    ...LivestreamProfileFrag\n    beta {\n      starfruitEnabled\n    }\n  }\n}\n","name":"GraphQL request","locationOffset":{"line":1,"column":1}};
+  
+
+    var names = {};
+    function unique(defs) {
+      return defs.filter(
+        function(def) {
+          if (def.kind !== 'FragmentDefinition') return true;
+          var name = def.name.value
+          if (names[name]) {
+            return false;
+          } else {
+            names[name] = true;
+            return true;
+          }
+        }
+      )
+    }
+  doc.definitions = doc.definitions.concat(unique(require('../fragments/LivestreamInfo.graphql').definitions));
+doc.definitions = doc.definitions.concat(unique(require('../fragments/VDliveAvatar.graphql').definitions));
+doc.definitions = doc.definitions.concat(unique(require('../fragments/VDliveName.graphql').definitions));
+doc.definitions = doc.definitions.concat(unique(require('../fragments/LivestreamProfile.graphql').definitions));
+doc.definitions = doc.definitions.concat(unique(require('../fragments/VVideoPlayer.graphql').definitions));
+doc.definitions = doc.definitions.concat(unique(require('../fragments/VFollow.graphql').definitions));
+doc.definitions = doc.definitions.concat(unique(require('../fragments/LivestreamChannelHeader.graphql').definitions));
+doc.definitions = doc.definitions.concat(unique(require('../fragments/RerunReplayFrag.graphql').definitions));
+
+
+    // Collect any fragment/type references from a node, adding them to the refs Set
+    function collectFragmentReferences(node, refs) {
+      if (node.kind === "FragmentSpread") {
+        refs.add(node.name.value);
+      } else if (node.kind === "VariableDefinition") {
+        var type = node.type;
+        if (type.kind === "NamedType") {
+          refs.add(type.name.value);
+        }
+      }
+
+      if (node.selectionSet) {
+        node.selectionSet.selections.forEach(function(selection) {
+          collectFragmentReferences(selection, refs);
+        });
+      }
+
+      if (node.variableDefinitions) {
+        node.variableDefinitions.forEach(function(def) {
+          collectFragmentReferences(def, refs);
+        });
+      }
+
+      if (node.definitions) {
+        node.definitions.forEach(function(def) {
+          collectFragmentReferences(def, refs);
+        });
+      }
+    }
+
+    var definitionRefs = {};
+    (function extractReferences() {
+      doc.definitions.forEach(function(def) {
+        if (def.name) {
+          var refs = new Set();
+          collectFragmentReferences(def, refs);
+          definitionRefs[def.name.value] = refs;
+        }
+      });
+    })();
+
+    function findOperation(doc, name) {
+      for (var i = 0; i < doc.definitions.length; i++) {
+        var element = doc.definitions[i];
+        if (element.name && element.name.value == name) {
+          return element;
+        }
+      }
+    }
+
+    function oneQuery(doc, operationName) {
+      // Copy the DocumentNode, but clear out the definitions
+      var newDoc = {
+        kind: doc.kind,
+        definitions: [findOperation(doc, operationName)]
+      };
+      if (doc.hasOwnProperty("loc")) {
+        newDoc.loc = doc.loc;
+      }
+
+      // Now, for the operation we're running, find any fragments referenced by
+      // it or the fragments it references
+      var opRefs = definitionRefs[operationName] || new Set();
+      var allRefs = new Set();
+      var newRefs = new Set();
+
+      // IE 11 doesn't support "new Set(iterable)", so we add the members of opRefs to newRefs one by one
+      opRefs.forEach(function(refName) {
+        newRefs.add(refName);
+      });
+
+      while (newRefs.size > 0) {
+        var prevRefs = newRefs;
+        newRefs = new Set();
+
+        prevRefs.forEach(function(refName) {
+          if (!allRefs.has(refName)) {
+            allRefs.add(refName);
+            var childRefs = definitionRefs[refName] || new Set();
+            childRefs.forEach(function(childRef) {
+              newRefs.add(childRef);
+            });
+          }
+        });
+      }
+
+      allRefs.forEach(function(refName) {
+        var op = findOperation(doc, refName);
+        if (op) {
+          newDoc.definitions.push(op);
+        }
+      });
+
+      return newDoc;
+    }
+
+    module.exports = doc;
+    
+        module.exports["LivestreamPage"] = oneQuery(doc, "LivestreamPage");
+        

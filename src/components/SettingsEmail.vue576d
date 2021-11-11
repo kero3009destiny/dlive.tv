@@ -1,0 +1,68 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import MeMixin from '@/mixins/MeMixin';
+import SnackbarMixin from '@/mixins/SnackbarMixin';
+import { Component, Mixins } from 'vue-property-decorator';
+import SettingsEmailSendVerify from '@/components/SettingsEmailSendVerify.vue';
+import DBtn from '@/components/DBtn.vue';
+import { namespace } from 'vuex-class';
+
+const meModule = namespace('me');
+
+@Component({
+  components: {
+    DBtn,
+    SettingsEmailSendVerify
+  }
+})
+export default class SettingsEmail extends Mixins(SnackbarMixin, MeMixin) {
+  // Local
+  public changingEmail: boolean = false;
+
+  @meModule.Getter('meEmail')
+  private meEmail!: string | null;
+  @meModule.Getter('meEmailVerified')
+  private meEmailVerified!: boolean;
+
+  public changeEmail() {
+    this.changingEmail = true;
+  }
+}

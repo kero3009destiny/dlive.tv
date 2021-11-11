@@ -1,0 +1,145 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import DDialog from '@/components/DDialog.vue';
+import VNoSsr from '@/components/VNoSsr.vue';
+import DashboardBttAddressSetting from '@/components/DashboardBttAddressSetting.vue';
+import { Component, Mixins, Prop } from 'vue-property-decorator';
+import { namespace } from 'vuex-class';
+import { setPartnerBttAddress } from '@/apollo/mutation/stake';
+import SnackbarMixin from '@/mixins/SnackbarMixin';
+import DBtn from '@/components/DBtn.vue';
+import { Contract } from '@/models/contract';
+import BigNumber from 'bignumber.js';
+import { PERMISSION_EVENTS, partnerPermissionCheck } from '@/utils/permission';
+import MeMixin from '@/mixins/MeMixin';
+
+const meModule = namespace('me');
+@Component({
+  components: {
+    DDialog,
+    DBtn,
+    VNoSsr,
+    DashboardBttAddressSetting
+  }
+})
+export default class StakePartnerAddressDialog extends Mixins(
+  SnackbarMixin,
+  MeMixin
+) {
+  @Prop({
+    required: true
+  })
+  public contract!: Contract | null;
+  public showDialog: boolean = false;
+  public changingAddress: boolean = false;
+  public showStartTips: boolean = false;
+  get canSetAddress() {
+    if (this.me !== null) {
+      return partnerPermissionCheck(
+        PERMISSION_EVENTS.STAKE_BONUS,
+        this.me.partnerStatus
+      );
+    }
+    return false;
+  }
+  @meModule.Getter('mePartnerBTTAddress')
+  private mePartnerBTTAddress!: string | null;
+
+  public mounted() {
+    if (Date.now() < Number(new Date(Date.UTC(2020, 5, 19, 0, 0, 0)))) {
+      this.showStartTips = true;
+    }
+  }
+  public close() {
+    this.showDialog = false;
+  }
+  public open() {
+    this.showDialog = true;
+  }
+  public changeAddress() {
+    this.changingAddress = true;
+  }
+  public async submitAddress(address: string) {
+    if (!this.canSetAddress) {
+      return this.$error(this.$t('Stake.NotEligible') as string);
+    }
+    if (this.contract === null) {
+      return this.$error('Stake.LoginTronlinkTip');
+    }
+    try {
+      const myTotalStake = await this.contract.stakeOf(address).call();
+      if (new BigNumber(myTotalStake).toNumber() > 0) {
+        setPartnerBttAddress(this, address);
+      } else {
+        this.$error(this.$t('Stake.NoStakeAddress') as string);
+      }
+    } catch (error) {
+      return this.$error(error);
+    }
+  }
+}

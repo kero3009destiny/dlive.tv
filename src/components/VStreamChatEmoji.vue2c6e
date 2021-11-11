@@ -1,0 +1,113 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import VEmojiDialog from '@/components/VEmojiDialog.vue';
+import clickaway from 'vue-clickaway';
+import GlobalEventBusMixin from '@/mixins/GlobalEventBusMixin';
+import { EVENTS } from '@/utils/constants';
+import CHECK_EMOTE_BY_NAME from '@/graphql/queries/CheckEmoteByName.graphql';
+import {
+  CheckEmoteByName,
+  StreamChatTextRowStreamerFrag
+} from '@/graphql/types';
+import { Component, Prop, Mixins } from 'vue-property-decorator';
+import SnackbarMixin from '@/mixins/SnackbarMixin';
+import { ChatText } from '@/models/chat';
+
+@Component({
+  components: {
+    VEmojiDialog
+  }
+})
+export default class VStreamChatEmoji extends Mixins(
+  clickaway.mixin,
+  GlobalEventBusMixin,
+  SnackbarMixin
+) {
+  @Prop({
+    required: true
+  })
+  public emoji!: ChatText;
+  @Prop({
+    required: true
+  })
+  public streamerInfo!: StreamChatTextRowStreamerFrag.Fragment;
+  public emojiInfo?: CheckEmoteByName.EmoteByName | null = null;
+  public showEmojiInfo: boolean = false;
+  public loading: string = '';
+  public async clickEmoji() {
+    this.$emit('clickEmoji', this.emoji);
+    if (!this.showEmojiInfo) {
+      this.showEmojiInfo = true;
+      this.$_smartPublish(EVENTS.EMOTE_DIALOG, true);
+      await this.checkEmoteInfo();
+      this.$_smartPublish(EVENTS.EMOTE_DIALOG, true);
+    }
+  }
+  public async checkEmoteInfo() {
+    try {
+      const variables: CheckEmoteByName.Variables = {
+        name: this.emoji.value
+      };
+      const { data } = await this.$apollo.query<CheckEmoteByName.Query>({
+        query: CHECK_EMOTE_BY_NAME,
+        loadingKey: this.loading,
+        fetchPolicy: 'network-only',
+        variables
+      });
+      const resp = data.emoteByName;
+      if (resp.err !== null) {
+        this.$errCode(resp.err.code);
+        return;
+      }
+      this.emojiInfo = resp;
+    } catch (err) {
+      this.$errorPlain('Error emote');
+    }
+  }
+  public closeInfoDialog() {
+    if (this.showEmojiInfo) {
+      this.$_smartPublish(EVENTS.EMOTE_DIALOG, false);
+    }
+    this.showEmojiInfo = false;
+  }
+
+  public destroyed() {
+    if (this.showEmojiInfo) {
+      this.$_smartPublish(EVENTS.EMOTE_DIALOG, false);
+    }
+  }
+}

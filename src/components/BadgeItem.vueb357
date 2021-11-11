@@ -1,0 +1,4 @@
+var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',[(_vm.badgeMain)?_c('v-tooltip',{staticClass:"inline-block marginlr-1",attrs:{"top":"","color":"#333333"}},[_c('div',{staticClass:"position-relative",attrs:{"slot":"activator"},slot:"activator"},[_c('img',{staticClass:"sender-avatar",staticStyle:{"vertical-align":"middle"},attrs:{"src":_vm.iconUrl,"width":_vm.badgeSize}}),(_vm.badgeMain.newBadge && _vm.showNewSpot)?_c('div',{staticClass:"new-spot"}):_vm._e()]),_c('span',[_vm._v(_vm._s(_vm.badgeMain.label))])]):_vm._e()],1)}
+var staticRenderFns = []
+
+export { render, staticRenderFns }

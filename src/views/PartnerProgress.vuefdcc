@@ -1,0 +1,1203 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { ApolloQuery } from '@/decorators/apollo';
+import SettingsPhoneVerification from '@/components/SettingsPhoneVerification.vue';
+import PartnerProgressApply from '@/components/PartnerProgressApply.vue';
+import VDliveAvatar from '@/components/VDliveAvatar.vue';
+import VDliveName from '@/components/VDliveName.vue';
+import DDivider from '@/components/DDivider.vue';
+import DBtn from '@/components/DBtn.vue';
+import DToken from '@/components/DToken.vue';
+import PARTNER_PROGRESS from '@/graphql/queries/MePartnerProgress.graphql';
+import PARTNER_UPDATE_TIMEZONE from '@/graphql/mutations/PartnerUpdateTimezone.graphql';
+import MeMixin from '@/mixins/MeMixin';
+import { timezone } from '@/utils/timezone';
+import { Component, Mixins } from 'vue-property-decorator';
+import {
+  Maybe,
+  MePartnerProgress,
+  PartnerStatus,
+  MePartnerProgressFrag,
+  PartnerApplicationInput,
+  PartnerApplicationStatus,
+  PartnerUpdateTimezone
+} from '@/graphql/types';
+import {
+  partnerStatusRenew,
+  partnerApplicationAdd
+} from '@/apollo/mutation/partnerProgress';
+import SnackbarMixin from '@/mixins/SnackbarMixin';
+import { ROUTE_HOME, ROUTE_SETTINGS, ROUTE_LIVESTREAM } from '@/router';
+import GlobalEventBusMixin from '@/mixins/GlobalEventBusMixin';
+import { EVENTS } from '@/utils/constants';
+import { namespace } from 'vuex-class';
+const meModule = namespace('me');
+@Component({
+  components: {
+    SettingsPhoneVerification,
+    PartnerProgressApply,
+    DBtn,
+    VDliveAvatar,
+    VDliveName,
+    DDivider,
+    DToken
+  }
+})
+export default class PartnerProgress extends Mixins(
+  MeMixin,
+  SnackbarMixin,
+  GlobalEventBusMixin
+) {
+  get curTimeZone() {
+    if (this.mePartnerTimezone && this.mePartnerTimezone.name) {
+      return this.mePartnerTimezone.utc + ',' + this.mePartnerTimezone.name;
+    } else {
+      return '';
+    }
+  }
+  get partnerProgress() {
+    if (
+      this.me !== null &&
+      this.me.private &&
+      this.me.private !== null &&
+      this.me.private.partnerProgress !== undefined
+    ) {
+      return this.me.private.partnerProgress;
+    }
+    return null;
+  }
+  get maintainProgress() {
+    if (
+      this.me !== null &&
+      this.me.private &&
+      this.me.private !== null &&
+      this.me.private.maintainProgress !== undefined
+    ) {
+      return this.me.private.maintainProgress;
+    }
+    return null;
+  }
+  get previousStats() {
+    if (this.me !== null && this.me.private && this.me.private !== null) {
+      return this.me.private.previousStats;
+    }
+    return undefined;
+  }
+  get partnerStatus() {
+    if (this.me !== null) {
+      return this.me.partnerStatus;
+    }
+    return PartnerStatus.None;
+  }
+  get isNonPartner() {
+    return this.partnerStatus === PartnerStatus.None;
+  }
+  get isAffiliate() {
+    return this.partnerStatus === PartnerStatus.Affiliate;
+  }
+  get isVerifiedPartner() {
+    return this.partnerStatus === PartnerStatus.VerifiedPartner;
+  }
+  get isGlobalPartnerSuspended() {
+    return this.partnerStatus === PartnerStatus.GlobalPartnerSuspended;
+  }
+  get isGlobalPartner() {
+    return this.partnerStatus === PartnerStatus.GlobalPartner;
+  }
+  get isRestore() {
+    if (this.partnerProgress !== null && this.partnerProgress.reactivate) {
+      return true;
+    }
+    return false;
+  }
+  get lastApplication() {
+    if (this.partnerProgress !== null) {
+      return this.partnerProgress.application;
+    }
+    return null;
+  }
+  get isPending() {
+    if (this.lastApplication !== null) {
+      return this.lastApplication.status === PartnerApplicationStatus.Pending;
+    }
+    return false;
+  }
+  get isReject() {
+    if (this.lastApplication !== null) {
+      return this.lastApplication.status === PartnerApplicationStatus.Rejected;
+    }
+    return false;
+  }
+  get canReapply() {
+    if (this.lastApplication !== null) {
+      if (Number(this.lastApplication.nextApplicationTime) <= Date.now()) {
+        return true;
+      }
+    }
+    return false;
+  }
+  get applyBtnText() {
+    if (this.isPending) {
+      return 'Pending';
+    } else if (this.isReject) {
+      if (this.canReapply) {
+        return 'Reapply';
+      }
+      return 'Rejected';
+    } else if (this.isRestore) {
+      return 'Restore';
+    } else {
+      return 'Apply';
+    }
+  }
+  get partnerProgressData() {
+    let title = '';
+    let name = '';
+    let icon = '';
+    switch (this.partnerStatus) {
+      case PartnerStatus.None: {
+        icon = require('@/assets/icon/affiliate-icon.svg');
+        break;
+      }
+      case PartnerStatus.Affiliate: {
+        icon = require('@/assets/icon/verified-icon.svg');
+        break;
+      }
+      case PartnerStatus.VerifiedPartner: {
+        icon = require('@/assets/icon/global-icon.svg');
+        break;
+      }
+      case PartnerStatus.GlobalPartnerSuspended: {
+        icon = require('@/assets/icon/global-icon.svg');
+        break;
+      }
+    }
+    if (this.partnerProgress !== null) {
+      name = this.partnerStatusName(this.partnerProgress.partnerStatus);
+    }
+    if (this.isRestore) {
+      title = 'Restore';
+    } else {
+      title = 'Path to';
+    }
+    return {
+      title,
+      name,
+      icon
+    };
+  }
+  get maintainProgressData() {
+    switch (this.partnerStatus) {
+      case PartnerStatus.GlobalPartner: {
+        return {
+          name: 'Global Partner',
+          icon: require('@/assets/icon/verified-icon.svg')
+        };
+      }
+      case PartnerStatus.VerifiedPartner: {
+        return {
+          name: 'Verified Partner',
+          icon: require('@/assets/icon/verified-icon.svg')
+        };
+      }
+      case PartnerStatus.GlobalPartnerSuspended: {
+        return {
+          name: 'Verified Partner',
+          icon: require('@/assets/icon/verified-icon.svg')
+        };
+      }
+      default: {
+        return {};
+      }
+    }
+  }
+  get canPartnerProgressApply() {
+    if (
+      this.partnerProgress !== null &&
+      this.partnerProgress.eligible &&
+      !this.isPending
+    ) {
+      if (this.isReject && !this.canReapply) {
+        return false;
+      }
+      if (this.partnerProgress.partnerStatus === PartnerStatus.Affiliate) {
+        if (this.welcomeLetterCheck && this.communityGuidelinesCheck) {
+          return true;
+        } else {
+          return false;
+        }
+      }
+      return true;
+    }
+    return false;
+  }
+  @ApolloQuery({
+    manual: true,
+    query: PARTNER_PROGRESS,
+    fetchPolicy: 'network-only',
+    skip() {
+      return this.me === null;
+    },
+    result() {
+      return;
+    },
+    variables(): MePartnerProgress.Variables {
+      return {
+        isNotGlobalPartner:
+          this.status === 'non' ||
+          this.status === 'pathToVerified' ||
+          this.status === 'pathToGlobal'
+      };
+    }
+  })
+  public MePartnerProgress?: Maybe<MePartnerProgressFrag.PartnerProgress>;
+  public communityGuidelinesCheck: boolean = false;
+  public welcomeLetterCheck: boolean = false;
+  public applyShow: boolean = false;
+  public timeZoneOptions: string[] = [];
+  // Computed ----------------------------------------------------
+  @meModule.Getter('partnerTimezone')
+  private mePartnerTimezone!: MePartnerProgressFrag.PartnerTimezone | null;
+  // Lifecycle Hooks ------------------------------------------------------------------------------------
+  public mounted() {
+    if (!this.$store.getters['accessToken/token']) {
+      this.$router.push({ name: ROUTE_HOME });
+    }
+    this.timeZoneOptions = timezone;
+    // this.curTimeZone = momentTZ.tz.guess();
+    // console.log(momentTZ.tz.guess(), timezone);
+  }
+  // Function ------------------------------------------------------------------------------------
+  public toVerifyEmail() {
+    this.$router.push({ name: ROUTE_SETTINGS, query: { open: 'email' } });
+  }
+  public toVerifyPhone() {
+    this.$router.push({ name: ROUTE_SETTINGS, query: { open: 'phone' } });
+  }
+  public toUpdateAvatar() {
+    this.$router.push({ name: ROUTE_SETTINGS, query: { open: 'avatar' } });
+  }
+  public async refetchProgress() {
+    try {
+      const { data } = await this.$apollo.query<MePartnerProgress.Query>({
+        query: PARTNER_PROGRESS,
+        fetchPolicy: 'network-only'
+      });
+      if (data.me && data.me.private) {
+        this.MePartnerProgress = data.me.private.partnerProgress;
+      }
+    } catch (err) {
+      // TODO(@ryan): error handling
+    }
+  }
+  public toUpdateAbout() {
+    if (this.me === null) {
+      return;
+    }
+    this.$router.push({
+      name: ROUTE_LIVESTREAM,
+      params: { displayname: this.me.displayname }
+    });
+  }
+  public applyVerified() {
+    window.open('https://go.dlive.tv/partneroverview', '_blank');
+  }
+  public onClickLinoWallet() {
+    this.$_smartPublish(EVENTS.GO_TO_WALLET, null);
+  }
+  public handlePartnerProgressApply() {
+    if (this.isRestore) {
+      this.partnerStatusRenew();
+    } else {
+      this.partnerStatusApply();
+    }
+  }
+  public async partnerStatusApply() {
+    if (this.partnerProgress !== null) {
+      if (this.partnerProgress.partnerStatus === PartnerStatus.Affiliate) {
+        if (this.me !== null && this.me.private !== null) {
+          const input: PartnerApplicationInput = {
+            partnerStatus: PartnerStatus.Affiliate,
+            username: this.me.username,
+            displayname: '',
+            email: '',
+            phone: '',
+            realName: '',
+            language: '',
+            country: '',
+            twitter: '',
+            facebook: '',
+            instagram: '',
+            discord: '',
+            youtube: '',
+            twitch: '',
+            mixer: '',
+            other: '',
+            questionnaire: '',
+            vouchers: []
+          };
+          await partnerApplicationAdd(this, input);
+          if (this.$apollo.queries.MePartnerProgress) {
+            this.$apollo.queries.MePartnerProgress.refetch();
+          }
+        }
+      } else {
+        this.applyShow = true;
+      }
+    }
+  }
+  public async changeTimeZone(res: string) {
+    try {
+      const { data } = await this.$apollo.mutate<
+        PartnerUpdateTimezone.Mutation
+      >({
+        mutation: PARTNER_UPDATE_TIMEZONE,
+        variables: {
+          timezone: res.split(',')[1]
+        }
+      });
+      const resp = data.partnerUpdateTimezone;
+      if (resp.err !== null) {
+        this.$errCode(resp.err.code);
+        return;
+      }
+      this.refetchProgress();
+    } catch (e) {
+      // TODO handle the exception
+    }
+    // todo
+  }
+  public async partnerStatusRenew() {
+    if (this.partnerProgress !== null) {
+      await partnerStatusRenew(this, this.partnerProgress.partnerStatus);
+      if (this.$apollo.queries.MePartnerProgress) {
+        this.$apollo.queries.MePartnerProgress.refetch();
+      }
+    }
+  }
+  public partnerStatusName(partnerStatus: PartnerStatus) {
+    switch (partnerStatus) {
+      case PartnerStatus.None: {
+        return 'Non Partner';
+      }
+      case PartnerStatus.Affiliate: {
+        return 'Affiliate';
+      }
+      case PartnerStatus.VerifiedPartner: {
+        return 'Verified Partner';
+      }
+      case PartnerStatus.GlobalPartnerSuspended: {
+        return 'Verified Partner';
+      }
+      case PartnerStatus.GlobalPartner: {
+        return 'Global Partner';
+      }
+    }
+  }
+  public applyClose() {
+    this.applyShow = false;
+    if (this.$apollo.queries.MePartnerProgress) {
+      this.$apollo.queries.MePartnerProgress.refetch();
+    }
+  }
+  public getUTCDate = (dateString: string) => {
+    const date = new Date(Number(dateString));
+    return new Date(
+      date.getUTCFullYear(),
+      date.getUTCMonth(),
+      date.getUTCDate(),
+      date.getUTCHours(),
+      date.getUTCMinutes(),
+      date.getUTCSeconds()
+    );
+  };
+}

@@ -1,0 +1,280 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { EVENTS } from '@/utils/constants';
+import {
+  SUGGESTED_VIDEO_HEIGHT,
+  SUGGESTED_VIDEO_WIDTH
+} from '@/utils/breakpoints';
+import VDliveAvatar from '@/components/VDliveAvatar.vue';
+import VDliveName from '@/components/VDliveName.vue';
+import DToken from '@/components/DToken.vue';
+import DSnap from '@/components/DSnap.vue';
+import MagicMqMixin from '@/mixins/MagicMqMixin';
+import {
+  SIH_RESIZE_THUMBNAIL_LARGE,
+  SIH_RESIZE_THUMBNAIL_MEDIAN,
+  SIHresize
+} from '@/utils/images';
+import { Impression } from '@/store/userMeta/types';
+import { existsInArr } from '@/utils/search';
+import { dataPoint } from '@/plugins/dataCollection';
+import { Component, Mixins, Prop } from 'vue-property-decorator';
+import { VLivestreamSnapFrag, BadgeType } from '@/graphql/types';
+import GlobalEventBusMixin from '@/mixins/GlobalEventBusMixin';
+import { namespace } from 'vuex-class';
+
+const userMetaModule = namespace('userMeta');
+
+@Component({
+  // @ts-ignore
+  name: 'postsnap',
+  // serverCacheKey: (props: { livestream: VLivestreamSnapFrag.Fragment }) => {
+  //   return props.livestream.id + props.livestream.lastUpdatedAt;
+  // },
+  components: {
+    VDliveAvatar,
+    VDliveName,
+    DSnap,
+    DToken
+  }
+})
+export default class VSnapLivestream extends Mixins(
+  MagicMqMixin,
+  GlobalEventBusMixin
+) {
+  @Prop({
+    required: true
+  })
+  public livestream!: VLivestreamSnapFrag.Fragment;
+
+  @Prop({
+    default: SUGGESTED_VIDEO_WIDTH
+  })
+  public width!: number;
+
+  @Prop({
+    default: SUGGESTED_VIDEO_HEIGHT
+  })
+  public height!: number;
+
+  @Prop({
+    default: true
+  })
+  public usernameShow!: boolean;
+
+  @Prop({
+    default: false
+  })
+  public isMobileHome!: boolean;
+
+  @Prop({
+    type: String,
+    required: true
+  })
+  public from!: string;
+
+  // Computed ------------------------------------------------------------------------------------
+  get imgUrl() {
+    // TODO(@ryan): use mq mixin
+    if (this.isXs) {
+      return SIHresize(
+        this.livestream.thumbnailUrl,
+        SIH_RESIZE_THUMBNAIL_LARGE
+      );
+    } else {
+      return SIHresize(
+        this.livestream.thumbnailUrl,
+        SIH_RESIZE_THUMBNAIL_MEDIAN
+      );
+    }
+  }
+
+  get hasCryptoSuperstarBadge() {
+    if (this.livestream !== undefined) {
+      const badges = this.livestream.creator.myChatBadges;
+      return badges.length !== 0 && badges.includes(BadgeType.CryptoSuperstar);
+    }
+    return false;
+  }
+
+  get snapStyle() {
+    if (this.isMobileHome) {
+      return 'width:100%';
+    }
+    // const sty = String(this.width) + 'px';
+    return { width: '100%' };
+  }
+
+  get avatarSize() {
+    if (this.isMobileHome) {
+      return 32;
+    }
+    return 40;
+  }
+
+  get usernameIconSize() {
+    if (this.isMobileHome) {
+      return 12;
+    }
+    return 12;
+  }
+
+  get params() {
+    return { displayname: this.livestream.creator.displayname };
+  }
+
+  @userMetaModule.Mutation('addImpressionSnap')
+  private addImpressionSnap!: (param: {
+    from: string;
+    permlink: string;
+  }) => void;
+
+  @userMetaModule.Getter('impressionSnaps')
+  private impressionSnaps!: Impression;
+
+  public mounted() {
+    this.$_smartSubscribe(EVENTS.PAGE_SCROLL_EVENT, this.impressionEvent);
+  }
+
+  // Function ------------------------------------------------------------------------------------
+  public goToLivestream() {
+    dataPoint('click_livestream', {
+      eventCategory: this.from,
+      eventLabel:
+        this.livestream.creator.username + '&' + this.livestream.permlink
+    });
+  }
+
+  public impressionEvent() {
+    const snap = this.$refs.livestreamSnap;
+    if (snap) {
+      if (this.elementInViewport(snap as HTMLElement)) {
+        if (
+          !existsInArr(
+            this.impressionSnaps[this.from],
+            this.livestream.permlink
+          )
+        ) {
+          dataPoint('impression_livestream', {
+            eventCategory: this.from,
+            eventLabel:
+              this.livestream.creator.username + '&' + this.livestream.permlink
+          });
+          this.addImpressionSnap({
+            from: this.from,
+            permlink: this.livestream.permlink
+          });
+        }
+      }
+    }
+  }
+
+  public elementInViewport(elem: HTMLElement) {
+    const bounding = elem.getBoundingClientRect();
+    return (
+      bounding.top >= 0 &&
+      bounding.left >= 0 &&
+      bounding.bottom <=
+        (window.innerHeight || document.documentElement.clientHeight) &&
+      bounding.right <=
+        (window.innerWidth || document.documentElement.clientWidth)
+    );
+  }
+}

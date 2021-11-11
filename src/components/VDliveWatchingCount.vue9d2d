@@ -1,0 +1,47 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import DToken from '@/components/DToken.vue';
+import { Component, Prop, Vue } from 'vue-property-decorator';
+
+@Component({
+  components: {
+    DToken
+  }
+})
+export default class VDliveWatchingCount extends Vue {
+  @Prop({
+    required: true,
+    type: Number
+  })
+  public watchingCount!: number;
+
+  @Prop({
+    required: false,
+    type: Number,
+    default: 9
+  })
+  public iconSize!: number;
+
+  get watchingCountString() {
+    return this.watchingCount.toString();
+  }
+  get iconStyle() {
+    return `width: ${this.iconSize}px`;
+  }
+}

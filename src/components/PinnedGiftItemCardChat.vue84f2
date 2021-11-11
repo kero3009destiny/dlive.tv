@@ -1,0 +1,6 @@
+var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',{staticClass:"paddingtb-3 position-relative",class:{
+    clickable: _vm.allowedActions.length > 0
+  },on:{"click":_vm.toggleSuperchatMod}},[_c('div',{staticClass:"overflow-hidden"},[_vm._v(" "+_vm._s(_vm.superchat.message)+" ")]),(_vm.shouldShowUperchatMod)?_c('div',{directives:[{name:"on-clickaway",rawName:"v-on-clickaway",value:(_vm.closeSuperchatMod),expression:"closeSuperchatMod"}],staticClass:"mod-card bg-grey-darken-3 position-absolute"},[_c('div',{staticClass:"menu-section flex-column flex-all-center"},[(_vm.canDeleteChat)?_c('a',{staticClass:"menu-item flex-all-center width-100",on:{"click":_vm.chatDelete}},[_c('i18n',{attrs:{"path":"LiveStreamChatroomRow.Delete"}})],1):_vm._e(),(_vm.canBanUser)?_c('a',{staticClass:"menu-item flex-all-center width-100",on:{"click":_vm.userBan}},[_c('i18n',{attrs:{"path":"LiveStreamChatroomRow.DeleteAndMute"}})],1):_vm._e(),(_vm.canUserTimeoutSet)?_c('a',{staticClass:"menu-item flex-all-center width-100",on:{"click":_vm.userTimeoutSet}},[_c('i18n',{attrs:{"path":"LiveStreamChatroomRow.UserTimeOut"}})],1):_vm._e()])]):_vm._e()])}
+var staticRenderFns = []
+
+export { render, staticRenderFns }

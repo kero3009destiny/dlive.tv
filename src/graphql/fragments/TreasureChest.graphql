@@ -1,0 +1,25 @@
+
+    var doc = {"kind":"Document","definitions":[{"kind":"FragmentDefinition","name":{"kind":"Name","value":"TreasureChestFrag"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"User"}},"directives":[],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"username"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"isMe"},"arguments":[],"directives":[{"kind":"Directive","name":{"kind":"Name","value":"include"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"if"},"value":{"kind":"Variable","name":{"kind":"Name","value":"isLoggedIn"}}}]}]},{"kind":"Field","name":{"kind":"Name","value":"treasureChest"},"arguments":[],"directives":[],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"value"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"state"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"ongoingGiveaway"},"arguments":[],"directives":[],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"closeAt"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"pricePool"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"claimed"},"arguments":[],"directives":[{"kind":"Directive","name":{"kind":"Name","value":"include"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"if"},"value":{"kind":"Variable","name":{"kind":"Name","value":"isLoggedIn"}}}]}]}]}}]}},{"kind":"FragmentSpread","name":{"kind":"Name","value":"TreasureChestPopupFrag"},"directives":[]}]}}],"loc":{"start":0,"end":295}};
+    doc.loc.source = {"body":"#import './TreasureChestPopup.graphql'\n\nfragment TreasureChestFrag on User {\n  id\n  username\n  isMe @include(if: $isLoggedIn)\n  treasureChest {\n    value\n    state\n    ongoingGiveaway {\n      closeAt\n      pricePool\n      claimed @include(if: $isLoggedIn)\n    }\n  }\n  ...TreasureChestPopupFrag\n}","name":"GraphQL request","locationOffset":{"line":1,"column":1}};
+  
+
+    var names = {};
+    function unique(defs) {
+      return defs.filter(
+        function(def) {
+          if (def.kind !== 'FragmentDefinition') return true;
+          var name = def.name.value
+          if (names[name]) {
+            return false;
+          } else {
+            names[name] = true;
+            return true;
+          }
+        }
+      )
+    }
+  doc.definitions = doc.definitions.concat(unique(require('./TreasureChestPopup.graphql').definitions));
+
+
+      module.exports = doc;
+    

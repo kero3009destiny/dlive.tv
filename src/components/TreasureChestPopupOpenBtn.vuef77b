@@ -1,0 +1,127 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import DBtn from '@/components/DBtn.vue';
+import { giveawayStart } from '@/apollo/mutation/chest';
+import SnackbarMixin from '@/mixins/SnackbarMixin';
+import { TreasureChestPopupFrag } from '@/graphql/types';
+import { Component, Mixins, Prop } from 'vue-property-decorator';
+import { formatTimeFromNowNoSuffix } from '@/filters/filters';
+
+@Component({
+  components: {
+    DBtn
+  }
+})
+export default class TreasureChestPopupBtn extends Mixins(SnackbarMixin) {
+  get canStart() {
+    if (this.enoughChestValue) {
+      return true;
+    }
+    return false;
+  }
+
+  get nextGiveawayThresholdAt() {
+    return this.streamerInfo.treasureChest.nextGiveawayThresholdAt;
+  }
+  get enoughChestValue() {
+    return (
+      parseInt(this.streamerInfo.treasureChest.value, 10) >=
+      parseInt(this.streamerInfo.treasureChest.startGiveawayValueThreshold, 10)
+    );
+  }
+
+  @Prop({
+    required: true
+  })
+  public streamerInfo!: TreasureChestPopupFrag.Fragment;
+
+  public chestRemainingTime: string = '';
+  public chestExpiredInterval: number = 0;
+
+  public mounted() {
+    this.setChestExpiredInterval();
+  }
+  public beforeDestroy() {
+    if (this.chestExpiredInterval !== 0) {
+      window.clearInterval(this.chestExpiredInterval);
+    }
+  }
+
+  public setChestExpiredInterval() {
+    if (this.streamerInfo.treasureChest.expireAt !== null) {
+      this.chestRemainingTime = formatTimeFromNowNoSuffix(
+        this.streamerInfo.treasureChest.expireAt
+      );
+      this.chestExpiredInterval = window.setInterval(() => {
+        if (this.streamerInfo.treasureChest.expireAt === null) {
+          return;
+        }
+        this.chestRemainingTime = formatTimeFromNowNoSuffix(
+          this.streamerInfo.treasureChest.expireAt
+        );
+      }, 30000);
+    }
+  }
+
+  public giveawayStart() {
+    giveawayStart(this);
+  }
+}

@@ -1,0 +1,118 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import {
+  ROUTE_LIVESTREAM,
+  ROUTE_PAST_BROADCAST,
+  ROUTE_VIDEO,
+  ROUTE_CLIP
+} from '@/router';
+import { Component, Vue, Prop } from 'vue-property-decorator';
+
+@Component
+export default class DSnap extends Vue {
+  @Prop({
+    type: String,
+    required: true
+  })
+  public thumbnailUrl!: string;
+
+  @Prop({
+    type: Boolean,
+    required: false,
+    default: false
+  })
+  public playIcon!: boolean;
+
+  @Prop({
+    type: String,
+    required: true
+  })
+  public type!: 'livestream' | 'replay' | 'video' | 'rerun' | 'clip';
+
+  @Prop({
+    type: Object,
+    required: true
+  })
+  public params!: object;
+
+  get router() {
+    switch (this.type) {
+      case 'livestream':
+        return { name: ROUTE_LIVESTREAM, params: this.params };
+      case 'rerun':
+        return { name: ROUTE_LIVESTREAM, params: this.params };
+      case 'replay':
+        return { name: ROUTE_PAST_BROADCAST, params: this.params };
+      case 'video':
+        return { name: ROUTE_VIDEO, params: this.params };
+      case 'clip':
+        return { name: ROUTE_CLIP, params: this.params };
+      default:
+        return '';
+    }
+  }
+}

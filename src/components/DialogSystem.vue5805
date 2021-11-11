@@ -1,0 +1,103 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import DDialog from '@/components/DDialog.vue';
+import DBtn from '@/components/DBtn.vue';
+import { Component, Mixins } from 'vue-property-decorator';
+import { namespace } from 'vuex-class';
+import { ROUTE_HOME } from '@/router';
+import MeMixin from '@/mixins/MeMixin';
+import SettingsEmailSendVerify from '@/components/SettingsEmailSendVerify.vue';
+
+const dialogModule = namespace('dialog');
+
+@Component({
+  components: {
+    DDialog,
+    DBtn,
+    SettingsEmailSendVerify
+  }
+})
+export default class DialogSystem extends Mixins(MeMixin) {
+  get dialogShow() {
+    return this.emailVerify || this.dashboardEmailVerify;
+  }
+
+  get title() {
+    if (this.emailVerify) {
+      return this.$t('DialogSystem.EmailVerifyTitle') as string;
+    } else if (this.dashboardEmailVerify) {
+      return this.$t('DialogSystem.DashboardEmailVerifyTitle') as string;
+    }
+    return '';
+  }
+
+  get persistent() {
+    if (this.dashboardEmailVerify) {
+      return true;
+    }
+    return false;
+  }
+
+  @dialogModule.Getter('emailVerify')
+  private emailVerify!: boolean;
+  @dialogModule.Getter('dashboardEmailVerify')
+  private dashboardEmailVerify!: boolean;
+  @dialogModule.Mutation('setEmailVerifyDialog')
+  private setEmailVerifyDialog!: (status: boolean) => void;
+  @dialogModule.Mutation('setDashboardEmailVerifyDialog')
+  private setDashboardEmailVerifyDialog!: (status: boolean) => void;
+
+  public changeState(status: boolean) {
+    if (this.emailVerify) {
+      this.setEmailVerifyDialog(status);
+    }
+    if (this.dashboardEmailVerify) {
+      this.setDashboardEmailVerifyDialog(status);
+    }
+  }
+
+  public close() {
+    if (this.dashboardEmailVerify) {
+      this.$router.push({ name: ROUTE_HOME });
+    }
+    this.dialogClose();
+  }
+
+  public dialogClose() {
+    if (this.emailVerify) {
+      this.setEmailVerifyDialog(false);
+    }
+    if (this.dashboardEmailVerify) {
+      this.setDashboardEmailVerifyDialog(false);
+    }
+  }
+}

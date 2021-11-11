@@ -1,0 +1,1865 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* eslint-disable */
+import MeMixin from '@/mixins/MeMixin';
+import DDialog from '@/components/DDialog.vue';
+import DToken from '@/components/DToken.vue';
+import DDivider from '@/components/DDivider.vue';
+import DBtn from '@/components/DBtn.vue';
+import DCreditCard from '@/components/DCreditCard.vue';
+import { Component, Mixins, Watch } from 'vue-property-decorator';
+import VTextFieldEmail from '@/components/VTextFieldEmail.vue';
+import {
+  CreateXsollaToken,
+  CoinbaseToken,
+  MeBalance,
+  PaybrosPaymentChannelType,
+  PaybrosPaymentInitiate,
+  EpinPrices,
+  EpinPaymentInitiate,
+  StripeCreatePaymentIntent,
+  InitiateAmazonPaymentInput,
+  MeRebillyCardsFrag
+} from '@/graphql/types';
+import {
+  paypalPrice,
+  coinbasePrice,
+  xsollaPrice,
+  linoPoints,
+  xsollaType,
+  coinbaseType,
+  paypalKey,
+  PaymentMethod,
+  linoPoint,
+  CashInType,
+  coinbaseI18n,
+  // amazonPayI18n,
+  // rebillyI18n,
+  skrillI18n,
+  PaymentMethodI18n,
+  paybrosType,
+  paybrosPrice,
+  epinType,
+  epinI18n,
+  stripeI18n,
+  stripeType,
+  epinPrice,
+  amazonPayPrice,
+  amazonPayType,
+  rebillyPrice,
+  rebillyType,
+  skrillPrice,
+  skrillType
+} from '@/models/cashin';
+import { ApolloQuery } from '@/decorators/apollo';
+import SnackbarMixin from '@/mixins/SnackbarMixin';
+import { namespace } from 'vuex-class';
+import { IPAPI } from '@/api/ip';
+import ME_BALANCE from '@/graphql/queries/MeBalance.graphql';
+import ME_REBILLY_CARDS from '@/graphql/queries/MeRebillyCards.graphql';
+import EPIN_PRICES from '@/graphql/queries/EpinPrices.graphql';
+import {
+  paymentAddEmail,
+  reportCBPayment,
+  amazonPaymentInitiate,
+  rebillyPaymentProcess,
+  skrillToken
+} from '@/apollo/mutation/cashin';
+import CREATE_XSOLLA_TOKEN from '@/graphql/mutations/CreateXsollaToken.graphql';
+import COINBASE_TOKEN from '@/graphql/mutations/CoinbaseToken.graphql';
+import PAYBROS_PAYMENT_INITIATE from '@/graphql/mutations/PaybrosPaymentInitiate.graphql';
+import EPIN_PAYMENT_INITIATE from '@/graphql/mutations/EpinPaymentInitiate.graphql';
+import STRIPE_PAYMENT_INITIATE from '@/graphql/mutations/StripeCreatePaymentIntent.graphql';
+import { allCountries, CountryCode } from '@/utils/countrycode';
+import VGrecaptcha from '@/components/VGrecaptcha.vue';
+import { RecaptchaError } from '@/models/error';
+import { loadStripe } from '@stripe/stripe-js';
+
+const meModule = namespace('me');
+const userMetaModule = namespace('userMeta');
+const dialogModule = namespace('dialog');
+
+@Component({
+  components: {
+    VTextFieldEmail,
+    DDialog,
+    DToken,
+    DDivider,
+    DBtn,
+    DCreditCard,
+    VGrecaptcha
+  }
+})
+export default class CashInPopup extends Mixins(MeMixin, SnackbarMixin) {
+  @ApolloQuery({
+    query: EPIN_PRICES
+  })
+  public globalInfo?: EpinPrices.GlobalInfo;
+
+  public stripeDialogVisible: boolean = false;
+  public stripeClientSecret: string = '';
+
+  get canPay() {
+    if (this.paymentMethod === null) {
+      return false;
+    }
+    if (this.paymentMethodIsXsolla && this.xsollaToken === '') {
+      return false;
+    }
+    if (
+      this.paymentMethodIsCoinbase &&
+      (!this.coinbaseCheckNotice || this.coinbaseToken === '')
+    ) {
+      return false;
+    }
+    // if (this.paymentMethodIsPaybros && this.paybrosUrl === '') {
+    //     return false;
+    // }
+    if (this.paymentMethodIsEpin && !this.epinInputIsOk) {
+      return false;
+    }
+    if (this.paymentMethodIsStripe && !this.stripeInputIsOk) {
+      return false;
+    }
+    if (
+      this.paymentMethodIsAmazonPay &&
+      (this.amazonPaySignature === '' || this.amazonPayOrderId === '')
+    ) {
+      return false;
+    }
+    if (this.paymentMethodIsSkrill && this.skrillToken === '') {
+      return false;
+    }
+    return this.paymentEmail !== '';
+  }
+
+  get stripeInputIsOk() {
+    if (
+      this.paymentUserSurName &&
+      this.paymentUserName &&
+      this.paymentUserTele &&
+      this.paymentEmail
+    ) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+  get epinInputIsOk() {
+    if (
+      this.paymentUserSurName &&
+      this.paymentUserName &&
+      this.paymentUserTele &&
+      this.paymentEmail
+    ) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+  get paypalPrice() {
+    return paypalPrice(this.curIndex);
+  }
+  get coinbasePrice() {
+    return coinbasePrice(this.curIndex);
+  }
+  get xsollaPrice() {
+    return xsollaPrice(this.curIndex);
+  }
+
+  get paybrosPrices() {
+    if (this.globalInfo !== undefined) {
+      return this.globalInfo.epinPrices;
+    }
+    return null;
+  }
+  get paybrosPrice() {
+    if (this.paybrosPrices) {
+      const price = this.paybrosPrices[paybrosPrice(this.curIndex)];
+      if (price !== undefined) {
+        return price;
+      } else {
+        return this.paybrosPrices.price88Points;
+      }
+    }
+    return '0';
+  }
+  get epinPrices() {
+    if (
+      this.globalInfo !== undefined &&
+      this.globalInfo.epinPrices !== undefined
+    ) {
+      return this.globalInfo.epinPrices;
+    }
+    return null;
+  }
+  get epinPrice() {
+    if (!this.ipIsTR) {
+      return skrillPrice(this.curIndex);
+    }
+    if (this.epinPrices) {
+      const price = this.epinPrices[epinPrice(this.curIndex)];
+      if (price !== undefined) {
+        return price;
+      } else {
+        return this.epinPrices.price88Points;
+      }
+    }
+    return '0';
+  }
+  get stripePrices() {
+    if (
+      this.globalInfo !== undefined &&
+      this.globalInfo.epinPrices !== undefined
+    ) {
+      return this.globalInfo.epinPrices;
+    }
+    return null;
+  }
+  get stripePrice() {
+    if (!this.ipIsTR) {
+      return skrillPrice(this.curIndex);
+    }
+    if (this.stripePrices) {
+      const price = this.stripePrices[epinPrice(this.curIndex)];
+      if (price !== undefined) {
+        return price;
+      } else {
+        return this.stripePrices.price88Points;
+      }
+    }
+    return '0';
+  }
+  get amazonPayPrice() {
+    return amazonPayPrice(this.curIndex);
+  }
+  get rebillyPrice() {
+    return rebillyPrice(this.curIndex);
+  }
+  get skrillPrice() {
+    return skrillPrice(this.curIndex);
+  }
+  get xsollaType() {
+    return xsollaType(this.curIndex);
+  }
+  get coinbaseType() {
+    return coinbaseType(this.curIndex);
+  }
+  get paybrosType() {
+    return paybrosType(this.curIndex);
+  }
+  get epinType() {
+    return epinType(this.curIndex);
+  }
+  get stripeType() {
+    return stripeType(this.curIndex);
+  }
+  get rebillyType() {
+    return rebillyType(this.curIndex);
+  }
+  get skrillType() {
+    return skrillType(this.curIndex);
+  }
+  get coinbaseUrl() {
+    if (this.coinbaseToken !== '') {
+      return `https://commerce.coinbase.com/charges/${this.coinbaseToken}`;
+    }
+    return '#';
+  }
+  get linoPoint() {
+    return linoPoint(this.curIndex);
+  }
+  get paymentMethodIsPaypal() {
+    return this.paymentMethod === 'paypal';
+  }
+  get paymentMethodIsCoinbase() {
+    return this.paymentMethod === 'coinbase';
+  }
+  get paymentMethodIsXsolla() {
+    return this.paymentMethod === 'xsolla';
+  }
+  get paymentMethodIsPaybros() {
+    return this.paymentMethod === 'paybros';
+  }
+  get paymentMethodIsEpin() {
+    return this.paymentMethod === 'epin';
+  }
+  get paymentMethodIsStripe() {
+    return this.paymentMethod === 'stripe';
+  }
+  get paymentMethodIsAmazonPay() {
+    return this.paymentMethod === 'amazonPay';
+  }
+  get paymentMethodIsRebilly() {
+    return this.paymentMethod === 'rebilly';
+  }
+  get paymentMethodIsSkrill() {
+    return this.paymentMethod === 'skrill';
+  }
+
+  get totalPrice() {
+    if (this.paymentMethodIsPaypal) {
+      return this.paypalPrice;
+    }
+    if (this.paymentMethodIsCoinbase) {
+      return this.coinbasePrice;
+    }
+    if (this.paymentMethodIsXsolla) {
+      return this.xsollaPrice;
+    }
+    if (this.paymentMethodIsPaybros) {
+      return this.paypalPrice;
+    }
+    if (this.paymentMethodIsEpin) {
+      return this.epinPrice;
+    }
+    if (this.paymentMethodIsStripe) {
+      return this.stripePrice;
+    }
+    if (this.paymentMethodIsAmazonPay) {
+      return this.amazonPayPrice;
+    }
+    if (this.paymentMethodIsRebilly) {
+      return this.rebillyPrice;
+    }
+    if (this.paymentMethodIsSkrill) {
+      return this.skrillPrice;
+    }
+    return '0';
+  }
+
+  get username() {
+    if (
+      this.me !== null &&
+      this.me.username !== undefined &&
+      this.me.username !== null
+    ) {
+      return this.me.username;
+    }
+    return null;
+  }
+
+  get inputCountryCode() {
+    const res = this.allCountries.find(
+      item => item.displayName === this.inputCountryName
+    );
+    if (res) {
+      return res.dialCode;
+    } else {
+      return '';
+    }
+  }
+  get returnUrl() {
+    return `${window.location.origin}/cb/payment/success`;
+  }
+
+  get cancelReturnUrl() {
+    return `${window.location.origin}/cb/payment/fail`;
+  }
+
+  get dialogWidth() {
+    if (this.rebillyDialogShow) {
+      return 500;
+    }
+    return 420;
+  }
+
+  get allCountries() {
+    return allCountries;
+  }
+
+  get btnText() {
+    if (this.paymentMethodIsRebilly) {
+      return 'Next';
+    }
+    return this.$t('cashIn.Pay');
+  }
+
+  get items() {
+    if (this.paymentMethodIsCoinbase) {
+      const points = [...linoPoints];
+      points.push('78888');
+      return points;
+    }
+    return linoPoints;
+  }
+
+  public showCashinDialog: boolean = true;
+  public rebillyDialogShow: boolean = false;
+  // public addCreditCardShow: boolean = false;
+  // public items = linoPoints;
+  public paymentMethod: PaymentMethod | null = null;
+  public paymentMethods: PaymentMethodI18n[] = [];
+  public curIndex: CashInType = CashInType.Lino88;
+  public paymentEmail: string = '';
+  public coinbaseToken: string = '';
+  public xsollaToken: string = '';
+  public paybrosUrl: string = '';
+  public epinUrl: string = '';
+  public paymentUserName: string = '';
+  public paymentUserSurName: string = '';
+  public paymentUserTele: string = '';
+
+  public paypalToken: string =
+    process.env.VUE_APP_PAYPAL_TOKEN || '6ZFPSNBYPCW24';
+  public rebillyPublishableKey: string =
+    process.env.VUE_APP_REBILLY_KEY ||
+    'pk_live_HxGdyw3u2j1p9Nvw4rGIzOCU9F5Re567cD1QrdC';
+  public amazonPaySignature = '';
+  public amazonPayOrderId = '';
+  public skrillToken = '';
+  public coinbaseCheckNotice: boolean = false;
+  public amazonPayBtnShow: boolean = false;
+  public recentRecordInterval: number = 0;
+  public saveCard: boolean = true;
+  public selectedCard: MeRebillyCardsFrag.UserRebillyCards | null = null;
+  public selectedAddCard: boolean = false;
+  public payLoading: boolean = false;
+  public inputCountry: CountryCode | null = null;
+  public inputCountryName: string = '';
+  public paymentIframe: boolean = true;
+  public ipIsTR: boolean = false;
+
+  // TODO(@ryan): maybe cache the list instead of last loaded
+  public loadedCoinbaseTokenIndex: CashInType | -1 = -1;
+  public loadedXsollaTokenIndex: CashInType | -1 = -1;
+
+  @userMetaModule.Mutation('setCashinEmail')
+  private setCashinEmail!: (email: string) => void;
+  @userMetaModule.Getter('cashinEmail')
+  private cashinEmail!: string;
+  @meModule.Getter('meBalance')
+  private meBalance!: string | null;
+  @meModule.Getter('meRebillyCards')
+  private meRebillyCards!: MeRebillyCardsFrag.UserRebillyCards[];
+  @meModule.Getter('meEmail')
+  private meEmail!: string | null;
+  @dialogModule.Mutation('setCashInDialog')
+  private setCashInDialog!: (status: boolean) => void;
+  @dialogModule.Mutation('setDownloadAppDialog')
+  private setDownloadAppDialog!: (status: boolean) => void;
+  @dialogModule.Mutation('setCashInSuccessDialog')
+  private setCashInSuccessDialog!: (status: boolean) => void;
+  @dialogModule.Mutation('setCashInFailDialog')
+  private setCashInFailDialog!: (status: boolean) => void;
+
+  private coinbaseJSLoaded: CashInType | -1 = -1; // Correspond to the index, indicating the coinbase price with index is loaded
+  private xsollaJSLoaded = false;
+  private amazonPayJSLoaded = false;
+
+  @userMetaModule.Action('fetchIpStats')
+  private getIP!: () => Promise<IPAPI>;
+
+  public mounted() {
+    this.updateUser();
+    this.getUserRebillyCards();
+    this.getPaymentMethods();
+  }
+
+  public getPaymentMethods() {
+    this.getIP()
+      .then(data => {
+        const country = data.country;
+        // TODO(@ryan): Should put unexpected errors in error handling instead of checking ourself
+        if (
+          country === 'TR' ||
+          localStorage.getItem('dlive_payment') === 'DLiveToTheMoon'
+        ) {
+          this.ipIsTR = true;
+          this.paymentMethods = [coinbaseI18n, epinI18n];
+        } else if (
+          country === 'CA' ||
+          country === 'AU' ||
+          country === 'IE' ||
+          country === 'GB' ||
+          country === 'DE' ||
+          country === 'AR' ||
+          country === 'BR' ||
+          country === 'UK'
+        ) {
+          this.paymentMethods = [coinbaseI18n, epinI18n, skrillI18n];
+        } else if (localStorage.getItem('dlive_payment') === 'rebilly') {
+          this.paymentMethods = [
+            skrillI18n,
+            // rebillyI18n,
+            coinbaseI18n
+          ];
+        } else if (country === 'US') {
+          this.paymentMethods = [epinI18n, skrillI18n];
+        } else {
+          this.paymentMethods = [coinbaseI18n, epinI18n];
+        }
+
+        // if not TR, add stripe payment ,it's global!
+        if (country !== 'TR') {
+          this.paymentMethods.unshift(stripeI18n);
+        }
+
+        if (this.paymentMethods.length !== 0) {
+          this.paymentMethod = this.paymentMethods[0].method;
+        }
+      })
+      .catch(() => {
+        // If network error
+        this.paymentMethods = [coinbaseI18n, epinI18n];
+        this.paymentMethod = this.paymentMethods[0].method;
+      });
+
+    if (this.cashinEmail !== '') {
+      this.paymentEmail = this.cashinEmail;
+    } else if (this.meEmail !== null) {
+      this.paymentEmail = this.meEmail;
+    }
+  }
+
+  public async updateUser() {
+    try {
+      const { data } = await this.$apollo.query<MeBalance.Query>({
+        query: ME_BALANCE,
+        fetchPolicy: 'network-only'
+      });
+      if (data.me === null) {
+        return;
+      }
+    } catch (err) {
+      // TODO(@ryan): error handling
+    }
+  }
+
+  public async getUserRebillyCards() {
+    try {
+      const { data } = await this.$apollo.query<MeBalance.Query>({
+        query: ME_REBILLY_CARDS,
+        fetchPolicy: 'network-only'
+      });
+      if (data.me === null) {
+        return;
+      }
+    } catch (err) {
+      // TODO(@ryan): error handling
+    }
+  }
+
+  public changeAmount(index: CashInType) {
+    this.curIndex = index;
+  }
+
+  public changeMethod(method: PaymentMethod) {
+    this.paymentMethod = method;
+  }
+
+  public amountIcon(amount: number) {
+    return require(`@/assets/icon/cashin-${amount}.svg`);
+  }
+
+  public paymentIcon(method: number) {
+    return require(`@/assets/icon/${method}-icon.svg`);
+  }
+  public paymentIconNew(method: number) {
+    return require(`@/assets/icon/payment-${method}-bg.png`);
+  }
+
+  public downloadApp() {
+    this.setDownloadAppDialog(true);
+  }
+
+  public async addUserEmail() {
+    paymentAddEmail(this, this.paymentEmail);
+  }
+
+  public showSuccessResult() {
+    this.setCashInSuccessDialog(true);
+  }
+
+  public showFailResult() {
+    this.setCashInFailDialog(true);
+  }
+
+  public closeCashinPopup() {
+    this.setCashInDialog(false);
+  }
+
+  public loadXsollaJS() {
+    if (this.xsollaJSLoaded) {
+      return;
+    }
+    const s = document.createElement('script');
+    s.type = 'text/javascript';
+    s.async = true;
+    s.src = 'https://static.xsolla.com/embed/paystation/1.0.7/widget.min.js';
+    s.addEventListener(
+      'load',
+      () => {
+        // @ts-ignore
+        XPayStationWidget.on('status-done', () => {
+          this.showSuccessResult();
+        });
+        // @ts-ignore
+        XPayStationWidget.on('status-troubled', () => {
+          this.showFailResult();
+        });
+      },
+      false
+    );
+    const head = document.getElementsByTagName('head')[0];
+    head.appendChild(s);
+    this.xsollaJSLoaded = true;
+  }
+
+  // Take in index instead of use `this.index` to avoid confusion on execution order.
+  // Watch on `this.index` happens faster or slower than `this.index` changes?
+  public loadCoinbaseJS(index: CashInType | -1) {
+    const script = document.createElement('script');
+    script.id = 'coinbasejs';
+    // TODO(@ryan): avoid self
+    const self = this;
+    script.onload = () => {
+      // do stuff with the script
+      // @ts-ignore
+      BuyWithCrypto.registerCallback('onSuccess', e => {
+        // Charge was successfully completed
+        reportCBPayment(this, e.code);
+        self.showSuccessResult();
+      });
+      // @ts-ignore
+      BuyWithCrypto.registerCallback('onFailure', () => {
+        // Charge failed
+        self.showFailResult();
+      });
+      // @ts-ignore
+      BuyWithCrypto.registerCallback('onPaymentDetected', () => {
+        // Payment has been detected but not yet confirmed
+        // TODO(jiayi)
+      });
+    };
+    script.src = 'https://commerce.coinbase.com/v1/checkout.js';
+    this.$nextTick(() => {
+      const el = document.getElementById('Crypto');
+      if (el !== null) {
+        // XXX(@ryan): To prevent going to new coinbase page. This
+        // issue could be related to appending multiple script
+        const oldScript = document.getElementById('coinbasejs');
+        if (oldScript !== null) {
+          // XXX(jiayi): Clean register callback
+          // @ts-ignore
+          BuyWithCrypto = null;
+          el.replaceChild(script, oldScript);
+        } else {
+          el.appendChild(script);
+        }
+      }
+    });
+    this.coinbaseJSLoaded = index;
+  }
+
+  public loadAmazonPayJS() {
+    if (this.amazonPayJSLoaded) {
+      return;
+    }
+    const s = document.createElement('script');
+    s.type = 'text/javascript';
+    s.async = true;
+    if (process.env.VUE_APP_AMAZON_PAY_JS !== undefined) {
+      s.src = process.env.VUE_APP_AMAZON_PAY_JS;
+    } else {
+      s.src =
+        'https://static-na.payments-amazon.com/OffAmazonPayments/us/js/Widgets.js';
+    }
+    const head = document.getElementsByTagName('head')[0];
+    head.appendChild(s);
+    this.amazonPayJSLoaded = true;
+  }
+
+  public async loadRebillyJS() {
+    try {
+      const self = this;
+      const s = document.createElement('script');
+      s.type = 'text/javascript';
+      s.async = true;
+      s.src = 'https://cdn.rebilly.com/framepay/v1/rebilly.js';
+      const head = document.getElementsByTagName('head')[0];
+      head.appendChild(s);
+      s.onload = async () => {
+        // initialize with your publishable key
+        // @ts-ignore
+        Rebilly.initialize({
+          publishableKey: this.rebillyPublishableKey,
+          icon: {
+            display: false
+          },
+          style: {
+            base: {
+              fontSize: '12px',
+              fontSmoothing: 'none',
+              color: '#fff',
+              '::placeholder': {
+                color: '#adadad'
+              }
+            }
+          }
+        });
+        // mount a combined card element on the #payment-card `<div>` in the form above
+        // @ts-ignore
+        Rebilly.card.mount('#payment-card', 'cardNumber');
+        // @ts-ignore
+        Rebilly.card.mount('#exp', 'cardExpiry');
+        // @ts-ignore
+        Rebilly.card.mount('#cvv', 'cardCvv');
+
+        const form = document.querySelector('#rebilly-form');
+        if (form !== null) {
+          form.addEventListener('submit', event => {
+            event.preventDefault();
+            if (!self.checkNewCreditCardInfo()) {
+              return;
+            }
+            self.payLoading = true;
+            if (self.inputCountry !== null) {
+              (self.$refs.country as HTMLInputElement).value =
+                self.inputCountry.iso2;
+            }
+            // @ts-ignore
+            Rebilly.createToken(form)
+              .then(async (token: { id: string; brand: string }) => {
+                if (token && token.id) {
+                  if (!this.rebillyValidBrand(token.brand)) {
+                    self.payLoading = false;
+                    self.$errorPlain('This card is not supported');
+                    return;
+                  }
+                  await rebillyPaymentProcess(
+                    self,
+                    self.rebillyType,
+                    '',
+                    token.id,
+                    self.saveCard
+                  );
+                  self.showSuccessResult();
+                  self.showCashinDialog = false;
+                } else {
+                  self.showFailResult();
+                  self.showCashinDialog = false;
+                }
+                self.payLoading = false;
+              })
+              .catch((error: { message: string; details: string[] }) => {
+                if (error.details && error.details.length > 0) {
+                  self.$errorPlain(error.details[0]);
+                } else {
+                  self.$errorPlain(error.message);
+                }
+                self.payLoading = false;
+              });
+          });
+        }
+      };
+    } catch (e) {
+      throw e;
+    }
+  }
+
+  public async fetchCoinbaseToken(index: CashInType | -1) {
+    this.coinbaseToken = '';
+    try {
+      const { data } = await this.$apollo.mutate<CoinbaseToken.Mutation>({
+        mutation: COINBASE_TOKEN,
+        variables: {
+          item: this.coinbaseType
+        }
+      });
+      const resp = data.coinbaseToken;
+      if (resp.err !== null) {
+        this.$errCode(resp.err.code);
+        return;
+      }
+      if (resp.token === null) {
+        throw new Error('Server error');
+      }
+      this.coinbaseToken = resp.token;
+      this.loadCoinbaseJS(this.curIndex);
+      this.loadedCoinbaseTokenIndex = index;
+    } catch (err) {
+      // TODO(@ryan): error handling
+    }
+  }
+
+  public async fetchXsollaToken(index: CashInType | -1) {
+    if (this.loadedXsollaTokenIndex === index) {
+      return;
+    }
+    this.xsollaToken = '';
+    try {
+      const { data } = await this.$apollo.mutate<CreateXsollaToken.Mutation>({
+        mutation: CREATE_XSOLLA_TOKEN,
+        variables: {
+          language: null,
+          item: this.xsollaType
+        }
+      });
+      const resp = data.xsollaToken;
+      if (resp.err !== null) {
+        this.$errCode(resp.err.code);
+        return;
+      }
+      if (resp.token === null) {
+        throw new Error('Server error');
+      }
+      this.xsollaToken = resp.token;
+      this.loadedXsollaTokenIndex = index;
+    } catch (err) {
+      // TODO(@ryan): error handling
+    }
+  }
+
+  public async fetchPaybrosUrl() {
+    this.paybrosUrl = '';
+    try {
+      const recaptcha = await (this.$refs.grecaptcha as VGrecaptcha).execute();
+      if (recaptcha === null) {
+        // this.$error('LoginEmailRegisterCallback.RecaptchaFailed');
+        throw new RecaptchaError();
+      }
+      const { data } = await this.$apollo.mutate<
+        PaybrosPaymentInitiate.Mutation
+      >({
+        mutation: PAYBROS_PAYMENT_INITIATE,
+        variables: {
+          item: this.paybrosType,
+          channel: PaybrosPaymentChannelType.CreditCardPayment,
+          recaptchaToken: recaptcha
+        }
+      });
+      const resp = data.paybrosPaymentInitiate;
+      if (resp.err !== null) {
+        this.$errCode(resp.err.code);
+        return;
+      }
+      if (resp.url === null) {
+        throw new Error('Server error');
+      }
+      this.paybrosUrl = resp.url;
+      window.open(this.paybrosUrl, '_blank');
+    } catch (err) {
+      // TODO(@ryan): error handling
+      throw err;
+    }
+  }
+
+  public async fetchStripeUrl() {
+    try {
+      if (!this.inputCountryCode) {
+        return this.$errorPlain('Please choose country code');
+      }
+      const { data } = await this.$apollo.mutate<
+        StripeCreatePaymentIntent.Mutation
+      >({
+        mutation: STRIPE_PAYMENT_INITIATE,
+        variables: {
+          item: this.stripeType,
+          name: this.paymentUserName,
+          email: this.paymentEmail,
+          currency: this.ipIsTR ? 'TRY' : 'USD',
+          phone: this.inputCountryCode + this.paymentUserTele
+        }
+      });
+      const resp = data.stripeCreatePaymentIntent;
+      if (resp.err !== null) {
+        this.$errorPlain(resp.err.message);
+        return;
+      }
+      if (resp.clientSecret === null) {
+        throw new Error('Server error');
+      }
+      // pi_1J2xOuGoVI8A3NPTvehs3XHY_secret_U0fSAkyxYt15LKdy6aqYXJNmf
+      const clientSecret = resp.clientSecret;
+      this.stripeClientSecret = clientSecret;
+      if (clientSecret) {
+        this.initStripePaymentUI();
+      }
+    } catch (err) {
+      // TODO(@ryan): error handling
+      throw err;
+    }
+  }
+  public async initStripePaymentUI() {
+    try {
+      const self = this;
+      // TODO: change the key due to country
+      let stripeLoadKey = 'pk_test_79gSIwlu2FtlDUr567F1FrBm';
+      if (process.env.VUE_APP_MODE === 'production') {
+        // update the production key
+        stripeLoadKey = 'pk_live_6ZufySEn3mShNwjNL6JYwO0V';
+      }
+      const stripePromise = loadStripe(stripeLoadKey);
+      const stripe: any = await stripePromise;
+      this.stripeDialogVisible = true;
+      this.$nextTick(() => {
+        const elements = stripe.elements();
+
+        const style = {
+          base: {
+            color: '#32325d',
+            fontFamily: 'Arial, sans-serif',
+            fontSmoothing: 'antialiased',
+            fontSize: '16px',
+            '::placeholder': {
+              color: '#32325d'
+            }
+          },
+          invalid: {
+            fontFamily: 'Arial, sans-serif',
+            color: '#fa755a',
+            iconColor: '#fa755a'
+          }
+        };
+
+        const card = elements.create('card', { style });
+        // Stripe injects an iframe into the DOM
+        card.mount('#card-element');
+        card.on('change', (event: any) => {
+          // Disable the Pay button if there are no card details in the Element
+          // @ts-ignore
+          document.querySelector('.stripe-form-submit__btn').disabled =
+            event.empty;
+          // @ts-ignore
+          document.querySelector('#card-error').textContent = event.error
+            ? event.error.message
+            : '';
+        });
+
+        const form: HTMLFormElement = document.getElementById(
+          'payment-form'
+        ) as HTMLFormElement;
+        form.addEventListener('submit', event => {
+          event.preventDefault();
+          // Complete payment when the submit button is clicked
+          // start to pay
+          self.payWithCard(stripe, card, this.stripeClientSecret);
+        });
+      });
+    } catch (error) {
+      console.error(error);
+    }
+  }
+  public payWithCard(stripe: any, card: any, clientSecret: string) {
+    const self = this;
+    /* ------- UI helpers ------- */
+
+    // Shows a success message when the payment is complete
+    // Show the customer the error from Stripe if their card fails to charge
+    const showError = (errorMsgText: string) => {
+      loading(false);
+      const errorMsg = document.querySelector('#card-error');
+      // @ts-ignore
+      errorMsg.textContent = errorMsgText;
+      setTimeout(() => {
+        // @ts-ignore
+        errorMsg.textContent = '';
+      }, 4000);
+    };
+
+    // Show a spinner on payment submission
+    const loading = (isLoading: boolean) => {
+      if (isLoading) {
+        // Disable the button and show a spinner
+        // @ts-ignore
+        document.querySelector('.stripe-form-submit__btn').disabled = true;
+        // @ts-ignore
+        document.querySelector('#spinner').classList.remove('hidden');
+        // @ts-ignore
+        document.querySelector('#button-text').classList.add('hidden');
+      } else {
+        // @ts-ignore
+        document.querySelector('.stripe-form-submit__btn').disabled = false;
+        // @ts-ignore
+        document.querySelector('#spinner').classList.add('hidden');
+        // @ts-ignore
+        document.querySelector('#button-text').classList.remove('hidden');
+      }
+    };
+    loading(true);
+    stripe
+      .confirmCardPayment(clientSecret, {
+        payment_method: {
+          card
+        }
+      })
+      .then((result: any) => {
+        if (result.error) {
+          // Show error to your customer
+          showError(result.error.message);
+        } else {
+          // The payment succeeded!
+          // orderComplete(result.paymentIntent.id);
+          loading(false);
+          self.showSuccessResult();
+          self.stripeDialogVisible = false;
+        }
+      });
+  }
+  public async fetchEpinUrl() {
+    this.epinUrl = '';
+    try {
+      // if (this.paymentUserTele.length !== 10) {
+      //   return this.$errorPlain(
+      //     'Customer phone number (12-digit phone number with country code)'
+      //   );
+      // }
+      if (!this.inputCountryCode) {
+        return this.$errorPlain('Please choose country code');
+      }
+      const { data } = await this.$apollo.mutate<EpinPaymentInitiate.Mutation>({
+        mutation: EPIN_PAYMENT_INITIATE,
+        variables: {
+          item: this.epinType,
+          name: this.paymentUserName,
+          surname: this.paymentUserSurName,
+          email: this.paymentEmail,
+          currency: this.ipIsTR ? 'TRY' : 'USD',
+          telephone: this.inputCountryCode + this.paymentUserTele
+        }
+      });
+      const resp = data.epinPaymentInitiate;
+      if (resp.err !== null) {
+        this.$errorPlain(resp.err.message);
+        return;
+      }
+      if (resp.url === null) {
+        throw new Error('Server error');
+      }
+      this.epinUrl = resp.url;
+      window.open(this.epinUrl, '_blank');
+    } catch (err) {
+      // TODO(@ryan): error handling
+      throw err;
+    }
+  }
+  public async fetchAmazonPay() {
+    this.amazonPaySignature = '';
+    const input: InitiateAmazonPaymentInput = {
+      item: amazonPayType(this.curIndex),
+      returnURL: encodeURIComponent(this.returnUrl),
+      cancelReturnURL: encodeURIComponent(this.cancelReturnUrl)
+    };
+    const resp = await amazonPaymentInitiate(this, input);
+    if (resp === undefined) {
+      return;
+    }
+    this.amazonPaySignature = resp.signature;
+    this.amazonPayOrderId = resp.orderID;
+  }
+
+  public async fetchSkrillToken() {
+    this.skrillToken = '';
+    const item = this.skrillType;
+    const resp = await skrillToken(this, item, this.paymentEmail);
+    if (resp === undefined || resp.token === null) {
+      return;
+    }
+    this.skrillToken = resp.token;
+  }
+
+  public pay() {
+    if (this.requireLogin()) {
+      return;
+    }
+    this.setCashinEmail(this.paymentEmail);
+    if (!this.paymentMethodIsSkrill) {
+      this.addUserEmail();
+    }
+    if (this.paymentMethodIsPaypal) {
+      this.paypalSubmit();
+    }
+    if (this.paymentMethodIsCoinbase) {
+      this.coinbaseSubmit();
+    }
+    if (this.paymentMethodIsXsolla) {
+      this.xsollaSubmit();
+    }
+    if (this.paymentMethodIsPaybros) {
+      this.paybrosSubmit();
+    }
+    if (this.paymentMethodIsEpin) {
+      this.epinSubmit();
+    }
+    if (this.paymentMethodIsStripe) {
+      this.stripeSubmit();
+    }
+    if (this.paymentMethodIsAmazonPay) {
+      this.amazonPaySubmit();
+    }
+    if (this.paymentMethodIsRebilly) {
+      this.rebillyDialogShow = true;
+    }
+    if (this.paymentMethodIsSkrill) {
+      this.skrillSubmit();
+    }
+  }
+
+  public xsollaSubmit() {
+    if (this.xsollaToken === '') {
+      return;
+    }
+    let option;
+    if (process.env.VUE_APP_XSOLLA_TOKEN === undefined) {
+      option = {
+        access_token: this.xsollaToken // eslint-disable-line @typescript-eslint/camelcase
+      };
+    } else {
+      option = {
+        access_token: process.env.VUE_APP_XSOLLA_TOKEN, // eslint-disable-line @typescript-eslint/camelcase
+        sandbox: true
+      };
+    }
+    // @ts-ignore
+    XPayStationWidget.init(option);
+    // @ts-ignore
+    XPayStationWidget.open();
+  }
+
+  public coinbaseSubmit() {
+    const link = document.getElementById('coinbaseSubmitBtn');
+    if (link === null) {
+      return;
+    }
+    link.click();
+  }
+
+  public paypalSubmit() {
+    const e: HTMLInputElement | null = document.getElementById(
+      'os0'
+    ) as HTMLInputElement;
+    const form: HTMLFormElement | null = document.getElementById(
+      'nativeForm'
+    ) as HTMLFormElement;
+    if (e && form) {
+      e.value = paypalKey(this.curIndex);
+      form.submit();
+      this.closeCashinPopup();
+    }
+  }
+
+  public paybrosSubmit() {
+    // pop up recaptcha and fetch url
+    this.fetchPaybrosUrl();
+  }
+  public epinSubmit() {
+    this.fetchEpinUrl();
+  }
+  public stripeSubmit() {
+    this.fetchStripeUrl();
+  }
+
+  public amazonPaySubmit() {
+    this.amazonPayBtnShow = true;
+  }
+
+  public async rebillySubmit() {
+    if (this.selectedCard === null) {
+      return;
+    }
+    this.payLoading = true;
+    await rebillyPaymentProcess(
+      this,
+      this.rebillyType,
+      this.selectedCard.id,
+      '',
+      this.saveCard
+    );
+    this.payLoading = false;
+    this.showSuccessResult();
+    this.showCashinDialog = false;
+  }
+
+  public async skrillSubmit() {
+    const newWindow = window.open('', '_blank');
+    await this.fetchSkrillToken();
+    if (this.skrillToken && newWindow !== null) {
+      newWindow.location.href = `https://pay.skrill.com/app/?sid=${
+        this.skrillToken
+      }`;
+    }
+  }
+
+  public cardSelect(card: MeRebillyCardsFrag.UserRebillyCards) {
+    this.selectedCard = card;
+    this.selectedAddCard = false;
+  }
+
+  public newAddressAdd() {
+    this.selectedAddCard = true;
+    this.selectedCard = null;
+  }
+
+  public checkNewCreditCardInfo() {
+    if (!(this.$refs.address as HTMLInputElement).value) {
+      this.$errorPlain('Address Required');
+      return false;
+    } else if (!(this.$refs.city as HTMLInputElement).value) {
+      this.$errorPlain('City Required');
+      return false;
+    } else if (!(this.$refs.postalCode as HTMLInputElement).value) {
+      this.$errorPlain('Postal Code Required');
+      return false;
+    } else if (!this.inputCountry) {
+      this.$errorPlain('Country Required');
+      return false;
+    } else if (!(this.$refs.region as HTMLInputElement).value) {
+      this.$errorPlain('State Required');
+      return false;
+    }
+    return true;
+  }
+
+  public rebillyPayBack() {
+    this.rebillyDialogShow = false;
+  }
+
+  public rebillyValidBrand(brand: string) {
+    return brand === 'Visa' || brand === 'MasterCard';
+  }
+
+  @Watch('showCashinDialog')
+  public onShowCashinDialog(val: boolean) {
+    if (!val) {
+      this.closeCashinPopup();
+    }
+  }
+
+  @Watch('curIndex')
+  private watchPrice(val: CashInType) {
+    if (this.paymentMethodIsCoinbase) {
+      this.fetchCoinbaseToken(this.curIndex);
+    } else if (this.paymentMethodIsXsolla) {
+      this.fetchXsollaToken(val);
+    } else if (this.paymentMethodIsPaybros) {
+      // not fetch
+      // this.fetchPaybrosUrl();
+    } else if (this.paymentMethodIsAmazonPay) {
+      this.fetchAmazonPay();
+    } else if (this.paymentMethodIsSkrill) {
+      this.fetchSkrillToken();
+    }
+  }
+
+  @Watch('paymentMethod', { immediate: true })
+  private watchPayment(val: PaymentMethod) {
+    if (val === 'coinbase') {
+      this.fetchCoinbaseToken(this.curIndex);
+    } else if (val === 'xsolla') {
+      this.loadXsollaJS();
+      this.fetchXsollaToken(this.curIndex);
+    } else if (val === 'paybros') {
+      // this.fetchPaybrosUrl();
+    } else if (val === 'amazonPay') {
+      this.fetchAmazonPay();
+    } else if (val === 'skrill') {
+      this.fetchSkrillToken();
+    }
+  }
+
+  @Watch('amazonPayBtnShow')
+  private onAmazonPayBtnShow(val: boolean, oldVal: boolean) {
+    if (val && !oldVal) {
+      this.loadAmazonPayJS();
+    }
+  }
+
+  @Watch('rebillyDialogShow')
+  private onRebillyDialogShow(val: boolean, oldVal: boolean) {
+    if (val && !oldVal) {
+      this.loadRebillyJS();
+      if (this.meRebillyCards.length !== 0) {
+        this.selectedCard = this.meRebillyCards[0];
+      } else {
+        this.selectedAddCard = true;
+      }
+    }
+  }
+}

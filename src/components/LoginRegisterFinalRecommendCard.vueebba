@@ -1,0 +1,53 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import VDliveAvatar from '@/components/VDliveAvatar.vue';
+import VDliveName from '@/components/VDliveName.vue';
+import { RegisterRecommendation } from '@/graphql/types';
+import { Component, Vue, Prop } from 'vue-property-decorator';
+import VFollow from '@/components/VFollow.vue';
+
+@Component({
+  components: {
+    VDliveAvatar,
+    VDliveName,
+    VFollow
+  }
+})
+export default class LoginRegisterFinalRecommendCard extends Vue {
+  @Prop({
+    required: true
+  })
+  public channel!: RegisterRecommendation.RecommendChannels;
+
+  public routeTo() {
+    this.$router.push({
+      name: 'Livestream',
+      params: { displayname: this.channel.user.displayname }
+    });
+  }
+}

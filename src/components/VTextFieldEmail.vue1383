@@ -1,0 +1,4 @@
+var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('d-text-field',{attrs:{"value":_vm.value,"rules":_vm.emailRules,"has-border":false,"total-height":"30px","background":"grey-darken-7"},on:{"input":_vm.input}})}
+var staticRenderFns = []
+
+export { render, staticRenderFns }

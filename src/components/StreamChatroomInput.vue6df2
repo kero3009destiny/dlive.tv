@@ -1,0 +1,784 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { EVENTS } from '@/utils/constants';
+import GlobalEventBusMixin from '@/mixins/GlobalEventBusMixin';
+import VDliveAvatar from '@/components/VDliveAvatar.vue';
+import VDliveName from '@/components/VDliveName.vue';
+import DMenu from '@/components/DMenu.vue';
+import DMenuItem from '@/components/DMenuItem.vue';
+import DDivider from '@/components/DDivider.vue';
+import VDonationGifts from '@/components/VDonationGifts.vue';
+import DBtn from '@/components/DBtn.vue';
+import CashInButtonMobile from '@/components/CashInButtonMobile.vue';
+import EmoteBoard from '@/components/EmoteBoard.vue';
+import StreamChatMemberManageTab from '@/components/StreamChatMemberManageTab.vue';
+import StreamChatModeSettings from '@/components/StreamChatModeSettings.vue';
+import StreamChatBadgeManagement from '@/components/StreamChatBadgeManagement.vue';
+import {
+  ChatModeType,
+  StreamChatroomInputFrag,
+  StreamChatMessageFrag,
+  VStreamChatSenderInfoFrag,
+  Role,
+  RoomRole,
+  GetUsernameByDisplayName,
+  AddModerator,
+  LivestreamPage
+} from '@/graphql/types';
+import {
+  moderatorAdd,
+  moderatorRemove,
+  streamChatUserBan,
+  streamChatUserUnban,
+  streamChatUserTimeoutSet
+} from '@/utils/mutations/chatroom';
+import GET_USERNAME_BY_DISPLAYNAME from '@/graphql/queries/GetUsernameByDisplayName.graphql';
+import MeMixin from '@/mixins/MeMixin';
+import { RawLocation } from 'vue-router';
+import { Component, Mixins, Prop, Watch } from 'vue-property-decorator';
+import { ROUTE_POPUP_CHAT } from '@/router';
+import clickaway from 'vue-clickaway';
+import SnackbarMixin from '@/mixins/SnackbarMixin';
+import { existsInStr } from '@/utils/search';
+import { namespace } from 'vuex-class';
+import { setNewBadgeCache } from '@/apollo/cache/me';
+const uiModule = namespace('ui');
+const userMetaModule = namespace('userMeta');
+
+@Component({
+  components: {
+    StreamChatMemberManageTab,
+    StreamChatModeSettings,
+    StreamChatBadgeManagement,
+    EmoteBoard,
+    DBtn,
+    VDliveAvatar,
+    VDliveName,
+    VDonationGifts,
+    CashInButtonMobile,
+    DMenu,
+    DMenuItem,
+    DDivider
+  }
+})
+export default class StreamChatroomInput extends Mixins(
+  MeMixin,
+  clickaway.mixin,
+  SnackbarMixin,
+  GlobalEventBusMixin
+) {
+  @Prop({
+    required: true
+  })
+  public chats!: StreamChatMessageFrag.Fragment[];
+
+  @Prop({
+    required: false
+  })
+  public channelInfo!: LivestreamPage.UserByDisplayName;
+
+  @Prop({
+    required: true
+  })
+  public streamChatroomInput!: StreamChatroomInputFrag.Fragment;
+
+  public chatInput: string = '';
+  public shouldShowUserList: boolean = false;
+  public focusIndex: number = 0;
+  public chatSettingsMenuShow: boolean = false;
+  public showChatModeSettings: boolean = false;
+  public chatBannedUsersShow: boolean = false;
+  public showChatBadgeManagement: boolean = false;
+  public chatModeratorsShow: boolean = false;
+  public showEmoteBoard: boolean = false;
+  public showMobileGifts: boolean = false;
+  public lastAtIndex: number = -1;
+  public searchAtUserResult: VStreamChatSenderInfoFrag.Sender[] = [];
+  public searchOptions: Array<{
+    text: string;
+    type: string;
+  }> = [];
+
+  @uiModule.Getter('isMobile')
+  private isMobile!: boolean;
+  @uiModule.Getter('theatreMode')
+  private theatreMode!: boolean;
+  @userMetaModule.Getter('streamShowTimestamp')
+  private streamShowTimestamp!: boolean;
+  @userMetaModule.Action('setStreamShowTimestampSwitch')
+  private setStreamShowTimestampSwitch!: (streamShowTimestamp: boolean) => void;
+
+  get chatMode() {
+    if (
+      this.streamChatroomInput !== undefined &&
+      this.streamChatroomInput !== null &&
+      this.streamChatroomInput.chatMode !== undefined &&
+      this.streamChatroomInput.chatMode !== null
+    ) {
+      return this.streamChatroomInput.chatMode;
+    }
+    return ChatModeType.Default;
+  }
+
+  get chatModeLabel() {
+    switch (this.chatMode) {
+      case ChatModeType.Followonly:
+        return 'StreamChatroomInput.FollowersOnlyChat';
+      case ChatModeType.Subonly:
+        return 'StreamChatroomInput.SubscribersOnlyChat';
+      default:
+        return '';
+    }
+  }
+
+  get isLive() {
+    if (this.streamChatroomInput !== null) {
+      return this.streamChatroomInput.livestream !== null;
+    }
+    return false;
+  }
+
+  get chatInterval() {
+    if (
+      this.streamChatroomInput !== undefined &&
+      this.streamChatroomInput !== null &&
+      this.streamChatroomInput.chatInterval !== undefined &&
+      this.streamChatroomInput.chatInterval !== null
+    ) {
+      return this.streamChatroomInput.chatInterval;
+    }
+    // XXX(Jiayi): Default value is 2s
+    return 2;
+  }
+
+  get placeholder() {
+    return `LiveStreamChatroom.TypeMessage`;
+  }
+
+  get isOwner() {
+    if (this.streamChatroomInput !== null) {
+      return this.streamChatroomInput.myRoomRole === RoomRole.Owner;
+    }
+    return false;
+  }
+
+  get hasMutedUsers() {
+    if (this.streamChatroomInput !== null && this.me !== null) {
+      return (
+        this.streamChatroomInput.myRoomRole === RoomRole.Owner ||
+        this.streamChatroomInput.myRoomRole === RoomRole.Moderator ||
+        this.me.role === Role.Staff ||
+        this.me.role === Role.Guardian
+      );
+    }
+    return false;
+  }
+  get hasNewBadge() {
+    if (this.me && this.me.private) {
+      return this.me.private.gotNewBadge;
+    } else {
+      return false;
+    }
+  }
+  get hasModeratorUsers() {
+    if (this.streamChatroomInput !== null && this.me !== null) {
+      return (
+        this.streamChatroomInput.myRoomRole === RoomRole.Owner ||
+        this.me.role === Role.Staff
+      );
+    }
+    return false;
+  }
+
+  get atUsers() {
+    const users: VStreamChatSenderInfoFrag.Sender[] = [];
+    const uniqueSet: Set<string> = new Set<string>();
+    this.chats.forEach((chat: StreamChatMessageFrag.Fragment) => {
+      if (!uniqueSet.has(chat.sender.username)) {
+        users.push(chat.sender);
+        uniqueSet.add(chat.sender.username);
+      }
+    });
+    return users;
+  }
+
+  get inputLimit() {
+    if (
+      this.me !== null &&
+      (this.me.role === Role.Staff || this.me.role === Role.Guardian)
+    ) {
+      return 'null';
+    }
+    return '140';
+  }
+
+  public handleChatBeforeSend() {
+    if (this.shouldShowUserList) {
+      this.chooseUser(this.searchAtUserResult[this.focusIndex]);
+    } else {
+      this.handleChat();
+    }
+  }
+
+  public handleTabKey() {
+    if (this.shouldShowUserList) {
+      this.chooseUser(this.searchAtUserResult[this.focusIndex]);
+    }
+  }
+  public clickBadgeMenu() {
+    this.showChatBadgeManagement = true;
+    setNewBadgeCache(this.$apollo.provider.defaultClient, false);
+  }
+  public onShowTimestampChange(state: boolean) {
+    this.setStreamShowTimestampSwitch(state);
+  }
+  public async handleChat() {
+    if (this.me !== null) {
+      if (this.chatInput.charAt(0) === '/') {
+        const args = this.chatInput.trim().split(' ');
+        switch (args[0]) {
+          case '/clear':
+            if (args.length !== 1) {
+              this.$error('Invalid Argument');
+              break;
+            }
+            this.$emit('clearMessage');
+            break;
+          case '/mod': {
+            if (args.length !== 2) {
+              this.$error('Invalid Argument');
+              break;
+            }
+            const modUser = await this.getUsernameByDisplayName(
+              args[1].substring(1)
+            );
+            if (modUser !== undefined && modUser !== '') {
+              this.addModerator(modUser, this.streamChatroomInput.username);
+            }
+            break;
+          }
+          case '/unmod': {
+            if (args.length !== 2) {
+              this.$error('Invalid Argument');
+              break;
+            }
+            const unmodUser = await this.getUsernameByDisplayName(
+              args[1].substring(1)
+            );
+            if (unmodUser !== undefined && unmodUser !== '') {
+              this.removeModerator(
+                unmodUser,
+                this.streamChatroomInput.username
+              );
+            }
+            break;
+          }
+          case '/ban': {
+            if (args.length !== 2) {
+              this.$error('Invalid Argument');
+              break;
+            }
+            const banUser = await this.getUsernameByDisplayName(
+              args[1].substring(1)
+            );
+            if (banUser !== undefined && banUser !== '') {
+              this.userBan(banUser, this.streamChatroomInput.username);
+            }
+            break;
+          }
+          case '/unban': {
+            if (args.length !== 2) {
+              this.$error('Invalid Argument');
+              break;
+            }
+            const unbanUser = await this.getUsernameByDisplayName(
+              args[1].substring(1)
+            );
+            if (unbanUser !== undefined && unbanUser !== '') {
+              this.userUnban(unbanUser, this.streamChatroomInput.username);
+            }
+            break;
+          }
+          case '/timeout': {
+            if (args.length !== 2) {
+              this.$error('Invalid Argument');
+              break;
+            }
+            const timeoutUser = await this.getUsernameByDisplayName(
+              args[1].substring(1)
+            );
+            if (timeoutUser !== undefined && timeoutUser !== '') {
+              this.userTimeoutSet(
+                timeoutUser,
+                this.streamChatroomInput.username
+              );
+            }
+            break;
+          }
+          case '/purge': {
+            if (args.length !== 2) {
+              this.$error('Invalid Argument');
+              break;
+            }
+            const purgeUser = await this.getUsernameByDisplayName(
+              args[1].substring(1)
+            );
+            if (purgeUser !== undefined && purgeUser !== '') {
+              this.$emit('purgeMessage', purgeUser);
+            }
+            break;
+          }
+          default: {
+            this.$error('Invalid Command');
+          }
+        }
+        this.chatInput = '';
+      } else {
+        this.$emit('sendMessage', this.chatInput);
+      }
+    }
+  }
+
+  public async getUsernameByDisplayName(displayname: string) {
+    try {
+      const { data } = await this.$apollo.query<GetUsernameByDisplayName.Query>(
+        {
+          query: GET_USERNAME_BY_DISPLAYNAME,
+          variables: { displayname },
+          fetchPolicy: 'network-only'
+        }
+      );
+      if (data.userByDisplayName === null) {
+        this.$error('User Not Found');
+        return '';
+      } else {
+        return data.userByDisplayName.username;
+      }
+    } catch (err) {
+      this.$error('User Not Found');
+    }
+  }
+
+  public async addModerator(username: string, streamer: string) {
+    const variables: AddModerator.Variables = {
+      username,
+      streamer
+    };
+    await moderatorAdd(this, variables);
+  }
+
+  public async removeModerator(username: string, streamer: string) {
+    await moderatorRemove(this, username, streamer);
+  }
+
+  public async userBan(username: string, streamer: string) {
+    await streamChatUserBan(this, streamer, username);
+  }
+
+  public async userUnban(username: string, streamer: string) {
+    await streamChatUserUnban(this, streamer, username);
+  }
+
+  public async userTimeoutSet(username: string, streamer: string) {
+    await streamChatUserTimeoutSet(this, streamer, username);
+  }
+
+  public chooseUser(user: VStreamChatSenderInfoFrag.Sender) {
+    this.chatInput = `${this.chatInput.substr(0, this.lastAtIndex)}@${
+      user.displayname
+    } `;
+    this.shouldShowUserList = false;
+  }
+
+  public searchUser(searchString: string) {
+    this.searchAtUserResult = this.atUsers.filter(
+      (user: VStreamChatSenderInfoFrag.Sender) =>
+        existsInStr(user.displayname, searchString)
+    );
+    if (this.searchAtUserResult.length === 0) {
+      this.shouldShowUserList = false;
+    } else {
+      this.focusIndex = 0;
+      this.shouldShowUserList = true;
+    }
+  }
+
+  public selectUp(event: Event) {
+    if (this.shouldShowUserList) {
+      event.preventDefault();
+      this.focusIndex = --this.focusIndex < 0 ? 0 : this.focusIndex;
+      const container = document.getElementById('searchAtUserList');
+      this.$nextTick(() => {
+        const focusItem = document.getElementsByClassName('focus-list-item')[0];
+        if (container && focusItem) {
+          const containerTop = container.getBoundingClientRect().top;
+          const focusItemTop = focusItem.getBoundingClientRect().top;
+          if (focusItemTop - containerTop <= 48) {
+            focusItem.scrollIntoView(true);
+          }
+        }
+      });
+    }
+  }
+
+  public selectDown(event: Event) {
+    if (this.shouldShowUserList) {
+      event.preventDefault();
+      this.focusIndex =
+        ++this.focusIndex >= this.searchAtUserResult.length
+          ? this.searchAtUserResult.length - 1
+          : this.focusIndex;
+      const container = document.getElementById('searchAtUserList');
+      this.$nextTick(() => {
+        const focusItem = document.getElementsByClassName('focus-list-item')[0];
+        if (container && focusItem) {
+          const containerBottom = container.getBoundingClientRect().bottom;
+          const focusItemBottom = focusItem.getBoundingClientRect().bottom;
+          if (containerBottom - focusItemBottom <= 48) {
+            focusItem.scrollIntoView(false);
+          }
+        }
+      });
+    }
+  }
+
+  public handlePopup() {
+    if (this.streamChatroomInput.livestream === null) {
+      return;
+    }
+    this.$emit('popped');
+    const to: RawLocation = {
+      name: ROUTE_POPUP_CHAT,
+      params: {
+        displayname: this.streamChatroomInput.displayname,
+        permlink: this.streamChatroomInput.livestream.permlink
+      }
+    };
+    const routeData = this.$router.resolve(to);
+    window.open(
+      routeData.href,
+      '_blank',
+      'location=yes,height=760,width=360,scrollbars=yes,status=yes'
+    );
+  }
+  public addEmoji(message: string) {
+    this.chatInput += message;
+  }
+  public giftClicked() {
+    if (this.isLive) {
+      this.showMobileGifts = !this.showMobileGifts;
+    } else {
+      this.$error('VDonationGiftBtn.Offline');
+    }
+  }
+  public clickChatroomSetting() {
+    this.showChatModeSettings = true;
+  }
+  public openEmoteBoard() {
+    if (this.requireLogin()) {
+      return;
+    }
+    this.showEmoteBoard = !this.showEmoteBoard;
+  }
+  public closeEmoteBoard() {
+    this.showEmoteBoard = false;
+  }
+  public closeAtUserList() {
+    this.shouldShowUserList = false;
+  }
+  public closeChatModeSettings() {
+    this.showChatModeSettings = false;
+  }
+  public closeChatBannedUsers() {
+    this.chatBannedUsersShow = false;
+  }
+  public closeBadgeManagement() {
+    this.showChatBadgeManagement = false;
+  }
+  public closeBadgeManagements() {
+    this.showChatBadgeManagement = false;
+  }
+  public closeChatModerators() {
+    this.chatModeratorsShow = false;
+  }
+  public closeMobileGifts() {
+    this.showMobileGifts = false;
+  }
+
+  @Watch('chatInput')
+  public onCommentInputChanges(val: string) {
+    if (!val.includes('@')) {
+      this.shouldShowUserList = false;
+      return;
+    }
+    const words = val.split('@');
+    this.lastAtIndex = val.lastIndexOf('@');
+    const lastWord = words[words.length - 1];
+    this.searchUser(lastWord);
+  }
+
+  @Watch('showMobileGifts')
+  public onGiftDialogChanges(val: boolean) {
+    this.$_smartPublish(EVENTS.SHOW_TREASURE_BOX, !val);
+  }
+}

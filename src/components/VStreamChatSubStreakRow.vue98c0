@@ -1,0 +1,19 @@
+
+
+
+
+
+
+
+
+
+import { VStreamChatSubStreakRowFrag } from '@/graphql/types';
+import { Component, Prop, Vue } from 'vue-property-decorator';
+
+@Component
+export default class VStreamChatSubStreakRow extends Vue {
+  @Prop({
+    required: true
+  })
+  public chatSubStreakRow!: VStreamChatSubStreakRowFrag.Fragment;
+}

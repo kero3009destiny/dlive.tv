@@ -1,0 +1,359 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { giveawayClaim } from '@/apollo/mutation/chest';
+import { follow } from '@/apollo/mutation/follow';
+import MeMixin from '@/mixins/MeMixin';
+import SnackbarMixin from '@/mixins/SnackbarMixin';
+import { TreasureChestPopupFrag, TreasureChestBuffType } from '@/graphql/types';
+import TreasureChestPopupAddPoints from '@/components/TreasureChestPopupAddPoints.vue';
+import TreasureChestPopupOpenBtn from '@/components/TreasureChestPopupOpenBtn.vue';
+import DBtn from '@/components/DBtn.vue';
+import DToken from '@/components/DToken.vue';
+import { Component, Mixins, Prop, Watch } from 'vue-property-decorator';
+import { namespace } from 'vuex-class';
+
+const meModule = namespace('me');
+const dialogModule = namespace('dialog');
+
+@Component({
+  components: {
+    TreasureChestPopupAddPoints,
+    TreasureChestPopupOpenBtn,
+    DBtn,
+    DToken
+  }
+})
+export default class TreasureChestPopup extends Mixins(MeMixin, SnackbarMixin) {
+  get isStreamer() {
+    return this.streamerInfo.isMe;
+  }
+
+  get isFollowing() {
+    return this.streamerInfo.isFollowing;
+  }
+
+  get value() {
+    if (this.ongoingGiveaway !== null) {
+      return this.ongoingGiveaway.pricePool;
+    } else {
+      return this.streamerInfo.treasureChest.value;
+    }
+  }
+
+  get ongoingGiveaway() {
+    return this.streamerInfo.treasureChest.ongoingGiveaway;
+  }
+
+  get isOngoing() {
+    if (this.ongoingGiveaway !== null) {
+      return true;
+    }
+    return false;
+  }
+
+  get canClaim() {
+    if (
+      !this.isStreamer &&
+      this.ongoingGiveaway !== null &&
+      !this.ongoingGiveaway.claimed
+    ) {
+      return true;
+    }
+    return false;
+  }
+
+  get chestIcon() {
+    if (this.isOngoing) {
+      return require('@/assets/icon/chest-open-bg.png');
+    } else {
+      return require('@/assets/icon/chest-close-bg.png');
+    }
+  }
+
+  get duration() {
+    if (this.ongoingGiveaway !== null) {
+      return this.ongoingGiveaway.durationInSeconds;
+    }
+    return 1;
+  }
+
+  get giveawayCloseAt() {
+    if (this.ongoingGiveaway !== null) {
+      return this.ongoingGiveaway.closeAt;
+    }
+    return '0';
+  }
+
+  // add this getter because countDown sometimes <0 and haven't found the reason
+  get countDownResult() {
+    if (this.countDown > 0) {
+      return this.countDown;
+    }
+    return 0;
+  }
+
+  get progressWidth() {
+    if (this.duration === 0) {
+      return 100;
+    }
+    return 100 - ((this.duration - this.countDownResult) / this.duration) * 100;
+  }
+
+  get buffs() {
+    return this.streamerInfo.treasureChest.buffs;
+  }
+  get shouldShowAmount() {
+    return this.isStreamer || this.isOngoing;
+  }
+
+  @Prop({
+    required: false,
+    default: false,
+    type: Boolean
+  })
+  public isLoading!: boolean;
+
+  @Prop({
+    required: true
+  })
+  public streamerInfo!: TreasureChestPopupFrag.Fragment;
+
+  public countDown: number = 0;
+  public progressInterval: number = 0;
+
+  @meModule.Getter('requireEmailVerify')
+  private requireEmailVerify!: boolean;
+  @dialogModule.Mutation('setEmailVerifyDialog')
+  private setEmailVerifyDialog!: (status: boolean) => void;
+
+  public buffBgSrc(buff: TreasureChestPopupFrag.Buffs) {
+    switch (buff.type) {
+      case TreasureChestBuffType.Verifiedpartnerbuff:
+        return require('@/assets/icon/chest-buff-vp.svg');
+      case TreasureChestBuffType.Globalpartnerbuff:
+        return require('@/assets/icon/chest-buff-gp.svg');
+      case TreasureChestBuffType.Partnerdayeventbuff:
+        return require('@/assets/icon/chest-buff-event.svg');
+      default:
+        return require('@/assets/icon/chest-buff-vp.svg');
+    }
+  }
+  public buffDescription(buff: TreasureChestPopupFrag.Buffs) {
+    switch (buff.type) {
+      case TreasureChestBuffType.Verifiedpartnerbuff:
+        return 'Verified Partner Buff';
+      case TreasureChestBuffType.Globalpartnerbuff:
+        return 'Global Partner Buff';
+      case TreasureChestBuffType.Partnerdayeventbuff:
+        return 'Super Fan Festival Buff';
+      default:
+        return 'Verified Partner Buff';
+    }
+  }
+
+  public beforeDestroy() {
+    if (this.progressInterval !== 0) {
+      window.clearInterval(this.progressInterval);
+    }
+  }
+
+  public setProgressInterval() {
+    if (this.ongoingGiveaway !== null && this.duration !== 0) {
+      this.countDown = Math.ceil(
+        (parseInt(this.giveawayCloseAt, 10) - Date.now()) / 1000
+      );
+
+      this.progressInterval = window.setInterval(() => {
+        if (this.countDown > 0) {
+          this.countDown = Math.ceil(
+            (parseInt(this.giveawayCloseAt, 10) - Date.now()) / 1000
+          );
+        } else {
+          window.clearInterval(this.progressInterval);
+          this.progressInterval = 0;
+        }
+      }, 1000);
+    }
+  }
+
+  public giveawayClaim() {
+    if (this.requireLogin()) {
+      return;
+    }
+    if (this.requireEmailVerify) {
+      this.setEmailVerifyDialog(true);
+      return;
+    }
+    if (!this.streamerInfo.isFollowing) {
+      follow(this, this.streamerInfo.username, this.streamerInfo.id);
+    }
+    giveawayClaim(this, this.streamerInfo.username, this.streamerInfo.id);
+  }
+
+  @Watch('ongoingGiveaway', { immediate: true })
+  private ongoingGiveawayStatus(
+    val: TreasureChestPopupFrag.OngoingGiveaway | null,
+    oldVal: TreasureChestPopupFrag.OngoingGiveaway | null
+  ) {
+    if (val && !oldVal) {
+      this.setProgressInterval();
+    }
+  }
+}

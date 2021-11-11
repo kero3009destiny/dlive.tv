@@ -1,0 +1,110 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { Component, Prop, Vue } from 'vue-property-decorator';
+
+@Component
+export default class DStakeCard extends Vue {
+  @Prop({
+    required: false,
+    default: '#ffd300',
+    type: String
+  })
+  public pointColor!: boolean;
+
+  @Prop({
+    required: false,
+    default: 0,
+    type: Number
+  })
+  public stakes?: number;
+
+  @Prop({
+    required: false,
+    default: '',
+    type: String
+  })
+  public tip?: string;
+
+  @Prop({
+    required: true,
+    default: '',
+    type: String
+  })
+  public subIcon?: string;
+
+  @Prop({
+    required: false,
+    default: '',
+    type: String
+  })
+  public extraIcon?: string;
+
+  @Prop({
+    required: true,
+    default: '',
+    type: String
+  })
+  public tokenIcon!: string;
+
+  @Prop({
+    required: true,
+    default: '',
+    type: String
+  })
+  public title!: string;
+
+  get pointStyle() {
+    return `background-color: ${this.pointColor}`;
+  }
+  // @Prop({
+  //   required: false,
+  //   default: false,
+  //   type: Boolean
+  // })
+  // public bottom!: boolean;
+}

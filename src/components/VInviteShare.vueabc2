@@ -1,0 +1,73 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import DBtn from '@/components/DBtn.vue';
+import DTextField from '@/components/DTextField.vue';
+import DShare from '@/components/DShare.vue';
+import socialSharing from 'vue-social-sharing';
+import SnackbarMixin from '@/mixins/SnackbarMixin';
+import { Component, Mixins, Prop } from 'vue-property-decorator';
+
+@Component({
+  components: {
+    DTextField,
+    socialSharing,
+    DBtn,
+    DShare
+  }
+})
+export default class VInviteShare extends Mixins(SnackbarMixin) {
+  @Prop({
+    type: String,
+    required: true
+  })
+  public shareLink!: string;
+
+  @Prop({
+    type: String,
+    required: false,
+    default: ''
+  })
+  public shareTitle!: string;
+
+  @Prop({
+    type: String,
+    required: false,
+    default: ''
+  })
+  public shareDescription!: string;
+
+  @Prop({
+    type: String,
+    required: false,
+    default: ''
+  })
+  public hashtags!: string;
+
+  public open(e: string) {
+    this.$emit('open', e);
+  }
+}

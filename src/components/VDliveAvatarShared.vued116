@@ -1,0 +1,60 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { Component, Prop, Vue } from 'vue-property-decorator';
+import { colorMap } from '@/utils/constants';
+@Component
+export default class VDliveAvatarShared extends Vue {
+  @Prop({ required: true })
+  public src!: string;
+
+  @Prop({ required: true })
+  public size!: number;
+
+  @Prop({ type: String, required: false, default: 'none' })
+  public outlineColor!: string;
+
+  get avatarSize() {
+    return `width: ${this.size}px; height: ${this.size}px; border-radius: 50%;`;
+  }
+
+  get outlineStyle() {
+    if (this.outlineColorTransfer !== undefined) {
+      return `border: 2px solid ${this.outlineColorTransfer};`;
+    }
+    return 'border: none';
+  }
+
+  get outlineColorTransfer() {
+    if (this.outlineColor.charAt(0) === '#') {
+      return this.outlineColor;
+    } else {
+      if (this.outlineColor === 'none') {
+        return undefined;
+      }
+      return `rgba(${colorMap.get(this.outlineColor)},1.0)`;
+    }
+  }
+
+  public error(e: ErrorEvent) {
+    if (this.$options.filters === undefined) {
+      return;
+    }
+    const url = this.$options.filters.orDefaultAvatar(null);
+    if (e.target !== null) {
+      (e.target as HTMLImageElement).src = url;
+    }
+  }
+}

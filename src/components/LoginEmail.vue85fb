@@ -1,0 +1,160 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import VGrecaptcha from '@/components/VGrecaptcha.vue';
+import DBtn from '@/components/DBtn.vue';
+import DTextField from '@/components/DTextField.vue';
+import TwoFAPopup from '@/components/TwoFAPopup.vue';
+import EMAIL_LOGIN from '@/graphql/mutations/LoginWithEmail.graphql';
+import { EmailLogin } from '@/graphql/types';
+import SnackbarMixin from '@/mixins/SnackbarMixin';
+import GlobalEventBusMixin from '@/mixins/GlobalEventBusMixin';
+import { Component, Mixins } from 'vue-property-decorator';
+import { loginRegisterNotification } from '@/web-notification';
+import { namespace } from 'vuex-class';
+import { RecaptchaError } from '@/models/error';
+const accessTokenModule = namespace('accessToken'); 
+
+@Component({
+  components: {
+    VGrecaptcha,
+    DBtn,
+    DTextField,
+    TwoFAPopup,
+    LoginRegisterFinal: () => import('@/components/LoginRegisterFinal.vue')
+  }
+})
+export default class LoginEmail extends Mixins(
+  SnackbarMixin,
+  GlobalEventBusMixin
+) {
+  @accessTokenModule.Mutation('setAccessToken')
+  private setAccessToken!: (token: string) => void;
+
+  // local
+  private email: string = '';
+  private pwd: string = '';
+  private signupLoading: boolean = false;
+  private twoFAShow: boolean = false;
+  private twofactorToken: string | null = '';
+  public openForgotPassword() {
+    this.$emit('forgotPasswordClicked');
+  }
+
+  public closeDialog() {
+    this.$emit('closeDialog');
+  }
+
+  public async loginClicked() {
+    this.signupLoading = true;
+    try {
+      const variables: EmailLogin.Variables = {
+        email: this.email,
+        password: this.pwd
+      };
+      const mutation = EMAIL_LOGIN;
+      const { data } = await this.$apollo.mutate<EmailLogin.Mutation>({
+        mutation,
+        variables
+      });
+      let resp = data.loginWithEmail;
+      if (resp.err && resp.err.code === 1433) {
+        const recaptcha = await (this.$refs
+          .grecaptcha as VGrecaptcha).execute();
+        if (recaptcha === null) {
+          this.$error('LoginEmailRegisterCallback.RecaptchaFailed');
+          throw new RecaptchaError();
+        }
+        const param: EmailLogin.Variables = {
+          email: this.email,
+          password: this.pwd,
+          recaptchaToken: recaptcha
+        };
+        const re = await this.$apollo.mutate<EmailLogin.Mutation>({
+          mutation,
+          variables: param
+        });
+        resp = re.data.loginWithEmail;
+      }
+      if (resp.err && resp.err.code === 7101) {
+        this.twoFAShow = true;
+        this.signupLoading = false;
+        this.twofactorToken = resp.twofactorToken;
+        return;
+      }
+      this.signupLoading = false;
+      // FIXME: code smell, same code from LoginRegisterFinal
+      this.$handleError(resp.err, mutation, variables);
+      if (
+        resp.me === null ||
+        resp.me.private === null ||
+        resp.me.private.accessToken === ''
+      ) {
+        this.$handleInconsistentError(
+          resp,
+          ['me.private.accessToken'],
+          mutation,
+          variables
+        );
+        return;
+      }
+      this.setAccessToken(resp.me.private.accessToken);
+      this.email = '';
+      this.pwd = '';
+      this.closeDialog();
+      loginRegisterNotification();
+      this.$success('LoginEmailCallback.LoginSuccess');
+    } catch (err) {
+      this.signupLoading = false;
+      throw err;
+    }
+  }
+
+  public toggleTwoFAPopup(state: boolean) {
+    this.twoFAShow = state;
+  }
+}

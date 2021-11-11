@@ -1,0 +1,33 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+import TreasureChestMobileContent from '@/components/TreasureChestMobileContent.vue';
+import DraggableMixin from '@/mixins/DraggableMixin';
+import { Component, Mixins, Prop } from 'vue-property-decorator';
+
+@Component({
+  components: {
+    TreasureChestMobileContent
+  }
+})
+export default class TreasureChestMobile extends Mixins(DraggableMixin) {
+  @Prop({
+    required: true,
+    type: String
+  })
+  public username!: string;
+
+  public updated() {
+    this.dragElement(this.$refs.movableDiv);
+  }
+}

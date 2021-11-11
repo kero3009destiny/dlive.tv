@@ -1,0 +1,94 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { Component, Vue, Prop } from 'vue-property-decorator';
+import VDliveAvatar from '@/components/VDliveAvatar.vue';
+
+// import { ROUTE_LIVESTREAM } from '@/router';
+import { MeSidebarFrag, SidebarRecommendation } from '@/graphql/types';
+// import { namespace } from 'vuex-class';
+// import { dataPoint } from '@/plugins/dataCollection';
+
+// const meModule = namespace('me');
+
+@Component({
+  components: {
+    VDliveAvatar
+  }
+})
+export default class AppSidebarAvatar extends Vue {
+  @Prop({
+    required: true
+  })
+  public channel!: MeSidebarFrag.List | SidebarRecommendation.User;
+
+  @Prop({
+    required: true
+  })
+  public type!: 'channel' | 'recommend' | 'channel-close' | 'recommend-close';
+
+  get outlineColor() {
+    if (this.isLive) {
+      return 'rgb(255,59,0)';
+    }
+    return 'none';
+  }
+  get sidebarAvatarStyle() {
+    const color = this.outlineColor;
+    if (color !== 'none') {
+      return `border: 2px solid ${color}`;
+    }
+    return '';
+  }
+  get sidebarAvatarSize() {
+    if (this.type === 'channel' || this.type === 'recommend') {
+      if (this.isLive) {
+        return 26;
+      }
+      return 28;
+    }
+    if (this.isLive) {
+      return 26;
+    }
+    return 30;
+  }
+
+  get isLive() {
+    return (
+      !(
+        this.channel.hostingLivestream !== null &&
+        this.channel.hostingLivestream.permlink
+      ) &&
+      (this.channel.livestream !== null && this.channel.livestream.permlink)
+    );
+  }
+
+  get isRerun() {
+    if (this.type === 'recommend' || this.type === 'recommend-close') {
+      return false;
+    }
+    return (
+      !(
+        this.channel.hostingLivestream !== null &&
+        this.channel.hostingLivestream.permlink
+      ) &&
+      !(this.channel.livestream !== null && this.channel.livestream.permlink) &&
+      (this.channel as MeSidebarFrag.List).rerun !== null
+    );
+  }
+}

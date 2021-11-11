@@ -1,0 +1,4 @@
+var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',{staticClass:"flex-all-center position-relative",class:{ 'flex-wrap': _vm.theatreMode }},_vm._l((_vm.gifts),function(gift,index){return _c('v-donation-gift-btn',{key:index,class:{ 'margintb-2': _vm.theatreMode },attrs:{"gift":gift,"post":_vm.post,"btt-receiver-address":_vm.bttReceiverAddress}})}),1)}
+var staticRenderFns = []
+
+export { render, staticRenderFns }

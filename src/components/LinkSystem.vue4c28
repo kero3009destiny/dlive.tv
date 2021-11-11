@@ -1,0 +1,23 @@
+
+
+
+
+
+import { Vue, Component } from 'vue-property-decorator';
+import { dataPoint } from '@/plugins/dataCollection';
+
+@Component
+export default class LinkSystem extends Vue {
+  public mounted() {
+    this.setLinkRecord();
+  }
+
+  public setLinkRecord() {
+    const from: string = this.$route.query.link_from as string;
+    if (from !== undefined) {
+      dataPoint('link_from', {
+        eventCategory: from
+      });
+    }
+  }
+}

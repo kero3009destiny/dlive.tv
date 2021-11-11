@@ -1,0 +1,25 @@
+
+
+
+
+
+
+
+
+
+
+
+
+import { Component, Prop, Vue } from 'vue-property-decorator';
+
+@Component
+export default class VCenteredContainer extends Vue {
+  @Prop({
+    default: false
+  })
+  public withPadding!: boolean;
+
+  get useEqualPadding() {
+    return this.withPadding;
+  }
+}

@@ -1,0 +1,4 @@
+var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',[_c('d-btn',{staticClass:"send-code-btn flex-fixed text-12-medium text-uppercase",staticStyle:{"padding":"5px 16px"},attrs:{"type":"btnC","disabled":_vm.disabled,"loading":_vm.isLoading},on:{"click":_vm.sendClicked}},[(_vm.stageSend)?_c('i18n',{attrs:{"path":_vm.sendI18n}}):_vm._e(),(_vm.stageCountDown)?_c('VueCountdown',{attrs:{"time":30000,"emit-events":true},on:{"end":_vm.countdownend},scopedSlots:_vm._u([{key:"default",fn:function(props){return [_vm._v(" "+_vm._s(props.seconds || 30)+"s ")]}}],null,false,1882951306)}):_vm._e(),(_vm.stageResend)?_c('i18n',{attrs:{"path":_vm.resendI18n}}):_vm._e()],1)],1)}
+var staticRenderFns = []
+
+export { render, staticRenderFns }

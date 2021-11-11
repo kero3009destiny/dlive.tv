@@ -1,0 +1,176 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import DBtn from '@/components/DBtn.vue';
+import DMenu from '@/components/DMenu.vue';
+import DMenuItem from '@/components/DMenuItem.vue';
+import DDialog from '@/components/DDialog.vue';
+import { MeRebillyCardsFrag } from '@/graphql/types';
+import { rebillyCardDeactivate } from '@/apollo/mutation/cashin';
+import MeMixin from '@/mixins/MeMixin';
+import SnackbarMixin from '@/mixins/SnackbarMixin';
+import { Component, Mixins, Prop } from 'vue-property-decorator';
+@Component({
+  components: {
+    DMenu,
+    DMenuItem,
+    DDialog,
+    DBtn
+  }
+})
+export default class DCreditCard extends Mixins(MeMixin, SnackbarMixin) {
+  @Prop({
+    type: Object,
+    required: false
+  })
+  public card?: MeRebillyCardsFrag.UserRebillyCards;
+
+  @Prop({
+    type: Boolean,
+    required: false,
+    default: false
+  })
+  public focus!: boolean;
+
+  @Prop({
+    type: Boolean,
+    required: false,
+    default: false
+  })
+  public addNew!: boolean;
+
+  get cardBg() {
+    if (this.card === undefined) {
+      return '';
+    }
+    return require(`@/assets/icon/${this.card.brand.toLowerCase()}-bg.png`);
+  }
+
+  get accountNumber() {
+    if (this.card === undefined) {
+      return '';
+    }
+    return this.card.last4;
+  }
+
+  get cardBrankIcon() {
+    if (this.card === undefined) {
+      return '';
+    }
+    return require(`@/assets/icon/${this.card.brand.toLowerCase()}-icon.png`);
+  }
+
+  // local
+  public addressCardMenuShow: boolean = false;
+  public addressDeleteConfirm: boolean = false;
+
+  public deleteLoading: boolean = false;
+
+  public async bankAddressDelete() {
+    if (this.me !== null && this.card !== undefined) {
+      this.deleteLoading = true;
+      rebillyCardDeactivate(this, this.card.id, this.me.id);
+    }
+  }
+}

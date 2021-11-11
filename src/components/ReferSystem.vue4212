@@ -1,0 +1,70 @@
+
+
+
+
+
+import { Component, Mixins } from 'vue-property-decorator';
+import { namespace } from 'vuex-class';
+import { ReferrerGQL } from '@/store/userMeta/types';
+import { dataPoint } from '@/plugins/dataCollection';
+import MeMixin from '@/mixins/MeMixin';
+import { ReferralSource } from '@/graphql/types';
+import { ROUTE_LIVESTREAM } from '@/router';
+
+const userMetaModule = namespace('userMeta');
+
+@Component
+export default class ReferSystem extends Mixins(MeMixin) {
+  @userMetaModule.Getter('referrer')
+  private referrer!: ReferrerGQL | null;
+  @userMetaModule.Mutation('setReferrerFirstTimeToFalse')
+  private setReferrerFirstTimeToFalse!: () => void;
+  @userMetaModule.Mutation('setStreamerReferrer')
+  private setStreamerReferrer!: (referrer: string) => void;
+  @userMetaModule.Mutation('setUserReferrer')
+  private setUserReferrer!: (referrer: string) => void;
+
+  get hasReferral() {
+    if (this.referrer !== null) {
+      return (
+        (this.referrer.source === ReferralSource.Streamer ||
+          this.referrer.source === ReferralSource.Commission) &&
+        this.referrer.isFirstTime
+      );
+    }
+    return false;
+  }
+
+  public mounted() {
+    this.setReferrer();
+    this.checkReferrer();
+  }
+
+  public setReferrer() {
+    const userRef: string = this.$route.query.ref as string;
+    // const streamRef: string = this.$route.query.streamref as string;
+    // if (streamRef !== undefined && streamRef !== '') {
+    //   this.setStreamerReferrer(streamRef);
+    // } else
+    if (userRef !== undefined && userRef !== '') {
+      this.setUserReferrer(userRef);
+      if (this.$route.name === ROUTE_LIVESTREAM) {
+        dataPoint('click_referral_link', {
+          eventCategory: 'channel',
+          eventLabel: this.$route.params.displayname
+        });
+      } else {
+        dataPoint('click_referral_link', {
+          eventCategory: 'home'
+        });
+      }
+    }
+  }
+
+  public checkReferrer() {
+    if (this.hasReferral) {
+      this.setReferrerFirstTimeToFalse();
+      this.requireLogin();
+    }
+  }
+}

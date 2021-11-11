@@ -1,0 +1,239 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import uploadAvatar from '@/api/uploadAvatar';
+import VUploadImage from '@/components/VUploadImage.vue';
+import DBtn from '@/components/DBtn.vue';
+import DTextField from '@/components/DTextField.vue';
+import MeMixin from '@/mixins/MeMixin';
+import UsernameDisplayNameValidationMixin from '@/mixins/UsernameDisplayNameValidationMixin';
+import SnackbarMixin from '@/mixins/SnackbarMixin';
+import DDialog from '@/components/DDialog.vue';
+import VDliveAvatar from '@/components/VDliveAvatar.vue';
+
+// import FormValidationMixin from '@/mixins/FormValidationMixin';
+import { Watch, Component, Mixins } from 'vue-property-decorator';
+import { UserUpdateDisplayName, UserUpdateAvatar } from '@/graphql/types';
+import USER_UPDATE_DISPLAY_NAME from '@/graphql/mutations/UserUpdateDisplayName.graphql';
+import USER_UPDATE_AVATAR from '@/graphql/mutations/UserUpdateAvatar.graphql';
+import { setMeAvatar, setMeDisplayName } from '@/apollo/cache/me';
+
+@Component({
+  components: {
+    VUploadImage,
+    DBtn,
+    DTextField,
+    DDialog,
+    VDliveAvatar
+  }
+})
+export default class SettingsDisplayNameAndAvatar extends Mixins(
+  SnackbarMixin,
+  MeMixin,
+  UsernameDisplayNameValidationMixin
+  // FormValidationMixin,
+) {
+  get uploadUserInfo() {
+    // if (this.currentUser) {
+    //   const rst: any = {};
+    //   rst[this.uploadAvatar.username] = this.currentUser.username;
+    //   return rst;
+    // } else {
+    //   return {};
+    // }
+    return null;
+  }
+
+  get enableUpdateDisplayNameButton() {
+    return (
+      this.nextDisplayNameChange !== '' &&
+      this.overTime &&
+      this.displayNameErrors.length === 0 &&
+      this.displayName !== this.originalDisplayName
+    );
+  }
+  public uploadAvatar = uploadAvatar;
+  // Local
+  private nextDisplayNameChange: string = '';
+  private showChangeAvatar: boolean = false;
+  private showChangeCoverImage: boolean = false;
+  private overTime: boolean = false; // true means the user could change display name
+  private overTimeTip: string = '';
+  private originalDisplayName: string = '';
+  private avatar = '';
+
+  // Lifecycle Hooks ----------------------------------------------------------------------------------
+  public created() {
+    this.afterMeSet();
+  }
+
+  // Function -----------------------------------------------------------------------------------
+  public async changeDisplayName() {
+    try {
+      const { data } = await this.$apollo.mutate<
+        UserUpdateDisplayName.Mutation
+      >({
+        mutation: USER_UPDATE_DISPLAY_NAME,
+        variables: {
+          displayName: this.displayName
+        }
+      });
+      const resp = data.userUpdate;
+      if (resp.err !== null) {
+        this.$errCode(resp.err.code);
+        return;
+      }
+      setMeDisplayName(this.$apollo.provider.defaultClient, this.displayName);
+      this.afterMeSet();
+      this.$success('SettingsDisplayNameAndAvatar.DisplaynameChangeSuccess');
+
+      // GlobalEventBus.publish(EVENTS.REFETCH_LOGGEDIN, null);
+    } catch (err) {
+      // TODO(@ryan): error handling
+    }
+  }
+
+  public async onAvatarDone(url: string) {
+    this.showChangeAvatar = false;
+    (this.$refs.changeAvatar as VUploadImage).reset();
+    try {
+      const { data } = await this.$apollo.mutate<UserUpdateAvatar.Mutation>({
+        mutation: USER_UPDATE_AVATAR,
+        variables: {
+          avatar: url
+        }
+      });
+      const resp = data.userUpdate;
+      if (resp.err !== null) {
+        this.$errCode(resp.err.code);
+        return;
+      }
+      setMeAvatar(this.$apollo.provider.defaultClient, url);
+      this.afterMeSet();
+      this.$success('SettingsDisplayNameAndAvatar.AvatarChangeSuccess');
+    } catch (err) {
+      // TODO(@ryan): error handling
+    }
+  }
+
+  public onClickChangeAvatar() {
+    this.showChangeAvatar = true;
+  }
+
+  public timeDistance() {
+    if (this.overTime) {
+      this.overTimeTip = this.$t(
+        'SettingsDisplayNameAndAvatar.YouCanOnlyChangeOnceAMonth'
+      ) as string;
+    } else {
+      const date1 = new Date();
+      const date2 = new Date(parseInt(this.nextDisplayNameChange, 10));
+      const timeDiff = Math.abs(date2.getTime() - date1.getTime());
+      const diffDays = Math.ceil(timeDiff / (1000 * 3600 * 24));
+      this.overTimeTip = this.$t(
+        'SettingsDisplayNameAndAvatar.YouCanChangeDisplaynameAfter',
+        {
+          num: diffDays
+        }
+      ) as string;
+    }
+  }
+  // afterMeSet() should be called after globalMe mutations
+  @Watch('me.displayname')
+  public onMeDisplaynameChange(val: string, oldVal: string) {
+    if (val && !oldVal) {
+      this.afterMeSet();
+    }
+  }
+
+  // Should be called in created and after mutations
+  private afterMeSet() {
+    if (this.me !== null) {
+      this.displayName = this.me.displayname;
+      this.originalDisplayName = this.me.displayname;
+      this.avatar = this.me.avatar;
+      // TODO(@ryan): Ensure we always have private in GlobalMe
+      if (this.me.private !== null) {
+        this.nextDisplayNameChange = this.me.private.nextDisplayNameChangeTime;
+        this.overTime =
+          new Date() >
+          new Date(parseInt(this.me.private.nextDisplayNameChangeTime, 10));
+        this.timeDistance();
+      }
+    }
+  }
+}

@@ -1,0 +1,86 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { Component, Vue, Prop } from 'vue-property-decorator';
+
+@Component
+export default class DSelect extends Vue {
+  @Prop({
+    required: false,
+    default: false,
+    type: Boolean
+  })
+  public menuItemCustom!: boolean;
+  @Prop({
+    required: false,
+    default: '',
+    type: String
+  })
+  public currentText!: string;
+  @Prop({
+    required: false,
+    default: true,
+    type: Boolean
+  })
+  public showAfterIcon!: boolean;
+  @Prop({
+    required: false,
+    default: [],
+    type: Array
+  })
+  public items!: number[]; //        error type any[]
+  @Prop({
+    required: false,
+    default: [],
+    type: String
+  })
+  public itemName!: string;
+
+  @Prop({
+    required: false,
+    default: false,
+    type: Boolean
+  })
+  public isLemon!: boolean;
+}

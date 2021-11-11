@@ -1,0 +1,77 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { Component, Vue, Prop } from 'vue-property-decorator';
+import { colorMap } from '@/utils/constants';
+
+@Component
+export default class DToken extends Vue {
+  @Prop({
+    type: Number,
+    required: false,
+    default: 12
+  })
+  public size!: number;
+
+  @Prop({
+    type: String,
+    required: false,
+    default: 'token'
+  })
+  public type!:
+  | 'token'
+  | 'view'
+  | 'watching'
+  | 'heart'
+  | 'lino'
+  | 'TRX'
+  | 'BTT';
+
+  @Prop({
+    type: String,
+    required: false,
+    default: 'grey'
+  })
+  public color!: string;
+
+  get imgSrc() {
+    switch (this.type) {
+      case 'token':
+        return require('@/assets/icon/token.svg');
+      case 'view':
+        return require('@/assets/icon/view-count.svg');
+      case 'watching':
+        return require('@/assets/icon/live.svg');
+      case 'heart':
+        return require('@/assets/icon/heart-red.svg');
+      case 'lino':
+        return require('@/assets/icon/lino.svg');
+      case 'TRX':
+        return require('@/assets/icon/trx-icon-white.svg');
+      case 'BTT':
+        return require('@/assets/icon/btt-icon-white.svg');
+      default:
+        return '';
+    }
+  }
+
+  get fontStyle() {
+    const color = colorMap.get(this.color);
+    if (color) {
+      return `color: rgba(${color}, 1.0)`;
+    }
+    return '';
+  }
+}

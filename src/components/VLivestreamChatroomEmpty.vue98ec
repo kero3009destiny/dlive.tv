@@ -1,0 +1,28 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { Component, Vue } from 'vue-property-decorator';
+
+@Component({
+  components: {}
+})
+export default class VLiveStreamChatroomEmpty extends Vue {
+  public handleRestore() {
+    this.$emit('restoreChat');
+  }
+}

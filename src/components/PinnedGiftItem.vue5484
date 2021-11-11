@@ -1,0 +1,185 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import VDliveAvatar from '@/components/VDliveAvatar.vue';
+import PinnedGiftItemCard from '@/components/PinnedGiftItemCard.vue';
+import { Component, Prop, Vue } from 'vue-property-decorator';
+import { PinnedGiftItemFrag, DonationType } from '@/graphql/types';
+
+@Component({
+  components: {
+    VDliveAvatar,
+    PinnedGiftItemCard
+  }
+})
+export default class PinnedGiftItem extends Vue {
+  @Prop({
+    type: Object,
+    required: true
+  })
+  public pinnedGiftItem!: PinnedGiftItemFrag.Fragment;
+
+  @Prop({
+    required: true,
+    type: String
+  })
+  public streamerName!: string;
+
+  public progressWidth: number = 0;
+  public progressInterval: number = 0;
+  public showProfileCard: boolean = false;
+
+  public mounted() {
+    this.initProgressWidth();
+    this.setProgressInterval();
+  }
+
+  public beforeDestroy() {
+    if (this.progressInterval !== 0) {
+      window.clearInterval(this.progressInterval);
+    }
+  }
+
+  get progressContentWidth() {
+    return `width: ${this.progressWidth > 0 ? this.progressWidth : 0}%`;
+  }
+
+  get updateTime() {
+    return parseInt(this.pinnedGiftItem.updatedAt, 10);
+  }
+
+  get duration() {
+    // Transfer to ms
+    return this.pinnedGiftItem.expirationTime * 1000;
+  }
+
+  get sender() {
+    return this.pinnedGiftItem.user;
+  }
+
+  get giftCount() {
+    return this.pinnedGiftItem.count > 99 ? 99 : this.pinnedGiftItem.count;
+  }
+
+  get backgroundClass() {
+    switch (this.pinnedGiftItem.type) {
+      case DonationType.Ninjaghini: {
+        return 'background-yellow';
+      }
+      case DonationType.Ninjet: {
+        return 'background-blue';
+      }
+      default: {
+        return 'background-yellow';
+      }
+    }
+  }
+  get avatarBorderClass() {
+    switch (this.pinnedGiftItem.type) {
+      case DonationType.Ninjaghini: {
+        return 'border-yellow';
+      }
+      case DonationType.Ninjet: {
+        return 'border-blue';
+      }
+      default: {
+        return 'border-yellow';
+      }
+    }
+  }
+  get giftIcon() {
+    switch (this.pinnedGiftItem.type) {
+      case DonationType.Ninjaghini: {
+        return require('@/assets/icon/donate-ninjaghini.svg');
+      }
+      case DonationType.Ninjet: {
+        return require('@/assets/icon/donate-ninjet.svg');
+      }
+      default: {
+        return require('@/assets/icon/donate-ninjaghini.svg');
+      }
+    }
+  }
+
+  public initProgressWidth() {
+    if (this.duration === 0) {
+      this.progressWidth = 0;
+      return;
+    }
+    this.progressWidth =
+      100 - ((Date.now() - this.updateTime) / this.duration) * 100;
+  }
+
+  public setProgressInterval() {
+    if (this.duration === 0) {
+      this.$emit('removeGift', this.pinnedGiftItem);
+      return;
+    }
+    this.progressInterval = window.setInterval(() => {
+      this.progressWidth -= 1;
+      if (this.progressWidth <= 0) {
+        this.$emit('removeGift', this.pinnedGiftItem);
+      }
+    }, this.duration / 100);
+  }
+
+  public toggleProfileCard() {
+    this.showProfileCard = !this.showProfileCard;
+  }
+  public closeProfileCard() {
+    this.showProfileCard = false;
+  }
+}

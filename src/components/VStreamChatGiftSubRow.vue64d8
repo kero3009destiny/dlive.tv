@@ -1,0 +1,4 @@
+var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('span',[(_vm.chatGiftSubRow.receiver !== null)?_c('i18n',{attrs:{"path":"LiveStreamChatroomRow.GiftSubToViewerRow","tag":"span"}},[_c('span',{attrs:{"place":"viewer"}},[_vm._v(" "+_vm._s(_vm.chatGiftSubRow.receiver)+" ")])]):_c('i18n',{attrs:{"path":"LiveStreamChatroomRow.GiftSubRow","tag":"span"}},[_c('span',{attrs:{"place":"amount"}},[_vm._v(" "+_vm._s(_vm.chatGiftSubRow.count)+" ")])])],1)}
+var staticRenderFns = []
+
+export { render, staticRenderFns }

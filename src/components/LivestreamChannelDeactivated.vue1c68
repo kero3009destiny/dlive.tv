@@ -1,0 +1,4 @@
+var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',{staticClass:"flex-align-center flex-column",attrs:{"id":"channel-suspended"}},[_c('i18n',{staticClass:"text-16-bold text-grey mt-5",attrs:{"path":"LivestreamChannelDeactivated.ChannelDeactivated","tag":"span"}},[_c('span',{attrs:{"place":"displayname"}},[_vm._v(" "+_vm._s(_vm.displayname)+" ")])]),_vm._m(0),_c('div',{staticClass:"mt-2"},[_c('v-btn',{staticClass:"text-constant-black",attrs:{"color":"primary"},on:{"click":_vm.routeTo}},[_vm._v(" "+_vm._s(_vm.$t('VPageNotFound.BackToHome'))+" ")])],1)],1)}
+var staticRenderFns = [function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',{staticClass:"mt-5 mb-4"},[_c('img',{attrs:{"src":require("@/assets/icon/notfound.svg"),"width":"187px"}})])}]
+
+export { render, staticRenderFns }

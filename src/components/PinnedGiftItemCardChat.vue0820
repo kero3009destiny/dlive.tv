@@ -1,0 +1,153 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import clickaway from 'vue-clickaway';
+import { EVENTS } from '@/utils/constants';
+import {
+  AllowedActions,
+  ChannelAction,
+  PinnedGiftItemFrag,
+  PinnedGiftSuperchat
+} from '@/graphql/types';
+import {
+  chatDelete,
+  streamChatUserBan,
+  streamChatUserTimeoutSet
+} from '@/utils/mutations/chatroom';
+import { Component, Mixins, Prop } from 'vue-property-decorator';
+import SnackbarMixin from '@/mixins/SnackbarMixin';
+import GlobalEventBusMixin from '@/mixins/GlobalEventBusMixin';
+
+@Component
+export default class PinnedGiftItemCardChat extends Mixins(
+  SnackbarMixin,
+  GlobalEventBusMixin,
+  clickaway.mixin
+) {
+  @Prop({
+    type: Object,
+    required: true
+  })
+  public pinnedGiftItem!: PinnedGiftItemFrag.Fragment;
+
+  @Prop({
+    required: true,
+    type: String
+  })
+  public streamerName!: string;
+
+  @Prop({
+    required: true
+  })
+  public user!: AllowedActions.User;
+
+  @Prop({
+    required: true
+  })
+  public superchat!: PinnedGiftSuperchat.Superchat;
+
+  public shouldShowUperchatMod = false;
+
+  get allowedActions() {
+    if (
+      this.user !== undefined &&
+      this.user !== null &&
+      this.user.allowedActionsIn !== null
+    ) {
+      return this.user.allowedActionsIn;
+    }
+    return [];
+  }
+
+  get canBanUser() {
+    return this.allowedActions.indexOf(ChannelAction.Ban) !== -1;
+  }
+
+  get canDeleteChat() {
+    return this.allowedActions.indexOf(ChannelAction.Delete) !== -1;
+  }
+
+  get canUserTimeoutSet() {
+    return this.allowedActions.indexOf(ChannelAction.SetTimeout) !== -1;
+  }
+
+  public async chatDelete() {
+    await chatDelete(this, this.streamerName, this.superchat.id);
+    // XXX(jiayi): TODO handle delete chat fail
+    this.$_smartPublish(EVENTS.CHAT_DELETE, this.superchat.id);
+    this.closePinnedGiftProfileCard();
+  }
+
+  public async userBan() {
+    await streamChatUserBan(
+      this,
+      this.streamerName,
+      this.pinnedGiftItem.user.username
+    );
+    this.closePinnedGiftProfileCard();
+  }
+
+  public async userTimeoutSet() {
+    await streamChatUserTimeoutSet(
+      this,
+      this.streamerName,
+      this.pinnedGiftItem.user.username
+    );
+    this.closePinnedGiftProfileCard();
+  }
+
+  public toggleSuperchatMod() {
+    if (this.allowedActions.length > 0) {
+      this.shouldShowUperchatMod = !this.shouldShowUperchatMod;
+    }
+  }
+
+  public closeSuperchatMod() {
+    this.shouldShowUperchatMod = false;
+  }
+
+  public closePinnedGiftProfileCard() {
+    this.$emit('closePinnedGiftProfileCard');
+  }
+}

@@ -1,0 +1,24 @@
+
+
+
+
+
+import { Component, Vue } from 'vue-property-decorator';
+import { dataPoint } from '@/plugins/dataCollection';
+
+@Component
+export default class NotificationSystem extends Vue {
+  public mounted() {
+    this.dataTrack();
+  }
+
+  public dataTrack() {
+    const wnt: string = this.$route.query.wnt as string;
+    if (wnt !== undefined) {
+      dataPoint('click_notification', {
+        eventCategory: wnt,
+        eventLabel: window.location.pathname
+      });
+    }
+  }
+}

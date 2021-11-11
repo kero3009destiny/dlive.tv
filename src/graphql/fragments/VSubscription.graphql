@@ -1,0 +1,25 @@
+
+    var doc = {"kind":"Document","definitions":[{"kind":"FragmentDefinition","name":{"kind":"Name","value":"VSubscriptionFrag"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"User"}},"directives":[],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"username"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"displayname"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"lastStreamedAt"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"mySubscription"},"arguments":[],"directives":[{"kind":"Directive","name":{"kind":"Name","value":"include"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"if"},"value":{"kind":"Variable","name":{"kind":"Name","value":"isLoggedIn"}}}]}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"isSubscribing"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"nextBillingAt"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"lemonSub"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"subType"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"subscribedAt"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"subStreak"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"lastBilledDate"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"status"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"month"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"subStreakStartedAt"},"arguments":[],"directives":[]}]}},{"kind":"Field","name":{"kind":"Name","value":"isSubscribing"},"arguments":[],"directives":[{"kind":"Directive","name":{"kind":"Name","value":"include"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"if"},"value":{"kind":"Variable","name":{"kind":"Name","value":"isLoggedIn"}}}]}]},{"kind":"FragmentSpread","name":{"kind":"Name","value":"EmojiFrag"},"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"canSubscribe"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"isMe"},"arguments":[],"directives":[{"kind":"Directive","name":{"kind":"Name","value":"include"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"if"},"value":{"kind":"Variable","name":{"kind":"Name","value":"isLoggedIn"}}}]}]},{"kind":"Field","name":{"kind":"Name","value":"subSetting"},"arguments":[],"directives":[],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"badgeColor"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"badgeText"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"textColor"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"streakTextColor"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"benefits"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"backgroundImage"},"arguments":[],"directives":[]}]}}]}}],"loc":{"start":0,"end":539}};
+    doc.loc.source = {"body":"#import './EmojiFrag.graphql'\nfragment VSubscriptionFrag on User {\n  id\n  username\n  displayname\n  lastStreamedAt\n  mySubscription @include(if: $isLoggedIn) {\n    isSubscribing\n    nextBillingAt\n    lemonSub\n    subType\n    subscribedAt\n    subStreak\n    lastBilledDate\n    status\n    month\n    subStreakStartedAt\n  }\n  isSubscribing @include(if: $isLoggedIn)\n  ...EmojiFrag\n  canSubscribe\n  isMe @include(if: $isLoggedIn)\n  subSetting {\n    badgeColor\n    badgeText\n    textColor\n    streakTextColor\n    benefits\n    backgroundImage\n  }\n}","name":"GraphQL request","locationOffset":{"line":1,"column":1}};
+  
+
+    var names = {};
+    function unique(defs) {
+      return defs.filter(
+        function(def) {
+          if (def.kind !== 'FragmentDefinition') return true;
+          var name = def.name.value
+          if (names[name]) {
+            return false;
+          } else {
+            names[name] = true;
+            return true;
+          }
+        }
+      )
+    }
+  doc.definitions = doc.definitions.concat(unique(require('./EmojiFrag.graphql').definitions));
+
+
+      module.exports = doc;
+    

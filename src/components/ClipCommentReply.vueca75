@@ -1,0 +1,288 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { Component, Mixins, Prop } from 'vue-property-decorator';
+import VDliveAvatar from '@/components/VDliveAvatar.vue';
+import VDliveName from '@/components/VDliveName.vue';
+import DTextField from '@/components/DTextField.vue';
+import DMenu from '@/components/DMenu.vue';
+import DMenuItem from '@/components/DMenuItem.vue';
+import {
+  ClipCommentItemFrag,
+  ClipCommentLikeAction,
+  ClipComment
+} from '@/graphql/types';
+import MeMixin from '@/mixins/MeMixin';
+import SnackbarMixin from '@/mixins/SnackbarMixin';
+import {
+  clipCommentLike,
+  clipComment,
+  clipReplyDelete,
+  clipReplyDeleteAndMute
+} from '@/apollo/mutation/clip';
+import { ROUTE_LIVESTREAM } from '@/router';
+import { RawLocation } from 'vue-router';
+
+@Component({
+  components: {
+    VDliveAvatar,
+    VDliveName,
+    DTextField,
+    DMenu,
+    DMenuItem
+  }
+})
+export default class ClipCommentReply extends Mixins(MeMixin, SnackbarMixin) {
+  @Prop({
+    required: true,
+    type: Object
+  })
+  public commentReply!: ClipCommentItemFrag.Fragment;
+
+  @Prop({
+    required: true,
+    type: String
+  })
+  public clipID!: string;
+
+  @Prop({
+    required: true,
+    type: String
+  })
+  public commentID!: string;
+
+  @Prop({
+    required: true,
+    type: Object
+  })
+  public streamerInfo!: ClipComment.Streamer;
+
+  @Prop({
+    required: true,
+    type: String
+  })
+  public from!: 'new' | 'fetched';
+
+  @Prop({
+    required: true,
+    type: Boolean
+  })
+  public replyFetched!: boolean;
+
+  get likeIcon() {
+    if (this.commentReply && this.commentReply.liked) {
+      return require('@/assets/icon/heart-red.svg');
+    }
+    return require('@/assets/icon/heart-white.svg');
+  }
+
+  get hasClipReplyOption() {
+    return this.isStreamer || this.isCommenter;
+  }
+
+  get isMyComment() {
+    if (this.me !== null && this.commentReply !== undefined) {
+      return this.me.username === this.commentReply.author.username;
+    }
+    return false;
+  }
+
+  get isStreamer() {
+    if (this.me !== null && this.streamerInfo !== undefined) {
+      return this.me.username === this.streamerInfo.username;
+    }
+    return false;
+  }
+
+  get isCommenter() {
+    if (this.me !== null && this.commentReply !== undefined) {
+      return this.me.username === this.commentReply.author.username;
+    }
+    return false;
+  }
+
+  public replayShow: boolean = false;
+  public replyInputShow: boolean = false;
+  public replyInput: string = '';
+  public clipReplyOptionMenuShow: boolean = false;
+
+  public goChannel() {
+    const to: RawLocation = {
+      name: ROUTE_LIVESTREAM,
+      params: {
+        displayname: this.commentReply.author.displayname
+      }
+    };
+    const routeData = this.$router.resolve(to);
+    window.open(routeData.href, '_blank');
+  }
+
+  public async commentReplySubmit() {
+    const resp = await clipComment(
+      this,
+      this.replyInput,
+      this.clipID,
+      10,
+      this.commentID,
+      this.commentReply.id,
+      this.replyFetched
+    );
+    if (resp) {
+      this.$emit('commentReplySubmit', resp);
+    }
+    this.replyInput = '';
+    this.replyInputShow = false;
+  }
+
+  public replyInputOpen() {
+    if (this.requireLogin()) {
+      return;
+    }
+    this.replyInputShow = true;
+  }
+
+  public async clipReplyLike() {
+    if (this.requireLogin()) {
+      return;
+    }
+    const state = this.commentReply.liked;
+    await clipCommentLike(
+      this,
+      this.commentReply.id,
+      this.commentReply.liked
+        ? ClipCommentLikeAction.Unlike
+        : ClipCommentLikeAction.Like
+    );
+    this.$emit('replyLike', { replyID: this.commentReply.id, state: !state });
+  }
+
+  public clipReplyOptionMenuClose() {
+    this.clipReplyOptionMenuShow = false;
+  }
+
+  public async clipReplyDelete() {
+    await clipReplyDelete(
+      this,
+      this.commentID,
+      this.from,
+      this.commentReply.id
+    );
+    if (this.from === 'new') {
+      this.$emit('newReplyDelete', this.commentReply.id);
+    }
+  }
+
+  public async clipReplyDeleteAndMute() {
+    await clipReplyDeleteAndMute(
+      this,
+      this.commentID,
+      this.from,
+      this.commentReply.id
+    );
+  }
+}

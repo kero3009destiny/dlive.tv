@@ -1,0 +1,52 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { Component, Mixins } from 'vue-property-decorator';
+import MeMixin from '@/mixins/MeMixin';
+
+@Component
+export default class HappyhourTicketsEntrance extends Mixins(MeMixin) {
+  public shouldShowEntrance = true;
+
+  public openHappyhourPopup() {
+    window.open('https://link.lino.network/sfbw-telegram', '_blank');
+  }
+  public toggleEntrance() {
+    this.shouldShowEntrance = !this.shouldShowEntrance;
+  }
+}

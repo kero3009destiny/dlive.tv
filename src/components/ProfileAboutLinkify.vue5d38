@@ -1,0 +1,86 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import * as linkify from 'linkifyjs';
+import { Component, Prop, Vue } from 'vue-property-decorator';
+import { AboutText } from '@/models/profileAbout';
+
+@Component({})
+export default class VLinkify extends Vue {
+  @Prop({
+    required: true,
+    type: String
+  })
+  public str!: string;
+
+  get linkifiedList() {
+    let strTemp = this.str;
+    const linkifyRst = linkify.find(strTemp);
+    let rst: AboutText[] = [];
+    for (const link of linkifyRst) {
+      const linkStart = strTemp.indexOf(link.value);
+      // push text before the link into rst[]
+      const textRst: AboutText[] = this.textCheckNewLine(
+        strTemp.substring(0, linkStart)
+      );
+      rst = rst.concat(textRst);
+      strTemp = strTemp.substring(linkStart);
+      // push the link into rst[]
+      const linkItem = new AboutText(link.value, link.type, link.href);
+      rst.push(linkItem);
+      strTemp = strTemp.substring(link.value.length);
+    }
+    // push text after all the links into rst[]
+    if (strTemp !== '') {
+      const textRst: AboutText[] = this.textCheckNewLine(strTemp);
+      rst = rst.concat(textRst);
+    }
+    return rst;
+  }
+
+  public textCheckNewLine(str: string) {
+    const rst: AboutText[] = [];
+    let s = 0;
+    for (let i = 0; i < str.length; i++) {
+      // push each text and \n into rst[]
+      if (str.charAt(i) === '\n') {
+        rst.push(new AboutText(str.substring(s, i), 'text', ''));
+        rst.push(new AboutText('br', 'br', ''));
+        s = i + 1;
+      }
+    }
+    // push text after \n into rst[]
+    if (s < str.length) {
+      rst.push(new AboutText(str.substring(s), 'text', ''));
+    }
+    return rst;
+  }
+}

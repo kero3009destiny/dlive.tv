@@ -1,0 +1,395 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { EVENTS } from '@/utils/constants';
+import SettingsPhoneVerificationInput from '@/components/SettingsPhoneVerificationInput.vue';
+import VDliveAvatar from '@/components/VDliveAvatar.vue';
+import DMenu from '@/components/DMenu.vue';
+import DMenuItem from '@/components/DMenuItem.vue';
+import DDivider from '@/components/DDivider.vue';
+import DDialog from '@/components/DDialog.vue';
+import { Component, Mixins } from 'vue-property-decorator';
+import MeMixin from '@/mixins/MeMixin';
+import {
+  ROUTE_SETTINGS,
+  ROUTE_MY_SUBSCRIPTIONS,
+  ROUTE_UPLOAD,
+  ROUTE_CLIP_MANAGE,
+  ROUTE_PARTNER_PROGRESS,
+  ROUTE_STAKE,
+  // ROUTE_REFERRAL,
+  ROUTE_USER_REFERRAL,
+  ROUTE_DASHBOARD,
+  ROUTE_LIVESTREAM,
+  ROUTE_PAYMENT,
+  ROUTE_MY_PURCHASE
+} from '@/router';
+import GlobalEventBusMixin from '@/mixins/GlobalEventBusMixin';
+import SnackbarMixin from '@/mixins/SnackbarMixin';
+// import { InternalError } from '@/models/error';
+import { namespace } from 'vuex-class';
+// import { claimWalletAccount } from '@/apollo/mutation/claimWalletAccount';
+
+const dialogModule = namespace('dialog');
+
+@Component({
+  components: {
+    SettingsPhoneVerificationInput,
+    VDliveAvatar,
+    DMenuItem,
+    DMenu,
+    DDivider,
+    DDialog
+  }
+})
+export default class NavLoginDialogLoggedIn extends Mixins(
+  MeMixin,
+  GlobalEventBusMixin,
+  SnackbarMixin
+) {
+  get ROUTE_DASHBOARD() {
+    return ROUTE_DASHBOARD;
+  }
+  get ROUTE_LIVESTREAM() {
+    return ROUTE_LIVESTREAM;
+  }
+  // get ROUTE_REFERRAL() {
+  //   return ROUTE_REFERRAL;
+  // }
+  get ROUTE_USER_REFERRAL() {
+    return ROUTE_USER_REFERRAL;
+  }
+  get ROUTE_UPLOAD() {
+    return ROUTE_UPLOAD;
+  }
+  get ROUTE_CLIP_MANAGE() {
+    return ROUTE_CLIP_MANAGE;
+  }
+  get ROUTE_MY_SUBSCRIPTIONS() {
+    return ROUTE_MY_SUBSCRIPTIONS;
+  }
+  get ROUTE_MY_PURCHASE() {
+    return ROUTE_MY_PURCHASE;
+  }
+  get ROUTE_SETTINGS() {
+    return ROUTE_SETTINGS;
+  }
+  get ROUTE_PARTNER_PROGRESS() {
+    return ROUTE_PARTNER_PROGRESS;
+  }
+  get ROUTE_PAYMENT() {
+    return ROUTE_PAYMENT;
+  }
+  get ROUTE_STAKE() {
+    return ROUTE_STAKE;
+  }
+
+  // Local
+  public showGetPaid: boolean = false;
+  public walletButtonType: '' | 'getPaid' = '';
+  public navLoginMenuShow: boolean = false;
+
+  @dialogModule.Mutation('setCashInDialog')
+  private setCashInDialog!: (status: boolean) => void;
+
+  // Lifecycle Hooks ------------------------------------------------------------------------------------
+  public mounted() {
+    this.$_smartSubscribe(EVENTS.OPEN_GET_PAID, () => {
+      this.onClickGetPaid();
+    });
+    // this.$_smartSubscribe(EVENTS.GO_TO_WALLET, () => {
+    //   this.onClickLinoWallet();
+    // });
+  }
+
+  // Function --------------------------------------------------------------------------------------------------
+  public closeDialog() {
+    this.showGetPaid = false;
+  }
+
+  public onClickLogout() {
+    this.$emit('logout');
+  }
+
+  // public onClickLinoWallet() {
+  //   const { claimed, username } = this.ensureWalletAccount();
+  //   if (claimed) {
+  //     window.open(
+  //       `${process.env.VUE_APP_WALLET_URL}/?is_login=true&user=${username}`,
+  //       '_blank'
+  //     );
+  //   }
+  // }
+
+  public onClickLinoPoints() {
+    this.setCashInDialog(true);
+  }
+
+  public onClickGetPaid() {
+    this.$router.push({ name: ROUTE_PAYMENT });
+  }
+
+  // private ensureWalletAccount(
+  //   getPaid: boolean = false
+  // ): {
+  //     claimed: boolean;
+  //     username: string;
+  //   } {
+  //   if (this.me === null || this.me.private === null) {
+  //     throw new InternalError(
+  //       `NavLoginDialogLoggedIn should have me and me.private, me: ${JSON.stringify(
+  //         this.me
+  //       )}`
+  //     );
+  //   }
+  //   if (this.me.private.insecure) {
+  //     if (this.me.private.phone !== '') {
+  //       claimWalletAccount(this);
+  //     } else {
+  //       this.showGetPaid = true;
+  //       if (getPaid) {
+  //         this.walletButtonType = 'getPaid';
+  //       }
+  //     }
+  //   }
+  //   return { claimed: !this.me.private.insecure, username: this.me.username };
+  // }
+}

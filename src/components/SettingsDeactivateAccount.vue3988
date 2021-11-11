@@ -1,0 +1,133 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import DBtn from '@/components/DBtn.vue';
+import DDialog from '@/components/DDialog.vue';
+import DTextField from '@/components/DTextField.vue';
+import { userDeactivate } from '@/apollo/mutation/settings';
+import { existsInArr } from '@/utils/search';
+import { RegistrationType } from '@/graphql/types';
+import MeMixin from '@/mixins/MeMixin';
+import SnackbarMixin from '@/mixins/SnackbarMixin';
+import { Component, Mixins } from 'vue-property-decorator';
+import { namespace } from 'vuex-class';
+import { ROUTE_HOME } from '@/router';
+
+const accessTokenModule = namespace('accessToken');
+
+@Component({
+  components: {
+    DBtn,
+    DDialog,
+    DTextField
+  }
+})
+export default class SettingsDeactivateAccount extends Mixins(
+  MeMixin,
+  SnackbarMixin
+) {
+  public showPasswordDialog: boolean = false;
+  public password: string = '';
+
+  @accessTokenModule.Mutation('resetAccessToken')
+  private resetAccessToken!: () => void;
+
+  get needPassword() {
+    if (
+      this.me !== null &&
+      this.me.private !== undefined &&
+      this.me.private !== null &&
+      this.me.private.registrationType !== undefined &&
+      existsInArr(this.me.private.registrationType, RegistrationType.Email)
+    ) {
+      return true;
+    }
+    return false;
+  }
+
+  public async userDeactivate() {
+    try {
+      await userDeactivate(this, this.password);
+      this.showPasswordDialog = false;
+      this.$success('Account Deactivated');
+      this.resetAccessToken();
+      this.$router.push({ name: ROUTE_HOME });
+    } catch (err) {
+      this.showPasswordDialog = false;
+      throw err;
+    }
+  }
+}

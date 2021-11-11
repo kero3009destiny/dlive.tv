@@ -1,0 +1,89 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { Component, Vue } from 'vue-property-decorator';
+import DDivider from '@/components/DDivider.vue';
+import { ROUTE_LIVESTREAM } from '@/router';
+import { VCategoryLivestreamFrag } from '@/graphql/types';
+import { namespace } from 'vuex-class';
+import VDliveAvatar from '@/components/VDliveAvatar.vue';
+
+const globalCategoryModule = namespace('globalCategory');
+
+@Component({
+  components: {
+    DDivider,
+    VDliveAvatar
+  }
+})
+export default class AppSidebarCategorysClose extends Vue {
+  get showChannels() {
+    return this.cryptoChannels.concat(this.blockchainChannels).slice(0, 5);
+  }
+  get shouldShowCategory() {
+    return this.showChannels.length > 0;
+  }
+
+  get sidebarAvatarStyle() {
+    const color = 'rgb(255,59,0)';
+    return `border: 2px solid ${color}`;
+  }
+
+  @globalCategoryModule.Getter('cryptoChannels')
+  private cryptoChannels!: VCategoryLivestreamFrag.List[];
+  @globalCategoryModule.Getter('blockchainChannels')
+  private blockchainChannels!: VCategoryLivestreamFrag.List[];
+
+  public routeTo(displayname: string) {
+    return { name: ROUTE_LIVESTREAM, params: { displayname } };
+  }
+}

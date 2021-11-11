@@ -1,0 +1,258 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { Component, Mixins, Prop } from 'vue-property-decorator';
+import VDliveAvatar from '@/components/VDliveAvatar.vue';
+import {
+  LivestreamInfoFrag,
+  LivestreamTreasureChestWinners,
+  TreasureChestWinnersFrag,
+  Maybe,
+  GiveawayRewardType
+} from '@/graphql/types';
+import { ApolloQuery } from '@/decorators/apollo';
+import MeMixin from '@/mixins/MeMixin';
+import LIVESTREAM_TREASURE_CHEST_WINNERS from '@/graphql/queries/LivestreamTreasureChestWinners.graphql';
+
+@Component({
+  components: {
+    VDliveAvatar
+  }
+})
+export default class TreasureChestWinners extends Mixins(MeMixin) {
+  @Prop({
+    required: true
+  })
+  public streamerInfo!: LivestreamInfoFrag.Fragment;
+
+  @ApolloQuery({
+    fetchPolicy: 'network-only',
+    manual: true,
+    query: LIVESTREAM_TREASURE_CHEST_WINNERS,
+    variables(): LivestreamTreasureChestWinners.Variables {
+      return {
+        displayname: this.streamerInfo.displayname,
+        isLoggedIn: this.isLoggedIn
+      };
+    },
+    result({ data }) {
+      if (data !== undefined && data !== null) {
+        this.userChest = data.userByDisplayName;
+      }
+    }
+  })
+  public userChest?: Maybe<LivestreamTreasureChestWinners.UserByDisplayName>;
+
+  get shouldShowMyWin() {
+    if (
+      this.isLoggedIn &&
+      this.userChest !== undefined &&
+      this.userChest !== null
+    ) {
+      return !this.streamerInfo.isMe;
+    }
+    return false;
+  }
+  get myWinValue() {
+    if (
+      this.userChest !== undefined &&
+      this.userChest !== null &&
+      this.userChest.treasureChest.myLastGiveawayReward !== null
+    ) {
+      return this.userChest.treasureChest.myLastGiveawayReward.value;
+    }
+    return '0';
+  }
+  get myWinTickets() {
+    if (
+      this.userChest !== undefined &&
+      this.userChest !== null &&
+      this.userChest.treasureChest.myLastGiveawayReward !== null
+    ) {
+      return (
+        this.userChest.treasureChest.myLastGiveawayReward.type ===
+        GiveawayRewardType.Happyhourticket
+      );
+    }
+    return false;
+  }
+  get myWinValueZero() {
+    return this.shouldShowMyWin && this.myWinValue === '0';
+  }
+  get streamerSendValue() {
+    if (this.streamerInfo.treasureChest.ongoingGiveaway !== null) {
+      return this.streamerInfo.treasureChest.ongoingGiveaway.pricePool;
+    }
+    return '0';
+  }
+  get hasWinners() {
+    return this.winners.length > 0;
+  }
+  get winners() {
+    if (this.userChest !== undefined && this.userChest !== null) {
+      return this.userChest.treasureChest.lastGiveawayRewards;
+    }
+    return [];
+  }
+  public winTicket(winner: TreasureChestWinnersFrag.LastGiveawayRewards) {
+    return winner.type === GiveawayRewardType.Happyhourticket;
+  }
+  public routeTo(displayname: string) {
+    window.open(`/${displayname}`, '_blank');
+  }
+  public closeWinners() {
+    this.$emit('closeWinners');
+  }
+}

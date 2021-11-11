@@ -1,0 +1,27 @@
+
+    var doc = {"kind":"Document","definitions":[{"kind":"FragmentDefinition","name":{"kind":"Name","value":"MeLivestreamChatroomFrag"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"User"}},"directives":[],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"username"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"role"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"myChatBadges"},"arguments":[],"directives":[]},{"kind":"FragmentSpread","name":{"kind":"Name","value":"EmojiFrag"},"directives":[]},{"kind":"FragmentSpread","name":{"kind":"Name","value":"MeEmoteFrag"},"directives":[]},{"kind":"FragmentSpread","name":{"kind":"Name","value":"MeStreamChatModeSettingFrag"},"directives":[]}]}}],"loc":{"start":0,"end":258}};
+    doc.loc.source = {"body":"#import './MeEmoteFrag.graphql'\n#import './MeStreamChatModeSettingFrag.graphql'\n#import './EmojiFrag.graphql'\nfragment MeLivestreamChatroomFrag on User {\n  id\n  username\n  role\n  myChatBadges\n  ...EmojiFrag\n  ...MeEmoteFrag\n  ...MeStreamChatModeSettingFrag\n}","name":"GraphQL request","locationOffset":{"line":1,"column":1}};
+  
+
+    var names = {};
+    function unique(defs) {
+      return defs.filter(
+        function(def) {
+          if (def.kind !== 'FragmentDefinition') return true;
+          var name = def.name.value
+          if (names[name]) {
+            return false;
+          } else {
+            names[name] = true;
+            return true;
+          }
+        }
+      )
+    }
+  doc.definitions = doc.definitions.concat(unique(require('./MeEmoteFrag.graphql').definitions));
+doc.definitions = doc.definitions.concat(unique(require('./MeStreamChatModeSettingFrag.graphql').definitions));
+doc.definitions = doc.definitions.concat(unique(require('./EmojiFrag.graphql').definitions));
+
+
+      module.exports = doc;
+    

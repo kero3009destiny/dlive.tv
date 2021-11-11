@@ -1,0 +1,87 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import VLinkify from '@/components/VLinkify.vue';
+import {
+  VStreamChatTextRowFrag,
+  StreamChatTextRowStreamerFrag,
+  VStreamChatRowSenderFrag,
+  BadgeType
+} from '@/graphql/types';
+import { CompleteMe } from '@/store/me/types';
+import { Component, Prop, Vue } from 'vue-property-decorator';
+
+@Component({
+  components: {
+    VLinkify
+  }
+})
+export default class VStreamChatTextRow extends Vue {
+  @Prop({
+    required: true
+  })
+  public chatTextRow!:
+  | VStreamChatTextRowFrag.Fragment
+  | VStreamChatRowSenderFrag.Fragment;
+
+  @Prop({
+    required: true
+  })
+  public streamerInfo!: StreamChatTextRowStreamerFrag.Fragment;
+
+  @Prop({
+    required: true
+  })
+  public me!: CompleteMe | null;
+
+  @Prop({
+    required: false,
+    default: false,
+    type: Boolean
+  })
+  public isCardChat!: boolean;
+
+  get hasWarriorBadges() {
+    if (this.chatTextRow !== undefined) {
+      const badges = (this.chatTextRow as VStreamChatRowSenderFrag.Fragment)
+        .sender.badges;
+      return badges.length !== 0 && badges.includes(BadgeType.EngagementBadge);
+    }
+    return false;
+  }
+
+  get hasSubStreak() {
+    if (this.chatTextRow !== undefined) {
+      return (
+        (this.chatTextRow as VStreamChatTextRowFrag.Fragment).subLength >= 3
+      );
+    }
+    return false;
+  }
+
+  get textColor() {
+    if (this.hasSubStreak) {
+      if (
+        this.streamerInfo !== undefined &&
+        this.streamerInfo.subSetting !== undefined &&
+        this.streamerInfo.subSetting !== null
+      ) {
+        return this.streamerInfo.subSetting.streakTextColor;
+      }
+    } else if (this.hasWarriorBadges) {
+      return '#6bd6d6';
+    }
+    return '#ffffff';
+  }
+}

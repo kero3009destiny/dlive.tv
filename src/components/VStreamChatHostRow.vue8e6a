@@ -1,0 +1,33 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { VStreamChatHostRowFrag } from '@/graphql/types';
+import { VStreamChatRowStreamerFrag } from '@/graphql/types';
+import { Component, Prop, Vue } from 'vue-property-decorator';
+
+@Component
+export default class VStreamChatHostRow extends Vue {
+  @Prop({
+    required: true
+  })
+  public chatHostRow!: VStreamChatHostRowFrag.Fragment;
+
+  @Prop({
+    required: true
+  })
+  public streamerInfo!: VStreamChatRowStreamerFrag.Fragment;
+}

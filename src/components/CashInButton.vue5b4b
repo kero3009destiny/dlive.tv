@@ -1,0 +1,42 @@
+
+
+
+
+
+
+
+
+
+
+
+
+import MeMixin from '@/mixins/MeMixin';
+import DBtn from '@/components/DBtn.vue';
+import { namespace } from 'vuex-class';
+import { Component, Mixins } from 'vue-property-decorator';
+
+const dialogModule = namespace('dialog');
+
+@Component({
+  components: {
+    DBtn
+  }
+})
+export default class CashInButton extends Mixins(MeMixin) {
+  // local state
+  public showCashinPopup: boolean = false;
+
+  @dialogModule.Mutation('setCashInDialog')
+  private setCashInDialog!: (status: boolean) => void;
+
+  public openCashinPopup() {
+    if (this.requireLogin()) {
+      return;
+    }
+    this.setCashInDialog(true);
+  }
+
+  public closeCashinPopup() {
+    this.showCashinPopup = false;
+  }
+}

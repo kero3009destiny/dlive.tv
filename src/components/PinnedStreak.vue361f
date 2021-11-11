@@ -1,0 +1,80 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import MeMixin from '@/mixins/MeMixin';
+import SnackbarMixin from '@/mixins/SnackbarMixin';
+import { Component, Mixins, Prop } from 'vue-property-decorator';
+import DDivider from '@/components/DDivider.vue';
+import { PinnedStreakFrag } from '@/graphql/types';
+import { subStreakCheer } from '@/utils/mutations/chatroom';
+import DBtn from '@/components/DBtn.vue';
+import { namespace } from 'vuex-class';
+
+const uiModule = namespace('ui');
+
+@Component({
+  components: {
+    DDivider,
+    DBtn
+  }
+})
+export default class PinnedStreak extends Mixins(MeMixin, SnackbarMixin) {
+  get showPinnenStreak() {
+    // return true && !this.isMobile && !this.hasDismiss;
+    // should be:
+    if (this.streamerInfo.mySubscription) {
+      return (
+        this.streamerInfo.mySubscription.canCheerStreak &&
+        !this.isMobile &&
+        !this.hasDismiss
+      );
+    }
+    return false;
+  }
+  @Prop({
+    required: true
+  })
+  public streamerInfo!: PinnedStreakFrag.Fragment;
+
+  public hasDismiss: boolean = false;
+
+  @uiModule.Getter('isMobile')
+  private isMobile!: boolean;
+
+  public dismissClicked() {
+    this.hasDismiss = true;
+  }
+
+  public async subStreakCheer() {
+    await subStreakCheer(this, this.streamerInfo.username);
+    this.hasDismiss = true;
+  }
+}

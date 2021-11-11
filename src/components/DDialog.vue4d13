@@ -1,0 +1,4 @@
+var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('v-dialog',{attrs:{"value":_vm.value,"max-width":_vm.maxWidth,"persistent":_vm.persistent},on:{"input":_vm.changeState}},[_c('div',{staticClass:"d-dialog border-radius-3"},[_c('div',{staticClass:"dialog-title text-16-medium text-white margintb-4"},[_vm._t("dialog-title")],2),_c('d-divider'),_vm._t("dialog-content")],2)])}
+var staticRenderFns = []
+
+export { render, staticRenderFns }

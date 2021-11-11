@@ -1,0 +1,25 @@
+
+
+
+
+
+
+
+import MeMixin from '@/mixins/MeMixin';
+import SnackbarMixin from '@/mixins/SnackbarMixin';
+import { Component, Mixins } from 'vue-property-decorator';
+import VNSFWSwitch from '@/components/VNSFWSwitch.vue';
+import { namespace } from 'vuex-class';
+
+const userMetaModule = namespace('userMeta');
+
+@Component({
+  components: {
+    VNSFWSwitch
+  }
+})
+export default class SettingsXTag extends Mixins(SnackbarMixin, MeMixin) {
+  // Local
+  @userMetaModule.Getter('NSFW')
+  private showAdultContent!: boolean;
+}

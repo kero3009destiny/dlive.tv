@@ -1,0 +1,4 @@
+var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',{staticClass:"sub-card flex-all-center flex-column border-radius-3 overflow-hidden"},[_c('v-dlive-avatar',{staticClass:"clickable",attrs:{"avatar-size":68,"user-avatar":_vm.channel.user,"sih-resize":'large'},nativeOn:{"click":function($event){return _vm.routeTo($event)}}}),_c('v-dlive-name',{staticClass:"margint-3 marginb-2 text-white text-14-medium no-select",staticStyle:{"max-width":"90%"},attrs:{"displayname-header":_vm.channel.user}}),_c('span',[_vm._v(" Followers · "+_vm._s(_vm._f("numberToBMK")(_vm.channel.user.followers.totalCount))+" ")]),_c('v-follow',{staticClass:"margint-4",attrs:{"followee":_vm.channel.user}})],1)}
+var staticRenderFns = []
+
+export { render, staticRenderFns }

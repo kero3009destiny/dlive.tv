@@ -1,0 +1,201 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import DDialog from '@/components/DDialog.vue';
+import DTextField from '@/components/DTextField.vue';
+import DBtn from '@/components/DBtn.vue';
+import DDivider from '@/components/DDivider.vue';
+import { downloadLinkSend } from '@/apollo/mutation/downloadApp';
+import {
+  allCountries,
+  CountryCode as CountryCodeType
+} from '@/utils/countrycode';
+import { SendDownloadLink, CountryCode } from '@/graphql/types';
+import VueCountdown from '@chenfengyuan/vue-countdown';
+import SnackbarMixin from '@/mixins/SnackbarMixin';
+import { Component, Mixins } from 'vue-property-decorator';
+import { namespace } from 'vuex-class';
+
+const dialogModule = namespace('dialog');
+const happyhourModule = namespace('happyhour');
+
+@Component({
+  components: {
+    VueCountdown,
+    DDialog,
+    DTextField,
+    DBtn,
+    DDivider
+  }
+})
+export default class DownloadAppDialog extends Mixins(SnackbarMixin) {
+  // Local
+  public isLoading: boolean = false;
+  public phoneIsSendShowing: boolean = true;
+  public phoneIsResendShowing: boolean = false;
+  public phoneCounting: boolean = false;
+  public phone: string = '';
+  public phoneErrors: string[] = [];
+  public inputCountry: CountryCodeType | null = null;
+  public allCountries: CountryCodeType[] = allCountries;
+
+  @dialogModule.Mutation('setDownloadAppDialog')
+  private setDownloadAppDialog!: (status: boolean) => void;
+
+  @dialogModule.Getter('downloadApp')
+  private downloadAppDialog!: boolean;
+  @happyhourModule.Getter('eventStatus')
+  private happyhourStatus!: 'no_happyhour' | 'prestart' | 'start' | 'end';
+
+  // Computed
+  get verifiedPhoneNumber() {
+    return (
+      this.phone.length !== 0 &&
+      this.phoneErrors.length === 0 &&
+      this.inputCountry !== null
+    );
+  }
+
+  // Function
+  public phoneCountdown() {
+    this.phoneIsSendShowing = false;
+    this.phoneIsResendShowing = false;
+    this.phoneCounting = true;
+  }
+
+  public phoneCountdownend() {
+    this.phoneCounting = false;
+    this.phoneIsResendShowing = true;
+  }
+
+  public async sendLinkClicked() {
+    this.isLoading = true;
+    if (this.phone.length === 0 || this.phoneErrors.length !== 0) {
+      this.$error('SettingsPhoneVerification.ValidPhone');
+      this.isLoading = false;
+      return;
+    }
+    if (this.inputCountry === null) {
+      this.$error('SettingsPhoneVerification.ValidPhone');
+      this.isLoading = false;
+      return;
+    }
+
+    const phone = this.inputCountry.dialCode + this.phone;
+    let countryCode = CountryCode.En;
+    //
+    if (this.inputCountry.iso2 === CountryCode.Tr) {
+      countryCode = CountryCode.Tr;
+    }
+
+    const variables: SendDownloadLink.Variables = {
+      countryCode,
+      phone
+    };
+
+    await downloadLinkSend(this, variables);
+    this.isLoading = false;
+    this.phoneCountdown();
+  }
+
+  public changeState(state: boolean) {
+    this.setDownloadAppDialog(state);
+  }
+}

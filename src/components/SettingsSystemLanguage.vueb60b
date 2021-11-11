@@ -1,0 +1,4 @@
+var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',{staticClass:"setting-system-language"},[_c('div',{staticClass:"flex-box"},[_c('v-select',{staticClass:"d-select",attrs:{"items":_vm.languageItems,"item-text":"language","label":"Language","hide-details":"","return-object":"","single-line":"","solo":""},model:{value:(_vm.selectedLanguageItem),callback:function ($$v) {_vm.selectedLanguageItem=$$v},expression:"selectedLanguageItem"}})],1),_c('div',{staticClass:"flex-box"},[_c('d-btn',{staticClass:"text-uppercase text-12-medium margint-4",staticStyle:{"padding":"5px 16px"},attrs:{"type":"btnC","disabled":_vm.isDisabled,"loading":_vm.isLoading},on:{"click":_vm.updateLocalLanguage}},[_vm._v(" "+_vm._s(_vm.$t('SettingsSystemLanguage.UPDATE'))+" ")])],1)])}
+var staticRenderFns = []
+
+export { render, staticRenderFns }

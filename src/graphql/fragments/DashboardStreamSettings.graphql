@@ -1,0 +1,27 @@
+
+    var doc = {"kind":"Document","definitions":[{"kind":"FragmentDefinition","name":{"kind":"Name","value":"DashboardStreamSettingsFrag"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"User"}},"directives":[],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"livestream"},"arguments":[],"directives":[],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"permlink"},"arguments":[],"directives":[]},{"kind":"FragmentSpread","name":{"kind":"Name","value":"VVideoPlayerFrag"},"directives":[]}]}},{"kind":"Field","name":{"kind":"Name","value":"hostingLivestream"},"arguments":[],"directives":[],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"permlink"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"creator"},"arguments":[],"directives":[],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"username"},"arguments":[],"directives":[]},{"kind":"FragmentSpread","name":{"kind":"Name","value":"VDliveAvatarFrag"},"directives":[]},{"kind":"FragmentSpread","name":{"kind":"Name","value":"VDliveNameFrag"},"directives":[]}]}},{"kind":"FragmentSpread","name":{"kind":"Name","value":"VVideoPlayerFrag"},"directives":[]}]}},{"kind":"Field","name":{"kind":"Name","value":"private"},"arguments":[],"directives":[],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"streamTemplate"},"arguments":[],"directives":[],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"title"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"ageRestriction"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"earnRestriction"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"thumbnailUrl"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"disableAlert"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"category"},"arguments":[],"directives":[],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"backendID"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"title"},"arguments":[],"directives":[]}]}},{"kind":"Field","name":{"kind":"Name","value":"language"},"arguments":[],"directives":[],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"backendID"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"code"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"language"},"arguments":[],"directives":[]}]}},{"kind":"Field","name":{"kind":"Name","value":"saveReplay"},"arguments":[],"directives":[]}]}},{"kind":"Field","name":{"kind":"Name","value":"filterWords"},"arguments":[],"directives":[]}]}}]}}],"loc":{"start":0,"end":695}};
+    doc.loc.source = {"body":"#import './VVideoPlayer.graphql'\n#import './VDliveAvatar.graphql'\n#import './VDliveName.graphql'\n\nfragment DashboardStreamSettingsFrag on User {\n  livestream {\n    id\n    permlink\n    ...VVideoPlayerFrag\n  }\n  hostingLivestream {\n    id\n    permlink\n    creator {\n      id\n      username\n      ...VDliveAvatarFrag\n      ...VDliveNameFrag\n    }\n    ...VVideoPlayerFrag\n  }\n  private {\n    streamTemplate {\n      title\n      ageRestriction\n      earnRestriction\n      thumbnailUrl\n      disableAlert\n      category {\n        id\n        backendID\n        title\n      }\n      language {\n        id\n        backendID\n        code\n        language\n      }\n      saveReplay\n    }\n    filterWords\n  }\n}\n","name":"GraphQL request","locationOffset":{"line":1,"column":1}};
+  
+
+    var names = {};
+    function unique(defs) {
+      return defs.filter(
+        function(def) {
+          if (def.kind !== 'FragmentDefinition') return true;
+          var name = def.name.value
+          if (names[name]) {
+            return false;
+          } else {
+            names[name] = true;
+            return true;
+          }
+        }
+      )
+    }
+  doc.definitions = doc.definitions.concat(unique(require('./VVideoPlayer.graphql').definitions));
+doc.definitions = doc.definitions.concat(unique(require('./VDliveAvatar.graphql').definitions));
+doc.definitions = doc.definitions.concat(unique(require('./VDliveName.graphql').definitions));
+
+
+      module.exports = doc;
+    

@@ -1,0 +1,4 @@
+var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',{staticClass:"flex-align-center"},[_c('d-text-field',{staticClass:"marginr-4",staticStyle:{"max-width":"268px"},attrs:{"error-msg":_vm.emailErrors,"has-border":false,"total-height":"30px","background":"grey-darken-7"},on:{"input":_vm.onEmailInput},model:{value:(_vm.email),callback:function ($$v) {_vm.email=$$v},expression:"email"}}),_c('v-send-code',{ref:"vsendcode",attrs:{"is-valid":_vm.emailCheck,"is-loading":_vm.sendCodeLoading,"send-i18n":"SettingsEmail.SendVerificationEmail"},on:{"sendClicked":_vm.sendEmailLink}})],1)}
+var staticRenderFns = []
+
+export { render, staticRenderFns }

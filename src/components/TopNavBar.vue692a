@@ -1,0 +1,266 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { Component, Mixins } from 'vue-property-decorator';
+import VNoSsr from '@/components/VNoSsr.vue';
+import DTab from '@/components/DTab.vue';
+import MeMixin from '@/mixins/MeMixin';
+import { namespace } from 'vuex-class';
+import clickaway from 'vue-clickaway';
+import {
+  ROUTE_HOME,
+  ROUTE_BROWSE,
+  ROUTE_FOLLOWING,
+  ROUTE_LIVESTREAM,
+  ROUTE_POPUP_CHAT,
+  ROUTE_RANKLIST,
+  ROUTE_MOBILE_SEARCH,
+  ROUTE_MOBILE_DASHBOARD
+} from '@/router';
+
+const dialogModule = namespace('dialog');
+const uiModule = namespace('ui');
+// const happyhourModule = namespace('happyhour');
+const globalInfoModule = namespace('globalInfo');
+
+@Component({
+  components: {
+    VNoSsr,
+    DTab,
+    NavLoginLegal: () =>
+      import('@/components/NavLoginLegal.vue' /* webpackChunkName: "login" */),
+    NavLoginDialog: () =>
+      import('@/components/NavLoginDialog.vue' /* webpackChunkName: "login" */),
+    NavSearch: () =>
+      import('@/components/NavSearch.vue' /* webpackChunkName: "login" */)
+  }
+})
+export default class TopNavBar extends Mixins(MeMixin, clickaway.mixin) {
+  get ROUTE_HOME() {
+    return ROUTE_HOME;
+  }
+  get ROUTE_MOBILE_SEARCH() {
+    return ROUTE_MOBILE_SEARCH;
+  }
+  get ROUTE_MOBILE_DASHBOARD() {
+    return ROUTE_MOBILE_DASHBOARD;
+  }
+  get ROUTE_BROWSE() {
+    return ROUTE_BROWSE;
+  }
+  get ROUTE_FOLLOWING() {
+    return ROUTE_FOLLOWING;
+  }
+  get ROUTE_LIVESTREAM() {
+    return ROUTE_LIVESTREAM;
+  }
+  get ROUTE_RANKLIST() {
+    return ROUTE_RANKLIST;
+  }
+  get isHomePage() {
+    return this.$route.name === ROUTE_HOME;
+  }
+  get isBrowsePage() {
+    return this.$route.name === ROUTE_BROWSE;
+  }
+  get isFollowingPage() {
+    return this.$route.name === ROUTE_FOLLOWING;
+  }
+  get isChannelPage() {
+    return this.$route.name === ROUTE_LIVESTREAM;
+  }
+  get isPopupPage() {
+    return this.$route.name === ROUTE_POPUP_CHAT;
+  }
+  get getAppIcon() {
+    return require('@/assets/icon/get-app.svg');
+  }
+  get hasBanner() {
+    return this.date >= this.startDate && this.date <= this.endDate;
+  }
+
+  public systemMessageShow: boolean = true;
+  // block week event
+  public date: Date = new Date();
+  public startDate: Date = new Date(Date.UTC(2020, 11, 23, 0, 0, 0));
+  public endDate: Date = new Date(Date.UTC(2020, 11, 30, 0, 0, 0));
+
+  @dialogModule.Mutation('setDownloadAppDialog')
+  private setDownloadAppDialog!: (status: boolean) => void;
+  @uiModule.Getter('isMobile')
+  private isMobile!: boolean;
+  @globalInfoModule.Getter('systemMessage')
+  private systemMessage!: string;
+  // @happyhourModule.Getter('eventStatus')
+  // private happyhourStatus!: 'no_happyhour' | 'prestart' | 'start' | 'end';
+
+  public openDownAppDialog() {
+    this.setDownloadAppDialog(true);
+  }
+
+  public gotoCommunity() {
+    window.open('https://go.dlive.tv/community');
+  }
+
+  public toRankListPage() {
+    this.$router.push({
+      name: ROUTE_RANKLIST
+    });
+  }
+  public toHappyhourPage() {
+    // window.open(
+    //   'https://community.dlive.tv/campaigns/happy-hour-august',
+    //   '_blank'
+    // );
+    this.$router.push({
+      name: ROUTE_LIVESTREAM,
+      params: { displayname: 'DLive' }
+    });
+  }
+
+  public closeSystemMessage() {
+    this.systemMessageShow = false;
+  }
+}

@@ -1,0 +1,4 @@
+var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return (_vm.meEmail && _vm.emailConfirm && !_vm.isMobile)?_c('div',{staticClass:"email-confirm-banner width-100 paddinglr-4"},[_c('div',{staticClass:"banner-inner position-relative flex-all-center text-14-regular text-white height-100 border-radius-5"},[_c('span',[_vm._v("Almost done! Check your "+_vm._s(_vm.meEmail)+" account to confirm your email address or "),_c('span',{staticClass:"text-14-medium text-underline clickable",on:{"click":_vm.sendVerificationLinkToEmail}},[_vm._v("request new confirmation link")])]),_c('img',{staticClass:"close-icon position-absolute clickable",attrs:{"src":require("@/assets/icon/close.svg")},on:{"click":_vm.closeBanner}})])]):_vm._e()}
+var staticRenderFns = []
+
+export { render, staticRenderFns }

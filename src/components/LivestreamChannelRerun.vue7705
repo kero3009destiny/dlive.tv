@@ -1,0 +1,107 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import VVideoPlayer from '@/components/VVideoPlayer.vue';
+
+import { Component, Vue, Prop } from 'vue-property-decorator';
+import { LivestreamPage } from '@/graphql/types';
+import { RerunReplayFrag } from '@/graphql/types';
+
+import { namespace } from 'vuex-class';
+const rerunModule = namespace('rerun');
+const uiModule = namespace('ui');
+
+@Component({
+  components: {
+    VVideoPlayer
+  }
+})
+export default class LivestreamChannelRerun extends Vue {
+  @Prop({
+    required: true
+  })
+  public streamer!: LivestreamPage.UserByDisplayName;
+
+  public current = 0;
+  public reruns: LivestreamPage.Entries[] = [];
+  public startAt: number = 0;
+  public inited: boolean = false;
+
+  @rerunModule.Mutation('setCurrentRerun')
+  private setCurrentRerun!: (
+    currentRerun: RerunReplayFrag.Fragment | null
+  ) => void;
+  @uiModule.Getter('isMobile')
+  private isMobile!: boolean;
+
+  public created() {
+    if (this.inited) {
+      return;
+    }
+    this.inited = true;
+    if (
+      this.streamer.rerun !== null &&
+      this.streamer.rerun.entries.length > 0
+    ) {
+      this.reruns = JSON.parse(JSON.stringify(this.streamer.rerun.entries));
+      this.startAt = this.streamer.rerun.startSecond;
+    }
+    this.setCurrentRerun(this.currentPB);
+  }
+
+  public beforeDestroy() {
+    this.setCurrentRerun(null);
+  }
+
+  get currentPB() {
+    if (this.reruns.length === 0) {
+      return null;
+    }
+    return this.reruns[this.current % this.reruns.length].pastbroadcast;
+  }
+
+  get currentM3u8(): string | null {
+    if (this.currentPB !== null) {
+      return this.currentPB.playbackUrl;
+    }
+    return null;
+  }
+
+  private onPlayEnded(endedAt: number) {
+    this.current++; // will trigger src change
+    this.setCurrentRerun(this.currentPB);
+    this.startAt = Math.max(this.startAt - endedAt, 0);
+  }
+}

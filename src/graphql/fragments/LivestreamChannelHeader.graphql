@@ -1,0 +1,29 @@
+
+    var doc = {"kind":"Document","definitions":[{"kind":"FragmentDefinition","name":{"kind":"Name","value":"LivestreamChannelHeaderFrag"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"User"}},"directives":[],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"FragmentSpread","name":{"kind":"Name","value":"VDliveAvatarFrag"},"directives":[]},{"kind":"FragmentSpread","name":{"kind":"Name","value":"VDliveNameFrag"},"directives":[]},{"kind":"FragmentSpread","name":{"kind":"Name","value":"VFollowFrag"},"directives":[]},{"kind":"FragmentSpread","name":{"kind":"Name","value":"VSubscriptionFrag"},"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"followers"},"arguments":[],"directives":[],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"},"arguments":[],"directives":[]}]}},{"kind":"Field","name":{"kind":"Name","value":"livestream"},"arguments":[],"directives":[],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"totalReward"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"createdAt"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"watchingCount"},"arguments":[],"directives":[]},{"kind":"FragmentSpread","name":{"kind":"Name","value":"VPostInfoShareFrag"},"directives":[]}]}},{"kind":"Field","name":{"kind":"Name","value":"hostingLivestream"},"arguments":[],"directives":[],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"},"arguments":[],"directives":[]}]}},{"kind":"Field","name":{"kind":"Name","value":"rerun"},"arguments":[],"directives":[],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"watchingCount"},"arguments":[],"directives":[]}]}}]}}],"loc":{"start":0,"end":492}};
+    doc.loc.source = {"body":"#import './VDliveAvatar.graphql'\n#import './VDliveName.graphql'\n#import './VFollow.graphql'\n#import './VSubscription.graphql'\n#import './VPostInfoShare.graphql'\n\nfragment LivestreamChannelHeaderFrag on User {\n  ...VDliveAvatarFrag\n  ...VDliveNameFrag\n  ...VFollowFrag\n  ...VSubscriptionFrag\n  followers {\n    totalCount\n  }\n  livestream {\n    id\n    totalReward\n    createdAt\n    watchingCount\n    ...VPostInfoShareFrag\n  }\n  hostingLivestream {\n    id\n  }\n  rerun {\n      watchingCount\n  }\n}","name":"GraphQL request","locationOffset":{"line":1,"column":1}};
+  
+
+    var names = {};
+    function unique(defs) {
+      return defs.filter(
+        function(def) {
+          if (def.kind !== 'FragmentDefinition') return true;
+          var name = def.name.value
+          if (names[name]) {
+            return false;
+          } else {
+            names[name] = true;
+            return true;
+          }
+        }
+      )
+    }
+  doc.definitions = doc.definitions.concat(unique(require('./VDliveAvatar.graphql').definitions));
+doc.definitions = doc.definitions.concat(unique(require('./VDliveName.graphql').definitions));
+doc.definitions = doc.definitions.concat(unique(require('./VFollow.graphql').definitions));
+doc.definitions = doc.definitions.concat(unique(require('./VSubscription.graphql').definitions));
+doc.definitions = doc.definitions.concat(unique(require('./VPostInfoShare.graphql').definitions));
+
+
+      module.exports = doc;
+    

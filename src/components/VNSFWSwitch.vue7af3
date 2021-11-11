@@ -1,0 +1,104 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import DBtn from '@/components/DBtn.vue';
+import DDialog from '@/components/DDialog.vue';
+import { Component, Prop, Vue } from 'vue-property-decorator';
+import { namespace } from 'vuex-class';
+const userMetaModule = namespace('userMeta');
+
+@Component({
+  components: {
+    DBtn,
+    DDialog
+  }
+})
+export default class VNSFWSwitch extends Vue {
+  @Prop({
+    required: true,
+    type: Boolean
+  })
+  public showAdultContent!: boolean;
+
+  // local
+  public showAdultDialog: boolean = false;
+
+  @userMetaModule.Action('setNSFWSwitch')
+  private setNSFWSwitch!: (NSFW: boolean) => void;
+
+  public switchChange(state: boolean) {
+    if (state === true) {
+      this.showAdultDialog = true;
+    }
+    if (state === false) {
+      this.setNSFWSwitch(false);
+      this.$emit('changeAdultSwitch', false);
+    }
+  }
+
+  public cancelClicked() {
+    this.showAdultDialog = false;
+  }
+  public turnOffClicked() {
+    this.showAdultDialog = false;
+    this.setNSFWSwitch(true);
+    this.$emit('changeAdultSwitch', true);
+  }
+}

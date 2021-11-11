@@ -1,0 +1,27 @@
+
+    var doc = {"kind":"Document","definitions":[{"kind":"FragmentDefinition","name":{"kind":"Name","value":"VStreamChatRowStreamerFrag"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"User"}},"directives":[],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"displayname"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"isMe"},"arguments":[],"directives":[{"kind":"Directive","name":{"kind":"Name","value":"include"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"if"},"value":{"kind":"Variable","name":{"kind":"Name","value":"isLoggedIn"}}}]}]},{"kind":"FragmentSpread","name":{"kind":"Name","value":"VStreamChatRowSenderInfoStreamerFrag"},"directives":[]},{"kind":"FragmentSpread","name":{"kind":"Name","value":"VStreamChatProfileCardStreamerFrag"},"directives":[]},{"kind":"FragmentSpread","name":{"kind":"Name","value":"StreamChatTextRowStreamerFrag"},"directives":[]}]}}],"loc":{"start":0,"end":362}};
+    doc.loc.source = {"body":"#import './VStreamChatRowSenderInfoStreamer.graphql'\n#import './VStreamChatProfileCardStreamer.graphql'\n#import './StreamChatTextRowStreamer.graphql'\n\nfragment VStreamChatRowStreamerFrag on User {\n  displayname\n  isMe @include(if: $isLoggedIn)\n  ...VStreamChatRowSenderInfoStreamerFrag\n  ...VStreamChatProfileCardStreamerFrag\n  ...StreamChatTextRowStreamerFrag\n}","name":"GraphQL request","locationOffset":{"line":1,"column":1}};
+  
+
+    var names = {};
+    function unique(defs) {
+      return defs.filter(
+        function(def) {
+          if (def.kind !== 'FragmentDefinition') return true;
+          var name = def.name.value
+          if (names[name]) {
+            return false;
+          } else {
+            names[name] = true;
+            return true;
+          }
+        }
+      )
+    }
+  doc.definitions = doc.definitions.concat(unique(require('./VStreamChatRowSenderInfoStreamer.graphql').definitions));
+doc.definitions = doc.definitions.concat(unique(require('./VStreamChatProfileCardStreamer.graphql').definitions));
+doc.definitions = doc.definitions.concat(unique(require('./StreamChatTextRowStreamer.graphql').definitions));
+
+
+      module.exports = doc;
+    

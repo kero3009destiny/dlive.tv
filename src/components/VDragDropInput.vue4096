@@ -1,0 +1,244 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { Component, Prop, Mixins } from 'vue-property-decorator';
+import SnackbarMixin from '@/mixins/SnackbarMixin';
+
+const enum STATUS {
+  INITIAL = 0,
+  SAVING,
+  SUCCESS,
+  FAILED
+}
+
+@Component
+export default class VDragDropInput extends Mixins(SnackbarMixin) {
+  @Prop({
+    required: true
+  })
+  public inputName!: string;
+  @Prop({
+    required: true
+  })
+  public onUploadFile!: (file: File) => Promise<boolean>;
+  @Prop({
+    default: 'video'
+  })
+  public fileType!: 'video' | 'image' | 'emote' | 'clip' | 'emoji';
+  @Prop({ default: 'auto' })
+  public height!: string;
+  @Prop({ default: 'auto' })
+  public width!: string;
+
+  // local
+  private uploadedFile: File | null = null;
+  private uploadError = null;
+  private currentStatus: STATUS = STATUS.INITIAL;
+  private isDraggingOver: boolean = false;
+  private vfile: string = '';
+
+  get isInitial() {
+    return this.currentStatus === STATUS.INITIAL;
+  }
+  get isSaving() {
+    return this.currentStatus === STATUS.SAVING;
+  }
+  get isSuccess() {
+    return this.currentStatus === STATUS.SUCCESS;
+  }
+  get isFailed() {
+    return this.currentStatus === STATUS.FAILED;
+  }
+  get componentSize() {
+    return { height: this.height, width: this.width };
+  }
+
+  public reset() {
+    // reset form to initial state
+    (this.$refs.form as HTMLFormElement).reset();
+    this.uploadedFile = null;
+    this.uploadError = null;
+    this.currentStatus = STATUS.INITIAL;
+  }
+
+  public onDragEnter() {
+    this.isDraggingOver = true;
+  }
+
+  public onDragLeave() {
+    this.isDraggingOver = false;
+  }
+
+  get accept() {
+    if (this.fileType === 'clip') {
+      return 'video/*';
+    }
+    return this.fileType + '/*';
+  }
+
+  public async filesChange(e: ProgressEvent) {
+    if (e.target === null) {
+      return;
+    }
+    const fileList = (e.target as HTMLInputElement).files;
+    if (fileList === null || fileList.length === 0) {
+      return;
+    }
+    if (this.fileType === 'image' && fileList[0].size / (1024 * 1024) > 2) {
+      this.$error('Maximum size for image is 2MB'); // TODO: i18n
+      return;
+    }
+    if (this.fileType === 'emoji') {
+      if (fileList[0].size / (1024 * 1024) > 1) {
+        this.$error('Maximum size for emote is 1MB');
+        return;
+      }
+      const resp = await new Promise(resolve => {
+        const emote = new Image();
+        emote.src = window.URL.createObjectURL(fileList[0]);
+        emote.onload = () => {
+          const width = emote.naturalWidth;
+          const height = emote.naturalHeight;
+          window.URL.revokeObjectURL(emote.src);
+          if (width > 1000 || height > 1000) {
+            this.$error('The emote size should be less than 1000*1000');
+            resolve(false);
+          }
+          resolve(true);
+        };
+      });
+      if (!resp) {
+        return;
+      }
+    }
+    if (this.fileType === 'emote') {
+      if (fileList[0].size / (1024 * 1024) > 5) {
+        this.$error('Maximum size for sticker is 5MB');
+        return;
+      }
+      const resp = await new Promise(resolve => {
+        const emote = new Image();
+        emote.src = window.URL.createObjectURL(fileList[0]);
+        emote.onload = () => {
+          const width = emote.naturalWidth;
+          const height = emote.naturalHeight;
+          window.URL.revokeObjectURL(emote.src);
+          if (
+            width > 1000 ||
+            height > 1000 ||
+            width / height > 5 ||
+            height / width > 5
+          ) {
+            this.$error('The emote size should be less than 1000*1000');
+            resolve(false);
+          }
+          resolve(true);
+        };
+      });
+      if (!resp) {
+        return;
+      }
+    }
+    if (
+      this.fileType === 'video' &&
+      fileList[0].size / (1024 * 1024 * 1024) > 4
+    ) {
+      this.$error('Maximum size for video is 4GB');
+      return;
+    }
+    if (this.fileType === 'clip' && fileList[0].size / (1024 * 1024) > 200) {
+      this.$error('Maximum size for clip is 200MB');
+      return;
+    }
+    this.currentStatus = STATUS.SAVING;
+    this.onUploadFile(fileList[0])
+      .then(rst => {
+        if (rst) {
+          this.currentStatus = STATUS.SUCCESS;
+          this.uploadedFile = fileList[0];
+        } else {
+          this.currentStatus = STATUS.FAILED;
+        }
+      })
+      .catch(() => {
+        this.currentStatus = STATUS.FAILED;
+      });
+  }
+
+  public mounted() {
+    this.reset();
+  }
+}

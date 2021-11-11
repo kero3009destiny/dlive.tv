@@ -1,0 +1,48 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { Component, Prop, Vue } from 'vue-property-decorator';
+import { ROUTE_HOME } from '@/router';
+
+@Component
+export default class LivestreamChannelDeactivated extends Vue {
+  @Prop({
+    required: true,
+    type: String
+  })
+  public displayname!: string;
+
+  private routeTo() {
+    this.$router.push({ name: ROUTE_HOME });
+  }
+}

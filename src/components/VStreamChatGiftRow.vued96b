@@ -1,0 +1,100 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { VStreamChatGiftRowFrag, DonationType } from '@/graphql/types';
+import { Component, Prop, Vue } from 'vue-property-decorator';
+
+@Component
+export default class VStreamChatGiftRow extends Vue {
+  @Prop({
+    required: true
+  })
+  public chatGiftRow!: VStreamChatGiftRowFrag.Fragment;
+
+  public date: Date = new Date();
+  public startDate: Date = new Date(Date.UTC(2019, 9, 28, 0, 0, 0));
+  public endDate: Date = new Date(Date.UTC(2019, 10, 4, 0, 0, 0));
+
+  get giftName() {
+    if (this.chatGiftRow.gift === DonationType.IceCream) {
+      if (this.date >= this.startDate && this.date <= this.endDate) {
+        return 'PUMPKIN'.toLowerCase();
+      }
+      return 'ICE CREAM'.toLowerCase();
+    } else if (
+      this.chatGiftRow.gift === DonationType.Btt ||
+      this.chatGiftRow.gift === DonationType.Trx
+    ) {
+      return this.chatGiftRow.gift.toUpperCase();
+    }
+    return this.chatGiftRow.gift.toLowerCase();
+  }
+
+  get giftAmount() {
+    let amount: string | number | null = null;
+    switch (this.chatGiftRow.gift) {
+      case DonationType.Btt:
+      case DonationType.Trx:
+        amount = Number(this.chatGiftRow.amount) / Math.pow(10, 6);
+        break;
+      default:
+        amount = this.chatGiftRow.amount;
+    }
+    return amount;
+  }
+
+  get giftEmoji() {
+    let name: string | null = null;
+    switch (this.chatGiftRow.gift) {
+      case DonationType.Lemon:
+        name = 'gift_lemon';
+        break;
+      case DonationType.IceCream: {
+        if (this.date >= this.startDate && this.date <= this.endDate) {
+          name = 'gift_pumpkin';
+        } else {
+          name = 'gift_icecream';
+        }
+        break;
+      }
+      case DonationType.Diamond:
+        name = 'gift_diamond';
+        break;
+      case DonationType.Ninjaghini:
+        name = 'gift_ninjaghini';
+        break;
+      case DonationType.Ninjet:
+        name = 'gift_ninjet';
+        break;
+      case DonationType.Btt:
+        name = 'gift_btt';
+        break;
+      case DonationType.Trx:
+        name = 'gift_trx';
+        break;
+    }
+    if (name !== null) {
+      if (name === 'gift_btt' || name === 'gift_trx') {
+        return require(`@/assets/icon/${name}.svg`);
+      } else {
+        return require(`@/assets/icon/${name}.png`);
+      }
+    } else {
+      return '';
+    }
+  }
+}

@@ -1,0 +1,37 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { Component, Vue, Prop } from 'vue-property-decorator';
+
+@Component
+export default class TreasureChestValueUpdate extends Vue {
+  @Prop({
+    required: true,
+    type: String
+  })
+  public updateValue!: string;
+}

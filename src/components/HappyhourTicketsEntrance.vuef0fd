@@ -1,0 +1,4 @@
+var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',{staticClass:"position-absolute text-12-medium",staticStyle:{"right":"8px","top":"60px","z-index":"1"}},[_c('div',{staticClass:"position-relative text-grey-darken-2 border-radius-5 height-100"},[_c('div',{staticClass:"position-absolute clickable",staticStyle:{"right":"0px","top":"8px"},on:{"click":_vm.toggleEntrance}},[(_vm.shouldShowEntrance)?_c('div',[_c('img',{attrs:{"src":require("@/assets/icon/happyhour-right.svg"),"width":"16px"}})]):_vm._e(),(!_vm.shouldShowEntrance)?_c('div',[_c('img',{attrs:{"src":require("@/assets/icon/happyhour-left.svg"),"width":"16px"}})]):_vm._e()]),(_vm.shouldShowEntrance)?_c('div',{staticClass:"happy-hour-streamer-bg padding-3 flex-column flex-justify-around height-100 clickable",on:{"click":_vm.openHappyhourPopup}}):_vm._e()])])}
+var staticRenderFns = []
+
+export { render, staticRenderFns }

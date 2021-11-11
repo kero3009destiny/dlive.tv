@@ -1,0 +1,52 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import DDivider from '@/components/DDivider.vue';
+import { Component, Vue, Prop } from 'vue-property-decorator';
+
+@Component({
+  components: {
+    DDivider
+  }
+})
+export default class DDialog extends Vue {
+  @Prop({
+    type: Boolean,
+    required: true,
+    default: false
+  })
+  public value!: boolean;
+
+  @Prop({
+    type: Number,
+    required: false,
+    default: 520
+  })
+  public maxWidth!: number;
+
+  @Prop({
+    type: Boolean,
+    required: false,
+    default: false
+  })
+  public persistent!: boolean;
+
+  public changeState(state: boolean) {
+    this.$emit('input', state);
+  }
+}

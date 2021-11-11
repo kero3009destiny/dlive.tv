@@ -1,0 +1,4 @@
+var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',{staticClass:"cash-in-fail"},[_c('d-dialog',{staticClass:"cashin-dialog",attrs:{"max-width":400},scopedSlots:_vm._u([{key:"dialog-title",fn:function(){return [_vm._v(" Purchase Failed ")]},proxy:true},{key:"dialog-content",fn:function(){return [_c('div',{staticClass:"flex-box flex-justify-between paddingtb-4"},[_c('div',{staticClass:"text-12-medium line-height-18"},[_c('div',[_vm._v("Payment Declined.")]),_c('div',[_vm._v("Please contact your bank with regards to this matter.")])]),_c('div',[_c('img',{attrs:{"src":require("@/assets/icon/cashin-fail.png"),"width":"96px"}})])])]},proxy:true}]),model:{value:(_vm.showCashinFailDialog),callback:function ($$v) {_vm.showCashinFailDialog=$$v},expression:"showCashinFailDialog"}})],1)}
+var staticRenderFns = []
+
+export { render, staticRenderFns }

@@ -1,0 +1,4 @@
+var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('span',[_c('i18n',{attrs:{"path":"LiveStreamChatroomRow.DonateInfo","tag":"span"}},[_c('span',{attrs:{"place":"giftAmount"}},[_vm._v(_vm._s(_vm.giftAmount))]),_c('span',{attrs:{"place":"giftName"}},[_vm._v(_vm._s(_vm.giftName))])]),_c('img',{staticClass:"gift-emoji",attrs:{"src":_vm.giftEmoji}})],1)}
+var staticRenderFns = []
+
+export { render, staticRenderFns }

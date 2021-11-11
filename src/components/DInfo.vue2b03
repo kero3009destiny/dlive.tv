@@ -1,0 +1,54 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { Component, Prop, Vue } from 'vue-property-decorator';
+
+@Component
+export default class DInfo extends Vue {
+  @Prop({
+    required: false,
+    default: false,
+    type: Boolean
+  })
+  public top!: boolean;
+
+  @Prop({
+    required: false,
+    default: false,
+    type: Boolean
+  })
+  public bottom!: boolean;
+
+  @Prop({
+    required: false,
+    default: false,
+    type: Boolean
+  })
+  public left!: boolean;
+
+  @Prop({
+    required: false,
+    default: false,
+    type: Boolean
+  })
+  public right!: boolean;
+}

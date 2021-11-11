@@ -1,0 +1,22 @@
+
+
+
+
+
+
+
+
+
+
+
+
+import { VStreamChatGiftSubReceiveRowFrag } from '@/graphql/types';
+import { Component, Vue, Prop } from 'vue-property-decorator';
+
+@Component
+export default class VStreamChatGiftSubReceiveRow extends Vue {
+  @Prop({
+    required: true
+  })
+  public chatGiftSubReceiveRow!: VStreamChatGiftSubReceiveRowFrag.Fragment;
+}

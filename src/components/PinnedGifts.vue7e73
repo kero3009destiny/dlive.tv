@@ -1,0 +1,220 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { EVENTS } from '@/utils/constants';
+import {
+  addScrollListener,
+  removeScrollListener,
+  isLeft,
+  isRight,
+  scrollToLeft,
+  scrollToRight
+} from '@/utils/chatroom';
+import VDliveAvatar from '@/components/VDliveAvatar.vue';
+import PinnedGiftItem from '@/components/PinnedGiftItem.vue';
+import GlobalEventBusMixin from '@/mixins/GlobalEventBusMixin';
+import MeMixin from '@/mixins/MeMixin';
+import {
+  StreamChatMessageFrag,
+  PinnedGiftsFrag,
+  PinnedGiftItemFrag
+} from '@/graphql/types';
+import { Component, Mixins, Prop, Watch } from 'vue-property-decorator';
+import DDivider from '@/components/DDivider.vue';
+
+@Component({
+  components: {
+    PinnedGiftItem,
+    VDliveAvatar,
+    DDivider
+  }
+})
+export default class PinnedGifts extends Mixins(GlobalEventBusMixin, MeMixin) {
+  get recentDonations() {
+    if (this.pinnedGifts !== undefined && this.pinnedGifts !== null) {
+      return this.pinnedGifts.recentDonations;
+    }
+    return [];
+  }
+  get streamerName() {
+    return this.pinnedGifts.username;
+  }
+  @Prop({
+    required: true
+  })
+  public pinnedGifts!: PinnedGiftsFrag.Fragment;
+  public pinnedGiftList: PinnedGiftItemFrag.Fragment[] = [];
+  public pinnedGiftBuffer: PinnedGiftItemFrag.Fragment[] = [];
+  public showLeftArrow: boolean = false;
+  public showRightArrow: boolean = true;
+  public container: HTMLElement | null = null;
+  private pushPinnedGiftInterval: number = 0;
+
+  public mounted() {
+    this.$_smartSubscribe(EVENTS.PINNED_GIFT, this.handleGiftMessage);
+    this.container = document.getElementById('pinned-gift-list');
+    addScrollListener(this.container, this.scrollHandler);
+    this.listenGifts();
+    this.detectBoundary();
+  }
+
+  public beforeDestroy() {
+    removeScrollListener(this.container, this.scrollHandler);
+    if (this.pushPinnedGiftInterval !== 0) {
+      window.clearInterval(this.pushPinnedGiftInterval);
+    }
+  }
+
+  public listenGifts() {
+    this.pushPinnedGiftInterval = window.setInterval(() => {
+      if (this.pinnedGiftBuffer.length !== 0) {
+        const newGift = this.pinnedGiftBuffer.shift();
+        if (!newGift) {
+          return;
+        }
+        this.pinnedGiftList = this.pinnedGiftList.filter(gift => {
+          return (
+            newGift !== undefined &&
+            (gift.user.username !== newGift.user.username ||
+              gift.type !== newGift.type)
+          );
+        });
+        newGift.updatedAt = Date.now().toString();
+        newGift.expiresAt = (
+          Date.now() +
+          newGift.expirationTime * 1000
+        ).toString();
+        this.pinnedGiftList.unshift(newGift);
+        if (this.pinnedGiftList.length > 50) {
+          this.pinnedGiftList = this.pinnedGiftList.slice(0, 50);
+        }
+      }
+    }, 100);
+  }
+
+  public handleGiftMessage(chat: StreamChatMessageFrag.ChatGiftInlineFragment) {
+    const newGift: PinnedGiftItemFrag.Fragment = {
+      user: {
+        id: chat.sender.id,
+        username: chat.sender.username,
+        displayname: chat.sender.displayname,
+        avatar: chat.sender.avatar,
+        partnerStatus: chat.sender.partnerStatus,
+        effect: chat.sender.effect
+      },
+      count: chat.recentCount,
+      type: chat.gift,
+      updatedAt: '0',
+      expiresAt: '0',
+      expirationTime: chat.expireDuration
+    };
+    const len = this.pinnedGiftBuffer.length;
+    if (len > 200) {
+      this.pinnedGiftBuffer = this.pinnedGiftBuffer.slice(len - 100, len);
+    }
+    if (this.me !== null && this.me.username === newGift.user.username) {
+      this.pinnedGiftBuffer.unshift(newGift);
+    } else {
+      this.pinnedGiftBuffer.push(newGift);
+    }
+  }
+
+  public scrollHandler() {
+    this.detectBoundary();
+  }
+
+  public detectBoundary() {
+    this.$nextTick(() => {
+      this.showLeftArrow = !isLeft(this.container);
+      this.showRightArrow = !isRight(this.container);
+    });
+  }
+
+  public removeGift(gift: PinnedGiftItemFrag.Fragment) {
+    this.pinnedGiftList = this.pinnedGiftList.filter(pinnedGift => {
+      return (
+        pinnedGift.user.username !== gift.user.username ||
+        pinnedGift.type !== gift.type
+      );
+    });
+  }
+
+  public giftKey(gift: PinnedGiftItemFrag.Fragment) {
+    return gift.user.username + gift.type + gift.count;
+  }
+
+  public scrollToLeft() {
+    scrollToLeft(this.container);
+  }
+
+  public scrollToRight() {
+    scrollToRight(this.container);
+  }
+
+  @Watch('recentDonations', { immediate: true })
+  public onRecentDonations(
+    val: PinnedGiftsFrag.RecentDonations[],
+    oldVal: PinnedGiftsFrag.RecentDonations[] | undefined
+  ) {
+    if (val && oldVal === undefined) {
+      this.pinnedGiftList = val;
+    }
+  }
+
+  @Watch('pinnedGiftList.length')
+  public onPinnedGiftList() {
+    this.detectBoundary();
+  }
+}

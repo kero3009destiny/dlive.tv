@@ -1,0 +1,4 @@
+var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('d-dialog',{staticClass:"cashin-dialog",attrs:{"max-width":400},scopedSlots:_vm._u([{key:"dialog-title",fn:function(){return [_vm._v(" "+_vm._s(_vm.dialogTitle)+" ")]},proxy:true},{key:"dialog-content",fn:function(){return [_c('div',{staticClass:"flex-box flex-justify-end paddingtb-4"},[_c('div',{staticClass:"flex-align-center"},[_c('d-btn',{staticClass:"text-uppercase text-12-medium",attrs:{"type":"btnC"},on:{"click":function($event){_vm.showEmailVerifiedDialog = false}}},[_vm._v(" "+_vm._s(_vm.$t('VerifySystem.Ok'))+" ")])],1)])]},proxy:true}]),model:{value:(_vm.showEmailVerifiedDialog),callback:function ($$v) {_vm.showEmailVerifiedDialog=$$v},expression:"showEmailVerifiedDialog"}})}
+var staticRenderFns = []
+
+export { render, staticRenderFns }

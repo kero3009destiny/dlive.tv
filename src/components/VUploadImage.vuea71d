@@ -1,0 +1,194 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// FIXME: remove eslint ignore
+/* eslint @typescript-eslint/no-explicit-any: 0 */
+import VDragDropInput from '@/components/VDragDropInput.vue';
+import { Component, Prop, Vue } from 'vue-property-decorator';
+import { namespace } from 'vuex-class';
+
+const enum STATUS {
+  WAIT_LOADING = 0,
+  ON_CROPPING,
+  WAIT_UPLOADING,
+  DISPLAY_RESULT,
+  FAILED
+}
+
+const accessTokenModule = namespace('accessToken');
+
+// TODO(yumin): instead of $emit('done', url), we can implement v-model as well.
+@Component({
+  components: {
+    VDragDropInput
+  }
+})
+export default class VUploadImage extends Vue {
+  // Computed ----------------------------------------------------------------------------------
+  get componentSize() {
+    return { height: this.height, width: this.width };
+  }
+  get isWaitLoading() {
+    return this.status === STATUS.WAIT_LOADING;
+  }
+  get isOnCropping() {
+    return this.status === STATUS.ON_CROPPING;
+  }
+  get isWaitUploading() {
+    return this.status === STATUS.WAIT_UPLOADING;
+  }
+  get isDisplayResult() {
+    return this.status === STATUS.DISPLAY_RESULT;
+  }
+  get isFailed() {
+    return this.status === STATUS.FAILED;
+  }
+
+  @Prop({ default: 'auto' })
+  public height!: string;
+  @Prop({ default: 'auto' })
+  public width!: string;
+  @Prop({ default: 16 / 9 })
+  public aspectRatio!: number;
+  @Prop({
+    default: () => new Map<string, any>([])
+  })
+  public formValues!: Map<string, any>;
+  @Prop({ required: true })
+  public fieldName!: string;
+  @Prop({ required: true })
+  public uploadApi!: (
+    data: FormData,
+    onProgress: any,
+    token: string | null
+  ) => Promise<any>; // return obj contains url of uploaded image.
+  @Prop({ required: false, default: 'image' })
+  public fileType!: 'image' | 'emote' | 'emoji';
+  @Prop({ default: false })
+  public allowTransparent!: boolean;
+  @Prop({ default: true })
+  public displayResult!: boolean;
+
+  // Local
+  public imageSrc: string = '';
+  public status: STATUS = STATUS.WAIT_LOADING;
+  public uploadProgress: number = 0;
+  public isOnCroppingNextTick: boolean = false;
+  @accessTokenModule.Getter('token')
+  private token!: string | null;
+
+  // Lifecycle Hooks ---------------------------------------------------------------------------
+  public mounted() {
+    this.isOnCroppingNextTick = true;
+  }
+
+  public async onDropOrSubmit(file: File): Promise<any> {
+    // XXX(yumin): upload gif is not allowed. It will be forced to be cropped to a jpg.
+    let source = file;
+    if (this.fileType !== 'emote') {
+      this.status = STATUS.ON_CROPPING;
+      source = await (this.$refs.cropper as any).cropImage(file);
+      if (source === null) {
+        this.reset();
+        return;
+      }
+      if (this.fileType === 'emoji') {
+        this.status = STATUS.DISPLAY_RESULT;
+        this.imageSrc = URL.createObjectURL(source);
+        this.$emit('choosed', source, source.type);
+        return this.imageSrc;
+      }
+    }
+    return this.uploadSource(source);
+  }
+
+  public async uploadSource(source: File) {
+    // upload
+    this.status = STATUS.WAIT_UPLOADING;
+    const formData = new FormData();
+    for (const [key, value] of this.formValues) {
+      formData.append(key, value);
+    }
+    formData.append(this.fieldName, source);
+    try {
+      const uploadResult = await this.uploadApi(
+        formData,
+        this.onUploadProgress,
+        this.token
+      );
+      // display
+      if (uploadResult.data.imgURL) {
+        if (this.displayResult) {
+          this.status = STATUS.DISPLAY_RESULT;
+        } else {
+          this.status = STATUS.WAIT_LOADING;
+        }
+        this.imageSrc = uploadResult.data.imgURL;
+        // if (this.fileType === 'emote'||this.fileType === 'emoji') {
+        if (this.fileType === 'emote') {
+          this.$emit('done', this.imageSrc, uploadResult.data.mime_type);
+        } else {
+          this.$emit('done', this.imageSrc);
+        }
+        return this.imageSrc;
+      } else {
+        this.status = STATUS.FAILED;
+        return null;
+      }
+    } catch (error) {
+      this.status = STATUS.FAILED;
+      return null;
+    }
+  }
+
+  public onUploadProgress(progress: number) {
+    this.uploadProgress = progress;
+  }
+
+  public reset() {
+    this.imageSrc = '';
+    this.status = STATUS.WAIT_LOADING;
+    this.uploadProgress = 0;
+    (this.$refs.dragDropInput as VDragDropInput).reset();
+  }
+}

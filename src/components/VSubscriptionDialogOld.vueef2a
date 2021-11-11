@@ -1,0 +1,469 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import ADD_SUBSCRIBE from '@/graphql/mutations/AddSubscribe.graphql';
+import { VSubscriptionFrag, MeBalance, AddSubscribe } from '@/graphql/types';
+import VSubscriptionDialogGiftSub from '@/components/VSubscriptionDialogGiftSub.vue';
+import { SUB_SETTINGS } from '@/models/subscription';
+import { Component, Mixins, Prop, Vue } from 'vue-property-decorator';
+import { ApolloQuery } from '@/decorators/apollo';
+import ME_BALANCE from '@/graphql/queries/MeBalance.graphql';
+import MeMixin from '@/mixins/MeMixin';
+import { Maybe } from '@/graphql/types';
+import SnackbarMixin from '@/mixins/SnackbarMixin';
+import { namespace } from 'vuex-class';
+import DBtn from '@/components/DBtn.vue';
+import DToken from '@/components/DToken.vue';
+import { dataPoint } from '@/plugins/dataCollection';
+import { minervaEvent } from '@/plugins/minerva';
+import { Subscribe } from '@/plugins/types';
+import { setSubCashbacked } from '@/apollo/cache/me';
+import CHANNEL_CAN_BE_GIFT_SUBSCRIPTION from '@/graphql/queries/ChannelCanBeGiftSubscription.graphql';
+import { ChannelCanBeGiftSubscription } from '@/graphql/types';
+const dialogModule = namespace('dialog');
+const uiModule = namespace('ui');
+const meModule = namespace('me');
+
+@Component({
+  components: {
+    DBtn,
+    DToken,
+    VSubscriptionDialogGiftSub
+  }
+})
+export default class VSubscriptionDialog extends Mixins(
+  MeMixin,
+  SnackbarMixin
+) {
+  get subSettings() {
+    if (this.isResub) {
+      const rst = SUB_SETTINGS;
+      return rst.slice(0, 4);
+    }
+    return SUB_SETTINGS;
+  }
+
+  get enoughBalance() {
+    if (this.meBalance && this.$options.filters !== undefined) {
+      const myBalance = this.$options.filters.coinToLino(
+        this.meBalance.wallet.balance
+      );
+      if (myBalance >= this.subSettings[this.subMode].cost) {
+        return true;
+      } else {
+        return false;
+      }
+    }
+    return false;
+  }
+  @Prop({
+    required: true
+  })
+  public subscribee!: VSubscriptionFrag.Fragment;
+
+  @Prop({
+    required: false,
+    default: false,
+    type: Boolean
+  })
+  public isResub!: boolean;
+
+  @ApolloQuery({
+    query: ME_BALANCE,
+    fetchPolicy: 'network-only',
+    manual: true,
+    skip() {
+      return !this.isLoggedIn;
+    },
+    result({ data }: { data: MeBalance.Query }) {
+      if (data !== undefined && data !== null && data.me !== null) {
+        Vue.set(this, 'meBalance', data.me);
+      }
+    }
+  })
+  public meBalance?: Maybe<MeBalance.Me>;
+  public shouldShowGiftSub: boolean = false;
+  @uiModule.Getter('isMobile')
+  private isMobile!: boolean;
+  @meModule.Getter('meSubCashbacked')
+  private meSubCashbacked!: boolean;
+
+  // local
+  private subMode: 0 | 1 | 2 | 3 | 4 = 1;
+  private isLoading: boolean = false;
+
+  @dialogModule.Mutation('setCashInDialog')
+  private setCashInDialog!: (status: boolean) => void;
+
+  public created() {
+    if (!this.isResub) {
+      this.subMode = 4;
+    }
+  }
+  public subscribeClicked() {
+    if (this.requireLogin()) {
+      return;
+    }
+    // FIXME: ????
+    return undefined;
+  }
+
+  public async onClickSubscribe() {
+    if (this.requireLogin()) {
+      return;
+    }
+    this.isLoading = true;
+    try {
+      const { data } = await this.$apollo.mutate<AddSubscribe.Mutation>({
+        mutation: ADD_SUBSCRIBE,
+        variables: {
+          streamer: this.subscribee.username,
+          month: this.subSettings[this.subMode].month
+        }
+      });
+      const trackingInfo = this.$store.getters['userMeta/trackingInfo'];
+      dataPoint('subscribe', {
+        eventCategory: trackingInfo.postStatus,
+        eventLabel: this.subscribee.username,
+        eventValue: this.subSettings[this.subMode].month
+      });
+      const eventLabels: Subscribe.EventLabels = {
+        id: this.subscribee.username,
+        subscription: this.subSettings[this.subMode].subOption
+      };
+      minervaEvent(Subscribe.eventType, eventLabels);
+      const resp = data.subscribeWithCashback;
+      this.isLoading = false;
+      if (resp.err !== null) {
+        this.$errCode(resp.err.code);
+        return;
+      }
+      setSubCashbacked(this.$apollo.provider.defaultClient, true);
+      this.$emit('subscribeSucceed', resp.cashbacked);
+    } catch (err) {
+      this.isLoading = false;
+      // this.$error('Subscribe Failed');
+    }
+  }
+
+  public closeSubDialog() {
+    this.$emit('closeSubDialog');
+  }
+
+  public openCashinPopup() {
+    this.setCashInDialog(true);
+  }
+
+  public async onClickGiftSub() {
+    try {
+      const variables: ChannelCanBeGiftSubscription.Variables = {
+        streamer: this.subscribee.displayname || this.subscribee.username
+      };
+      const { data } = await this.$apollo.query<
+        ChannelCanBeGiftSubscription.Query
+      >({
+        query: CHANNEL_CAN_BE_GIFT_SUBSCRIPTION,
+        fetchPolicy: 'network-only',
+        variables
+      });
+      const resp = data.channelCanBeGiftSubscription;
+      if (resp.err !== null) {
+        this.$errCode(resp.err.code);
+        return;
+      }
+      this.shouldShowGiftSub = true;
+    } catch (err) {
+      // this.$error('Error');
+    }
+  }
+  public backClicked() {
+    this.shouldShowGiftSub = false;
+  }
+}

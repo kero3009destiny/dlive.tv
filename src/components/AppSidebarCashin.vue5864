@@ -1,0 +1,4 @@
+var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',{staticClass:"flex-auto paddingtb-4 flex-column flex-align-start",staticStyle:{"flex-shrink":"0"}},[_c('div',{staticClass:"text-14-medium marginb-3 text-grey line-height-14"},[_c('i18n',{attrs:{"path":"AppSidebar.BalanceYouHave"}})],1),(_vm.meBalance !== null)?_c('d-token',{staticClass:"text-14-medium",staticStyle:{"font-size":"2rem","font-weight":"500"},attrs:{"type":"token","size":16,"color":"white"}},[_vm._v(" "+_vm._s(_vm._f("commaForDigits")(_vm._f("coinToLino")(_vm.meBalance)))+" ")]):_c('d-token',{staticClass:"text-14-medium",attrs:{"color":"grey-darken-8","size":16,"type":"token"}},[_vm._v(" - ")]),_c('cash-in-button',{staticStyle:{"margin-top":"12px"}})],1)}
+var staticRenderFns = []
+
+export { render, staticRenderFns }

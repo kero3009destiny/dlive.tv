@@ -1,0 +1,144 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { uploadVideo } from '@/api/uploadVideo';
+import VDragDropInput from '@/components/VDragDropInput.vue';
+import GENERATE_PRESIGN_URL from '@/graphql/mutations/UploadGeneratePresignUrl.graphql';
+import { Component, Prop, Mixins } from 'vue-property-decorator';
+import { UploadGeneratePresignUrl } from '@/graphql/types';
+import SnackbarMixin from '@/mixins/SnackbarMixin';
+
+const enum STATUS {
+  WAIT_LOADING = 0,
+  WAIT_UPLOADING,
+  DISPLAY_RESULT,
+  FAILED
+}
+
+// TODO(yumin): code duplication with UploadVideo, refactor later.
+@Component({
+  components: {
+    VDragDropInput
+  }
+})
+export default class VUploadVideo extends Mixins(SnackbarMixin) {
+  @Prop({ default: 'auto' })
+  public height!: string;
+  @Prop({ default: 'auto' })
+  public width!: string;
+  @Prop({ default: 16 / 9 })
+  public aspectRatio!: number;
+  @Prop({ required: true })
+  public permlinkToken!: string;
+
+  // Local
+  public videoSrc: string = '';
+  public status: STATUS = STATUS.WAIT_LOADING;
+  public uploadProgress: number = 0;
+  public generatePresignUrl: string = '';
+
+  // Computed ---------------------------------------------------------------------------
+  get componentSize() {
+    return { height: this.height, width: this.width };
+  }
+  get isWaitLoading() {
+    return this.status === STATUS.WAIT_LOADING;
+  }
+  get isWaitUploading() {
+    return this.status === STATUS.WAIT_UPLOADING;
+  }
+  get isDisplayResult() {
+    return this.status === STATUS.DISPLAY_RESULT;
+  }
+  get isFailed() {
+    return this.status === STATUS.FAILED;
+  }
+
+  // Function ---------------------------------------------------------------------------
+  // TODO(yumin): error handling in await timeout and display failed.
+  public onDropOrSubmit(file: File) {
+    // upload
+    this.status = STATUS.WAIT_UPLOADING;
+    const ext = file.name.split('.').pop();
+    return this.$apollo
+      .mutate<UploadGeneratePresignUrl.Mutation>({
+        mutation: GENERATE_PRESIGN_URL,
+        variables: {
+          hash: this.permlinkToken,
+          filename: ext
+        }
+      })
+      .then(({ data }: { data: UploadGeneratePresignUrl.Mutation }) => {
+        if (data.presignURLGenerate.err) {
+          this.$errCode(data.presignURLGenerate.err.code);
+          return;
+        }
+        return uploadVideo(
+          data.presignURLGenerate.presignURL,
+          file,
+          this.onUploadProgress
+        )
+          .then(result => {
+            if (result) {
+              this.status = STATUS.DISPLAY_RESULT;
+              this.videoSrc = window.URL.createObjectURL(file);
+              this.$emit('done', result);
+              return this.videoSrc;
+            } else {
+              return null;
+            }
+          })
+          .catch(() => {
+            this.status = STATUS.FAILED;
+          });
+      })
+      .catch(() => {
+        this.status = STATUS.FAILED;
+        return null;
+      });
+  }
+
+  public onUploadProgress(progress: number) {
+    this.uploadProgress = progress;
+  }
+
+  public reset() {
+    this.videoSrc = '';
+    this.status = STATUS.WAIT_LOADING;
+    this.uploadProgress = 0;
+    (this.$refs.dragDropInput as VDragDropInput).reset();
+  }
+}

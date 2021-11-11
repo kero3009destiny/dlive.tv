@@ -1,0 +1,109 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import MeMixin from '@/mixins/MeMixin';
+import { PinnedSubFrag } from '@/graphql/types';
+import { Component, Mixins, Prop } from 'vue-property-decorator';
+import DDivider from '@/components/DDivider.vue';
+import { clearOngoingGiftSubCache } from '@/apollo/cache/giftSub';
+
+// new add
+import PinnedSubStart from '@/components/PinnedSubStart.vue';
+import PinnedSubSuccess from '@/components/PinnedSubSuccess.vue';
+import PinnedSubFail from '@/components/PinnedSubFail.vue';
+import { VSubscriptionFrag } from '@/graphql/types';
+import SUBSCRIPTION_FRAG from '@/graphql/fragments/SubscriptionFrag.graphql';
+
+const enum STATUS {
+  INITIAL = 0,
+  SUCCESS,
+  FAIL
+}
+
+@Component({
+  components: {
+    DDivider,
+    PinnedSubStart,
+    PinnedSubSuccess,
+    PinnedSubFail
+  }
+})
+export default class PinnedSub extends Mixins(MeMixin) {
+  @Prop({
+    required: true
+  })
+  public streamerInfo!: PinnedSubFrag.Fragment;
+
+  private currentStatus: STATUS = STATUS.INITIAL;
+
+  private apolloClient = this.$apollo.provider.defaultClient;
+
+  get shouldShowStart() {
+    return this.currentStatus === STATUS.INITIAL;
+  }
+  get shouldShowSuccess() {
+    return this.currentStatus === STATUS.SUCCESS;
+  }
+  get shouldShowFail() {
+    return this.currentStatus === STATUS.FAIL;
+  }
+
+  public closePinnedSub() {
+    const err = clearOngoingGiftSubCache(
+      this.$apollo.provider.defaultClient,
+      this.streamerInfo.id
+    );
+    if (err !== undefined) {
+      throw err;
+    }
+  }
+
+  public claimSuccess(isSuccessful: boolean) {
+    if (isSuccessful) {
+      this.currentStatus = STATUS.SUCCESS;
+      try {
+        const data: VSubscriptionFrag.Fragment | null = this.apolloClient.readFragment(
+          {
+            id: this.streamerInfo.id,
+            fragment: SUBSCRIPTION_FRAG
+          }
+        );
+        if (
+          data !== null &&
+          data.mySubscription !== undefined &&
+          data.mySubscription !== null
+        ) {
+          data.mySubscription.isSubscribing = true;
+          this.apolloClient.writeFragment({
+            id: this.streamerInfo.id,
+            fragment: SUBSCRIPTION_FRAG,
+            data
+          });
+        }
+      } catch (err) {
+        // TODO
+      }
+    } else {
+      this.currentStatus = STATUS.FAIL;
+    }
+  }
+}

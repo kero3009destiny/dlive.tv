@@ -1,0 +1,564 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { ApolloQuery } from '@/decorators/apollo';
+import HomeFeatureStream from '@/components/HomeFeatureStream.vue';
+import VNSFWSwitch from '@/components/VNSFWSwitch.vue';
+import DDivider from '@/components/DDivider.vue';
+import HomeCreators from '@/components/HomeCreators.vue';
+import { StateChanger } from 'vue-infinite-loading';
+import HomeCategory from '@/components/HomeCategory.vue';
+import HomeCarousel from '@/components/HomeCarousel.vue';
+import HomeLivestreams from '@/components/HomeLivestreams.vue';
+import DSelect from '@/components/DSelect.vue';
+import VCenteredContainer from '@/components/VCenteredContainer.vue';
+import HOME_PAGE_LIVESTREAM from '@/graphql/queries/HomePageLivestream.graphql';
+import LIVESTREAMS_LANGUAGES from '@/graphql/queries/LivestreamsLanguages.graphql';
+import CATEGORY_DETAIL from '@/graphql/queries/CategoryDetail.graphql';
+// import HOME_PAGE_LEADERBOARD from '@/graphql/queries/HomePageLeaderboard.graphql';
+import HOME_PAGE_CATEGORIES from '@/graphql/queries/HomePageCategories.graphql';
+import { fetchMoreLoading } from '@/utils/fetchdata';
+import { modeIsCn } from '@/utils/mode';
+import GlobalEventBusMixin from '@/mixins/GlobalEventBusMixin';
+import { Component, Mixins, Watch } from 'vue-property-decorator';
+import { Meta } from '@/decorators/meta.ts';
+import { EVENTS } from '@/utils/constants';
+import { duplicateLivestream } from '@/utils/livestream';
+import VInfiniteLoading from '@/components/VInfiniteLoading.vue';
+import { ROUTE_BROWSE } from '@/router';
+import { getCookie } from '../utils/cookie';
+import {
+  HomePageLivestream,
+  HomePageCategories,
+  LanguageFrag,
+  VCategoryCardFrag,
+  LivestreamsLanguages,
+  LivestreamSortOrder,
+  CategoryDetail,
+  VCategoryLivestreamFrag,
+  HomePageCarousels
+} from '@/graphql/types';
+import MeMixin from '@/mixins/MeMixin';
+import VNoSsr from '@/components/VNoSsr.vue';
+import { namespace } from 'vuex-class';
+import { metaContentDefault } from '@/utils/meta';
+const userMetaModule = namespace('userMeta');
+const globalCategoryModule = namespace('globalCategory');
+import HOME_PAGE_CAROUSELS from '@/graphql/queries/HomePageCarousels.graphql';
+
+interface LivestreamSort {
+  sort: LivestreamSortOrder;
+  label: string;
+}
+
+@Component({
+  components: {
+    HomeCreators,
+    VCenteredContainer,
+    HomeFeatureStream,
+    HomeCategory,
+    HomeLivestreams,
+    VNSFWSwitch,
+    VInfiniteLoading,
+    DDivider,
+    VNoSsr,
+    HomeCarousel,
+    DSelect
+  }
+})
+export default class Home extends Mixins(GlobalEventBusMixin, MeMixin) {
+  @Meta({
+    metaInfo: {
+      meta: [
+        {
+          name: 'twitter:card',
+          content: 'summary'
+        },
+        { property: 'fb:app_id', content: '2035237893356330' },
+        {
+          property: 'og:title',
+          content: 'DLive · Live Stream on Blockchain'
+        },
+        { property: 'og:site_name', content: 'DLive' },
+        { property: 'og:type', content: 'website' },
+        {
+          property: 'og:url',
+          content: 'https://dlive.tv'
+        },
+        {
+          property: 'og:image',
+          content:
+            'https://community.dlive.tv/wp-content/uploads/2019/06/Social_Icon-png.png'
+        },
+        { property: 'og:image:width', content: '128' },
+        { property: 'og:image:height', content: '128' },
+        {
+          property: 'og:description',
+          content: metaContentDefault
+        },
+        {
+          vmid: 'description',
+          name: 'description',
+          content: metaContentDefault
+        }
+      ],
+      link: [
+        {
+          rel: 'canonical',
+          href: 'https://dlive.tv'
+        }
+      ]
+    }
+  })
+  public meta!: string;
+
+  get prependIcon() {
+    return require('@/assets/icon/filter-icon.svg');
+  }
+  get languageIndex() {
+    if (this.languageId && this.languages) {
+      return this.languages.findIndex(
+        (item: LanguageFrag.Fragment) =>
+          item.backendID === Number(this.languageId)
+      );
+    }
+    return 0;
+  }
+
+  get hasBanner() {
+    return this.date >= this.startDate && this.date <= this.endDate;
+  }
+
+  public date: Date = new Date();
+  public startDate: Date = new Date(Date.UTC(2020, 11, 23, 0, 0, 0));
+  public endDate: Date = new Date(Date.UTC(2020, 11, 30, 0, 0, 0));
+
+  get modeIsCn() {
+    return modeIsCn();
+  }
+
+  @ApolloQuery({
+    prefetch: true,
+    query: HOME_PAGE_LIVESTREAM,
+    fetchPolicy: 'cache-and-network',
+    variables(): HomePageLivestream.Variables {
+      return {
+        first: this.numPerFetch,
+        languageID: this.languageId,
+        categoryID: this.categoryId,
+        showNSFW: this.showNSFW,
+        order: this.livestreamsSort[this.sortIndex].sort,
+        userLanguageCode: this.$store.getters['userMeta/langCode'],
+        showMatureContent: true
+      };
+    }
+  })
+  public livestreams?: HomePageLivestream.Livestreams | null;
+
+  @ApolloQuery({
+    prefetch: true,
+    query: HOME_PAGE_CAROUSELS,
+    fetchPolicy: 'network-only',
+    manual: true,
+    variables(): HomePageCarousels.Variables {
+      return {
+        count: 5,
+        userLanguageCode: this.$store.getters['userMeta/langCode']
+      };
+    },
+    result({ data }) {
+      if (data) {
+        this.carousels = data.carousels;
+      }
+    }
+  })
+  public carousel?: HomePageCarousels.Carousels[];
+
+  // @ApolloQuery({
+  //   prefetch: true,
+  //   query: HOME_PAGE_LEADERBOARD,
+  //   fetchPolicy: 'network-only'
+  // })
+  // public leaderboard?: HomePageLivestream.Livestreams;
+
+  @ApolloQuery({
+    prefetch: true,
+    query: HOME_PAGE_CATEGORIES,
+    fetchPolicy: 'network-only',
+    variables(): HomePageCategories.Variables {
+      return {
+        first: 15,
+        languageID: this.languageId
+      };
+    }
+  })
+  public categories?: HomePageCategories.Categories;
+
+  @ApolloQuery({
+    prefetch: true,
+    query: LIVESTREAMS_LANGUAGES,
+    fetchPolicy: 'network-only',
+    variables(): LivestreamsLanguages.Variables {
+      return {};
+    }
+  })
+  public languages?: LanguageFrag.Fragment[];
+
+  // Local
+  public livestreamsSort: LivestreamSort[] = [
+    { sort: LivestreamSortOrder.Trending, label: 'Trending' },
+    { sort: LivestreamSortOrder.New, label: 'New' }
+  ];
+  public carousels: HomePageCarousels.Carousels[] | null = null;
+
+  public categoryId: number | null = null;
+  public showNSFW: boolean = true;
+  public numPerFetch = 20;
+  public infiniteId = +new Date();
+  public recommendCategory: VCategoryCardFrag.Fragment[] = [];
+
+  @userMetaModule.Action('setHomepageLivestreamsLanguage')
+  private setHomepageLivestreamsLanguage!: (lang: string) => void;
+  @userMetaModule.Getter('homepageLivestreamsLang')
+  private languageId!: string | null;
+  @userMetaModule.Getter('NSFW')
+  private showAdultContent!: boolean;
+  @userMetaModule.Getter('matureTagForViewer')
+  private matureTagForViewer!: boolean;
+
+  @globalCategoryModule.Getter('cryptoChannels')
+  private cryptoChannels!: VCategoryLivestreamFrag.List[];
+  @globalCategoryModule.Getter('blockchainChannels')
+  private blockchainChannels!: VCategoryLivestreamFrag.List[];
+  private sortIndex: number = 0;
+
+  get homeCategorys() {
+    if (this.categories) {
+      const temp = JSON.parse(JSON.stringify(this.recommendCategory));
+      const backend = JSON.parse(JSON.stringify(this.categories.list));
+      temp.sort(
+        (x: VCategoryCardFrag.Fragment, y: VCategoryCardFrag.Fragment) => {
+          return y.watchingCount - x.watchingCount;
+        }
+      );
+      backend.splice(1, 0, ...temp);
+      const res = new Map();
+      return backend.filter(
+        (a: VCategoryCardFrag.Fragment) =>
+          !res.has(a.backendID) && res.set(a.backendID, 1)
+      );
+    } else {
+      return [];
+    }
+  }
+  @Watch('cryptoChannels', { immediate: true })
+  public async getCryptoCategory(list: VCategoryLivestreamFrag.List[]) {
+    if (
+      list.length > 0 &&
+      !this.recommendCategory.some(item => item.backendID === 11455)
+    ) {
+      try {
+        const { data } = await this.$apollo.query<CategoryDetail.Query>({
+          query: CATEGORY_DETAIL,
+          fetchPolicy: 'network-only',
+          variables: {
+            id: 11455
+          }
+        });
+        if (data && data.category !== null) {
+          this.recommendCategory.push(data.category);
+        }
+      } catch (err) {
+        // TODO
+      }
+    }
+  }
+
+  @Watch('blockchainChannels', { immediate: true })
+  public async getBlockchainCategory(list: VCategoryLivestreamFrag.List[]) {
+    if (
+      list.length > 0 &&
+      !this.recommendCategory.some(item => item.backendID === 11454)
+    ) {
+      try {
+        const { data } = await this.$apollo.query<CategoryDetail.Query>({
+          query: CATEGORY_DETAIL,
+          fetchPolicy: 'network-only',
+          variables: {
+            id: 11454
+          }
+        });
+        if (data && data.category !== null) {
+          this.recommendCategory.push(data.category);
+        }
+      } catch (err) {
+        // TODO
+      }
+    }
+  }
+
+  public mounted() {
+    // in case of get SSR cookie dosen't work, check cookie again
+    const homepageSelectorLangCode = getCookie('homepageSelectorLangCode');
+    if (homepageSelectorLangCode !== null && this.languages) {
+      this.setHomepageLivestreamsLanguage(homepageSelectorLangCode);
+    }
+  }
+  public async refetchCarousel(liveIndex: number) {
+    const variables: HomePageCarousels.Variables = {
+      count: 5,
+      userLanguageCode: this.$store.getters['userMeta/langCode'],
+      watching: liveIndex
+    };
+    try {
+      const data = await this.$apollo.query<HomePageCarousels.Query>({
+        query: HOME_PAGE_CAROUSELS,
+        fetchPolicy: 'network-only',
+        variables,
+        errorPolicy: 'none'
+      });
+      if (data && data.data && data.data.carousels === undefined) {
+        return;
+      }
+      this.carousel = data.data.carousels;
+    } catch (err) {
+      // TODO
+    }
+  }
+
+  public fetchMoreLivestreams() {
+    return new Promise<boolean>(resolve => {
+      if (this.livestreams === undefined || this.livestreams === null) {
+        resolve(false);
+        return;
+      }
+      if (!this.livestreams.pageInfo.hasNextPage) {
+        resolve(false);
+        return;
+      }
+      this.$apollo.queries.livestreams
+        .fetchMore({
+          variables: {
+            first: this.numPerFetch,
+            after: this.livestreams.pageInfo.endCursor,
+            languageID: this.languageId,
+            categoryID: this.categoryId,
+            showMatureContent: true
+          },
+          updateQuery: (
+            previousResult: HomePageLivestream.Query,
+            {
+              fetchMoreResult
+            }: {
+              fetchMoreResult?: HomePageLivestream.Query;
+            }
+          ) => {
+            if (
+              fetchMoreResult === undefined ||
+              fetchMoreResult.livestreams === null
+            ) {
+              resolve(false);
+              return;
+            }
+            const moreLivestreams = fetchMoreResult.livestreams;
+
+            const prevLivestreams = previousResult.livestreams;
+
+            if (!moreLivestreams.pageInfo.hasNextPage) {
+              resolve(false);
+            } else {
+              resolve(true);
+            }
+            // if ()
+            prevLivestreams.pageInfo = moreLivestreams.pageInfo;
+            prevLivestreams.list = [
+              ...prevLivestreams.list,
+              ...moreLivestreams.list
+            ];
+            prevLivestreams.list = duplicateLivestream(prevLivestreams);
+            return {
+              livestreams: prevLivestreams
+            };
+          }
+        })
+        .catch(() => {
+          return;
+        });
+    });
+  }
+  public routeTo() {
+    return { name: ROUTE_BROWSE };
+  }
+
+  public changeLanguage(index: number) {
+    // set into cookie so SSR can get the language
+    if (!this.languages) {
+      return;
+    }
+    const lang = this.languages[index].backendID.toString();
+    this.setHomepageLivestreamsLanguage(lang);
+
+    if (this.livestreams !== undefined) {
+      this.livestreams = null;
+    }
+    this.$_smartPublish(EVENTS.CHANGE_LANGUAGE, null);
+    this.categoryId = null;
+    this.infiniteId += 1;
+  }
+
+  public changeLivestreamSort(index: number) {
+    this.sortIndex = index;
+    if (this.livestreams !== undefined) {
+      this.livestreams = null;
+    }
+    this.infiniteId += 1;
+  }
+
+  public changeCategory(category: VCategoryCardFrag.Fragment) {
+    if (this.livestreams !== undefined) {
+      this.livestreams = null;
+    }
+    this.categoryId = category.backendID;
+    this.infiniteId += 1;
+  }
+
+  private _fetchMoreLivestreams($state: StateChanger) {
+    fetchMoreLoading($state, this.fetchMoreLivestreams);
+  }
+}

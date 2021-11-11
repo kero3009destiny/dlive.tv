@@ -1,0 +1,91 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { Component, Vue, Prop } from 'vue-property-decorator';
+import { LivestreamAboutFrag } from '@/graphql/types';
+import ProfileAboutLinkify from '@/components/ProfileAboutLinkify.vue';
+@Component({
+  components: {
+    ProfileAboutLinkify
+  }
+})
+export default class ProfileAbout extends Vue {
+  @Prop({
+    required: true
+  })
+  public userAboutPanel!: LivestreamAboutFrag.Panels;
+
+  // Local
+  public aboutInput: string = '';
+  public isEditing = false;
+
+  // Computed -------------------------------------------------------
+  get isImageClickable() {
+    if (
+      this.userAboutPanel.imageLinkURL !== null &&
+      this.userAboutPanel.imageLinkURL !== ''
+    ) {
+      return true;
+    }
+    return false;
+  }
+  get hasImage() {
+    if (
+      this.userAboutPanel.imageURL !== null &&
+      this.userAboutPanel.imageURL !== ''
+    ) {
+      return true;
+    }
+    return false;
+  }
+
+  get hasTitle() {
+    if (
+      this.userAboutPanel.title !== null &&
+      this.userAboutPanel.title !== ''
+    ) {
+      return true;
+    }
+    return false;
+  }
+
+  get hasBody() {
+    if (this.userAboutPanel.body !== null && this.userAboutPanel.body !== '') {
+      return true;
+    }
+    return false;
+  }
+  // Function -------------------------------------------------------
+
+  public openImageLink() {
+    if (
+      this.userAboutPanel.imageLinkURL !== null &&
+      this.userAboutPanel.imageLinkURL !== ''
+    ) {
+      window.open(this.userAboutPanel.imageLinkURL, '_blank');
+    }
+  }
+}

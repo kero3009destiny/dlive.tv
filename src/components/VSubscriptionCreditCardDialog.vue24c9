@@ -1,0 +1,572 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import {
+  VSubscriptionFrag,
+  MeBalance,
+  SubType,
+  SubscriptionStatus
+} from '@/graphql/types';
+import VSubscriptionCreditCardDialogGiftSub from '@/components/VSubscriptionCreditCardDialogGiftSub.vue';
+import VSubscriptionCreditCardSuccessDialog from '@/components/VSubscriptionCreditCardSuccessDialog.vue';
+import VSubscriptionGiftSuccessDialog from '@/components/VSubscriptionGiftSuccessDialog.vue';
+import VSubscriptionDialogTop from '@/components/VSubscriptionDialogTop.vue';
+import VSubscriptionDialogCancelSub from '@/components/VSubscriptionDialogCancelSub.vue';
+import VSubscriptionBenefits from '@/components/VSubscriptionBenefits.vue';
+import VSubCheckOut from '@/components/VSubCheckOut.vue';
+import { SUB_RECURRING_SETTINGS } from '@/models/subRecurring';
+import { Component, Mixins, Prop, Vue } from 'vue-property-decorator';
+import { ApolloQuery } from '@/decorators/apollo';
+import ME_BALANCE from '@/graphql/queries/MeBalance.graphql';
+import MeMixin from '@/mixins/MeMixin';
+import { Maybe } from '@/graphql/types';
+import SnackbarMixin from '@/mixins/SnackbarMixin';
+import { namespace } from 'vuex-class';
+import DBtn from '@/components/DBtn.vue';
+import DSelect from '@/components/DSelect.vue';
+import DToken from '@/components/DToken.vue';
+import VDliveAvatar from '@/components/VDliveAvatar.vue';
+import VDliveName from '@/components/VDliveName.vue';
+import SubStreakProgress from '@/components/SubStreakProgress.vue';
+import { formatTimeDays } from '@/filters/filters';
+import dateFns from 'date-fns';
+
+const dialogModule = namespace('dialog');
+const uiModule = namespace('ui');
+const meModule = namespace('me');
+interface BenefitTab {
+  icon: string;
+  benefitTips: string;
+  cardImg: string;
+}
+@Component({
+  components: {
+    DBtn,
+    DToken,
+    VSubscriptionCreditCardDialogGiftSub,
+    VSubscriptionCreditCardSuccessDialog,
+    VSubscriptionGiftSuccessDialog,
+    VDliveAvatar,
+    VDliveName,
+    VSubCheckOut,
+    VSubscriptionBenefits,
+    DSelect,
+    VSubscriptionDialogTop,
+    VSubscriptionDialogCancelSub,
+    SubStreakProgress
+  }
+})
+export default class VSubscriptionCreditCardDialog extends Mixins(
+  MeMixin,
+  SnackbarMixin
+) {
+  get benefitTabList() {
+    return [
+      {
+        icon: require('@/assets/icon/sub-benefit-badge.svg'),
+        benefitTips: this.$t('subscribe.GetBadgeAndBeNoticed', {
+          displayname: this.subscribee.displayname
+        }) as string,
+        cardImg: require('@/assets/icon/sub-benefit-badge-card.svg')
+      },
+      {
+        icon: require('@/assets/icon/sub-benefit-chat.svg'),
+        benefitTips: this.$t('subscribe.ImmuneToSlowMode') as string,
+        cardImg: require('@/assets/icon/sub-benefit-chat-card.svg')
+      },
+      {
+        icon: require('@/assets/icon/sub-benefit-color.svg'),
+        benefitTips: this.$t('subscribe.SubStreak') as string,
+        cardImg: require('@/assets/icon/sub-benefit-color-card.svg')
+      },
+      {
+        icon: require('@/assets/icon/sub-benefit-emote.svg'),
+        benefitTips: this.$t('subscribe.UnlockStickerAndEmote') as string,
+        cardImg: require('@/assets/icon/sub-benefit-emote-card.svg')
+      }
+    ];
+  }
+  get isSubscribing() {
+    return this.subscribee.isSubscribing;
+  }
+
+  get isLemonSub() {
+    return (
+      this.subscribee.mySubscription && this.subscribee.mySubscription.lemonSub
+    );
+  }
+
+  get subRecurringType() {
+    if (
+      this.subscribee.mySubscription &&
+      this.subscribee.mySubscription.subType === SubType.Recurring
+    ) {
+      const temp = SUB_RECURRING_SETTINGS.find(item => {
+        if (this.subscribee.mySubscription) {
+          return item.month === this.subscribee.mySubscription.month;
+        } else {
+          return false;
+        }
+      });
+      if (temp) {
+        return temp.labelWithUsd;
+      } else {
+        return '';
+      }
+    } else {
+      return SUB_RECURRING_SETTINGS[0].labelWithUsd;
+    }
+  }
+  get isRecurring() {
+    return (
+      this.subscribee.mySubscription &&
+      this.subscribee.mySubscription.subType === SubType.Recurring
+    );
+  }
+
+  get isActive() {
+    return (
+      this.subscribee.mySubscription &&
+      this.subscribee.mySubscription.status === SubscriptionStatus.Active
+    );
+  }
+
+  get subNextBillingAt() {
+    if (
+      this.subscribee.mySubscription &&
+      this.subscribee.mySubscription.nextBillingAt
+    ) {
+      return this.subscribee.mySubscription.nextBillingAt;
+    } else {
+      return '';
+    }
+  }
+
+  get mySubscriptionMonth() {
+    if (this.subscribee.mySubscription) {
+      return this.subscribee.mySubscription.month;
+    } else {
+      return 0;
+    }
+  }
+  get mySubscriptionLastAt() {
+    if (this.subscribee.mySubscription) {
+      return this.subscribee.mySubscription.subscribedAt;
+    } else {
+      return 0;
+    }
+  }
+  get cashBackLemonNum() {
+    return this.subSettings[this.subMode].cashBackLemonNum;
+  }
+
+  //  <div v-if="isMonthly && streamer.status === 'active'">
+  //         {{ $t('MySubscriptions.AutoRenews')
+  //         }}{{ streamer.lastBilledDate | formatTimeDays }}
+  //       </div>
+  //       <div v-else-if="isMonthly && streamer.status === 'p_cancel'">
+  //         {{ $t('MySubscriptions.Ends')
+  //         }}{{ streamer.lastBilledDate | formatTimeDays }}
+  //       </div>
+  //       <div v-else-if="!isMonthly">
+  //         {{ $t('MySubscriptions.Ends') }}{{ md }}
+  //       </div>
+  get subDetailStatusTips() {
+    if (this.isRecurring) {
+      if (this.isActive) {
+        return (
+          this.$t('MySubscriptions.AutoRenews') +
+          formatTimeDays(this.subNextBillingAt)
+        );
+      } else {
+        return (
+          this.$t('MySubscriptions.Ends') +
+          formatTimeDays(this.subNextBillingAt)
+        );
+      }
+    } else {
+      return (
+        this.$t('MySubscriptions.Ends') +
+        dateFns.format(
+          dateFns.addMonths(
+            dateFns.parse(Number(this.mySubscriptionLastAt as string)),
+            Number(this.mySubscriptionMonth)
+          ),
+          'MMM DD, YYYY'
+        )
+      );
+    }
+  }
+  get subSettings() {
+    // if (this.isResub) {
+    //   const rst = SUB_SETTINGS;
+    //   return rst.slice(0, 4);
+    // }
+    return SUB_RECURRING_SETTINGS;
+  }
+  // get enoughBalance() {
+  //   if (this.meBalance && this.$options.filters !== undefined) {
+  //     const myBalance = this.$options.filters.coinToLino(
+  //       this.meBalance.wallet.balance
+  //     );
+  //     if (myBalance >= this.subSettings[this.subMode].cost) {
+  //       return true;
+  //     } else {
+  //       return false;
+  //     }
+  //   }
+  //   return false;
+  // }
+  @Prop({
+    required: true
+  })
+  public subscribee!: VSubscriptionFrag.Fragment;
+
+  @Prop({
+    required: false,
+    default: false,
+    type: Boolean
+  })
+  public isResub!: boolean;
+
+  @Prop({
+    required: false,
+    default: false,
+    type: Boolean
+  })
+  public isGift!: boolean;
+
+  @Prop({
+    required: false,
+    default: false,
+    type: Boolean
+  })
+  public successed!: boolean;
+
+  @ApolloQuery({
+    query: ME_BALANCE,
+    fetchPolicy: 'network-only',
+    manual: true,
+    skip() {
+      return !this.isLoggedIn;
+    },
+    result({ data }: { data: MeBalance.Query }) {
+      if (data !== undefined && data !== null && data.me !== null) {
+        Vue.set(this, 'meBalance', data.me);
+      }
+    }
+  })
+  public meBalance?: Maybe<MeBalance.Me>;
+  public shouldShowGiftSub: boolean = false;
+  public shouldShowSubCheckOut: boolean = false;
+  public shouldShowGiftCheckOut: boolean = false;
+  public showCancelSub: boolean = false;
+  @uiModule.Getter('isMobile')
+  private isMobile!: boolean;
+
+  @meModule.Getter('meSubCashbacked')
+  private meSubCashbacked!: boolean;
+
+  @meModule.Getter('meHadLemonBack')
+  private meHadLemonBack!: boolean;
+
+  @dialogModule.Mutation('setSubSuccessDialog')
+  private setSubSuccessDialog!: (status: boolean) => void;
+  // local
+  private subMode: number = 0;
+  private isLoading: boolean = false;
+
+  @dialogModule.Mutation('setCashInDialog')
+  private setCashInDialog!: (status: boolean) => void;
+
+  public mounted() {
+    //  const head = document.getElementsByTagName('head')[0];
+    //   const s1 = document.createElement('script');
+    //   if (process.env.VUE_APP_AMAZON_PAY_JS !== undefined) {
+    //     s1.src = process.env.VUE_APP_AMAZON_PAY_JS + '?sellerId=A2G4JTO27CAJI5';
+    //   } else {
+    //     s1.src =
+    //       'https://static-na.payments-amazon.com/OffAmazonPayments/us/js/Widgets.js?sellerId=A2G4JTO27CAJI5';
+    //   }
+    //   s1.async = true;
+    //   head.appendChild(s1);
+    //   s1.onload = async () => {
+    //     console.log('s1 dialog onload:');
+    //     window.onAmazonLoginReady = function() {
+    //       console.log('s1 dialog onAmazonLoginReady:', amazon);
+    //       amazon.Login.setClientId(
+    //         'amzn1.application-oa2-client.f36fbf1267b54575853f86a3c06cb8cf'
+    //       );
+    //     };
+    //   }
+  }
+
+  public subscribeClicked() {
+    if (this.requireLogin()) {
+      return;
+    }
+    // FIXME: ????
+    return undefined;
+  }
+
+  // public async onClickSubscribe() {
+  //   if (this.requireLogin()) {
+  //     return;
+  //   }
+  //   this.isLoading = true;
+  //   try {
+  //     const { data } = await this.$apollo.mutate<AddSubscribe.Mutation>({
+  //       mutation: ADD_SUBSCRIBE,
+  //       variables: {
+  //         streamer: this.subscribee.username,
+  //         month: this.subSettings[this.subMode].month
+  //       }
+  //     });
+  //     const trackingInfo = this.$store.getters['userMeta/trackingInfo'];
+  //     dataPoint('subscribe', {
+  //       eventCategory: trackingInfo.postStatus,
+  //       eventLabel: this.subscribee.username,
+  //       eventValue: this.subSettings[this.subMode].month
+  //     });
+  //     const eventLabels: Subscribe.EventLabels = {
+  //       id: this.subscribee.username,
+  //       subscription: this.subSettings[this.subMode].subOption
+  //     };
+  //     minervaEvent(Subscribe.eventType, eventLabels);
+  //     const resp = data.subscribeWithCashback;
+  //     this.isLoading = false;
+  //     if (resp.err !== null) {
+  //       this.$errCode(resp.err.code);
+  //       return;
+  //     }
+  //     setSubCashbacked(this.$apollo.provider.defaultClient, true);
+  //     this.$emit('subscribeSucceed', resp.cashbacked);
+  //   } catch (err) {
+  //     this.isLoading = false;
+  //     // this.$error('Subscribe Failed');
+  //   }
+  // }
+
+  public closeSubDialog() {
+    this.$emit('closeSubDialog');
+    this.setSubSuccessDialog(false);
+  }
+
+  public openCashinPopup() {
+    this.setCashInDialog(true);
+  }
+  public onClickGiftSub() {
+    this.shouldShowGiftSub = true;
+  }
+
+  public onSubSettingChange(index: number) {
+    this.subMode = index;
+  }
+
+  public onClickSubscribe() {
+    this.shouldShowSubCheckOut = true;
+  }
+}

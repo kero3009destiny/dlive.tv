@@ -1,0 +1,36 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { Component, Mixins } from 'vue-property-decorator';
+import { LoginWalletInitiate } from '@/graphql/types';
+import LOGIN_WALLET_INITIATE from '@/graphql/mutations/LoginWalletInitiate.graphql';
+import SnackbarMixin from '@/mixins/SnackbarMixin';
+
+@Component({})
+export default class LoginWalletBtn extends Mixins(SnackbarMixin) {
+  public initiateWalletLogin: string = '';
+  public walletURL = process.env.VUE_APP_WALLET_URL;
+  public async loginClicked() {
+    const { data } = await this.$apollo.mutate<LoginWalletInitiate.Mutation>({
+      mutation: LOGIN_WALLET_INITIATE
+    });
+    const resp = data.initiateWalletLogin;
+    this.$handleError(resp.err, LOGIN_WALLET_INITIATE);
+    window.location.href = `${
+      this.walletURL
+    }/id?is_login=true&amount=100000000&app=dlivetv&token=${
+      resp.payload
+    }&validity_period_sec=31536000&state=${this.$route.path}`;
+  }
+}

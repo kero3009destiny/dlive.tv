@@ -1,0 +1,336 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { ApolloQuery } from '@/decorators/apollo';
+import VFollow from '@/components/VFollow.vue';
+import VDliveName from '@/components/VDliveName.vue';
+import VDliveAvatar from '@/components/VDliveAvatar.vue';
+import { StateChanger } from 'vue-infinite-loading';
+import { fetchMoreLoading } from '@/utils/fetchdata';
+import LIVESTREAM_PROFILE_FOLLOWING from '@/graphql/queries/LivestreamProfileFollowing.graphql';
+import LIVESTREAM_PROFILE_FOLLOWING_SEARCH from '@/graphql/queries/LivestreamProfileFollowingSearch.graphql';
+import {
+  LivestreamProfileFollowing,
+  LivestreamProfileFollowingSearch,
+  RelationSortOrder,
+  Maybe
+} from '@/graphql/types';
+import { Component, Mixins } from 'vue-property-decorator';
+import { ROUTE_LIVESTREAM } from '@/router';
+import MeMixin from '@/mixins/MeMixin';
+import VInfiniteLoading from '@/components/VInfiniteLoading.vue';
+
+const enum STATUS {
+  INITIAL = 0,
+  SEARCH
+}
+
+@Component({
+  components: {
+    VFollow,
+    VDliveName,
+    VDliveAvatar,
+    VInfiniteLoading
+  }
+})
+export default class ProfileFollowing extends Mixins(MeMixin) {
+  @ApolloQuery({
+    query: LIVESTREAM_PROFILE_FOLLOWING,
+    manual: true,
+    variables(): LivestreamProfileFollowing.Variables {
+      return {
+        displayname: this.displayname,
+        sortedBy: this.order,
+        first: this.numUsersPerFetch,
+        isLoggedIn: this.isLoggedIn
+      };
+    },
+    result({ data }) {
+      if (data !== undefined && data !== null) {
+        this.profileFollowing = data.userByDisplayName;
+      }
+    }
+  })
+  public profileFollowing?: Maybe<LivestreamProfileFollowing.UserByDisplayName>;
+
+  @ApolloQuery({
+    query: LIVESTREAM_PROFILE_FOLLOWING_SEARCH,
+    manual: true,
+    variables(): LivestreamProfileFollowingSearch.Variables {
+      return {
+        displayname: this.displayname,
+        keyword: this.keyword,
+        first: this.numUsersPerFetch,
+        isLoggedIn: this.isLoggedIn
+      };
+    },
+    skip() {
+      return this.keyword === '';
+    },
+    result({ data }) {
+      if (data !== undefined && data !== null) {
+        this.profileFollowingSearch = data.userByDisplayName;
+      }
+    }
+  })
+  public profileFollowingSearch?: Maybe<
+    LivestreamProfileFollowingSearch.UserByDisplayName
+  >;
+  // Computed
+  get showSearch() {
+    return this.currentStatus === STATUS.SEARCH;
+  }
+
+  get displayname() {
+    return this.$route.params.displayname;
+  }
+
+  get following() {
+    if (this.currentStatus === STATUS.INITIAL) {
+      if (
+        this.profileFollowing !== undefined &&
+        this.profileFollowing !== null
+      ) {
+        return this.profileFollowing.following.list;
+      }
+      return [];
+    }
+    if (this.currentStatus === STATUS.SEARCH) {
+      if (
+        this.profileFollowingSearch !== undefined &&
+        this.profileFollowingSearch !== null
+      ) {
+        return this.profileFollowingSearch.followingByKeyword.list;
+      }
+      return [];
+    }
+    return [];
+  }
+
+  // Local
+  public infiniteId: number = +new Date();
+  public searchKeyword: string = '';
+  public keyword: string = '';
+  private currentStatus: STATUS = STATUS.INITIAL;
+  private followOrderOptions: Array<{
+    text: string;
+    type: RelationSortOrder;
+  }> = [
+    { text: 'profileFollowerContent.AZ', type: RelationSortOrder.Az },
+    { text: 'profileFollowerContent.ZA', type: RelationSortOrder.Za },
+    { text: 'profileFollowerContent.Newest', type: RelationSortOrder.New },
+    { text: 'profileFollowerContent.Oldest', type: RelationSortOrder.Old },
+    {
+      text: 'profileFollowerContent.MostEarnings',
+      type: RelationSortOrder.Earning
+    },
+    {
+      text: 'profileFollowerContent.MostFollowed',
+      type: RelationSortOrder.Follower
+    }
+  ];
+  private readonly numUsersPerFetch: number = 20;
+  private order: RelationSortOrder = RelationSortOrder.Az;
+
+  // Function --------------------------------------------------
+  public cancelSearch() {
+    this.currentStatus = STATUS.INITIAL;
+    this.searchKeyword = '';
+    this.resetInfiniteLoading();
+  }
+
+  public changeFollowOrderType(option: {
+    text: string;
+    type: RelationSortOrder;
+  }) {
+    // Jiayi: To clear the endCursor for fetchMore
+    this.resetProfileFollowing();
+    this.order = option.type;
+    this.resetInfiniteLoading();
+  }
+
+  public routeTo(displayname: string) {
+    return { name: ROUTE_LIVESTREAM, params: { displayname } };
+  }
+
+  public resetInfiniteLoading() {
+    this.infiniteId += 1;
+  }
+
+  public resetProfileFollowing() {
+    this.profileFollowing = null;
+  }
+
+  public search() {
+    this.keyword = this.searchKeyword;
+    if (this.keyword !== '') {
+      this.currentStatus = STATUS.SEARCH;
+      this.resetInfiniteLoading();
+    }
+  }
+
+  public fetchMoreFollowing($state: StateChanger) {
+    if (this.currentStatus === STATUS.INITIAL) {
+      fetchMoreLoading($state, this.fetchMoreProfileFollowing);
+    }
+    if (this.currentStatus === STATUS.SEARCH) {
+      fetchMoreLoading($state, this.fetchMoreProfileFollowingSearch);
+    }
+  }
+
+  public fetchMoreProfileFollowing(): Promise<boolean> {
+    return new Promise(resolve => {
+      if (
+        this.profileFollowing === undefined ||
+        this.profileFollowing === null ||
+        !this.profileFollowing.following.pageInfo.hasNextPage
+      ) {
+        resolve(false);
+        return;
+      }
+      this.$apollo.queries.profileFollowing.fetchMore({
+        variables: {
+          displayname: this.displayname,
+          sortedBy: this.order,
+          first: this.numUsersPerFetch,
+          after: this.profileFollowing.following.pageInfo.endCursor
+        },
+        updateQuery: (
+          previousResult: LivestreamProfileFollowing.Query,
+          {
+            fetchMoreResult
+          }: { fetchMoreResult?: LivestreamProfileFollowing.Query }
+        ) => {
+          if (
+            fetchMoreResult === undefined ||
+            fetchMoreResult.userByDisplayName === null
+          ) {
+            resolve(false);
+            return previousResult;
+          }
+          const moreFollowing: LivestreamProfileFollowing.Following =
+            fetchMoreResult.userByDisplayName.following;
+          let prevFollowing = previousResult.userByDisplayName;
+          if (!moreFollowing.pageInfo.hasNextPage) {
+            resolve(false);
+          } else {
+            resolve(true);
+          }
+          if (prevFollowing === null) {
+            prevFollowing = fetchMoreResult.userByDisplayName;
+          } else {
+            prevFollowing.following.pageInfo = moreFollowing.pageInfo;
+            prevFollowing.following.list = [
+              ...prevFollowing.following.list,
+              ...moreFollowing.list
+            ];
+          }
+          return {
+            userByDisplayName: prevFollowing
+          };
+        }
+      });
+    });
+  }
+
+  public fetchMoreProfileFollowingSearch(): Promise<boolean> {
+    return new Promise(resolve => {
+      if (
+        this.profileFollowingSearch === undefined ||
+        this.profileFollowingSearch === null ||
+        !this.profileFollowingSearch.followingByKeyword.pageInfo.hasNextPage
+      ) {
+        resolve(false);
+        return;
+      }
+      this.$apollo.queries.profileFollowingSearch.fetchMore({
+        variables: {
+          displayname: this.displayname,
+          keyword: this.keyword,
+          first: this.numUsersPerFetch,
+          after: this.profileFollowingSearch.followingByKeyword.pageInfo
+            .endCursor
+        },
+        updateQuery: (
+          previousResult: LivestreamProfileFollowingSearch.Query,
+          {
+            fetchMoreResult
+          }: { fetchMoreResult?: LivestreamProfileFollowingSearch.Query }
+        ) => {
+          if (
+            fetchMoreResult === undefined ||
+            fetchMoreResult.userByDisplayName === null
+          ) {
+            resolve(false);
+            return previousResult;
+          }
+          const moreSearchFollowing: LivestreamProfileFollowingSearch.FollowingByKeyword =
+            fetchMoreResult.userByDisplayName.followingByKeyword;
+          let prevSearchFollowing = previousResult.userByDisplayName;
+          if (!moreSearchFollowing.pageInfo.hasNextPage) {
+            resolve(false);
+          } else {
+            resolve(true);
+          }
+          if (prevSearchFollowing === null) {
+            prevSearchFollowing = fetchMoreResult.userByDisplayName;
+          } else {
+            prevSearchFollowing.followingByKeyword.pageInfo =
+              moreSearchFollowing.pageInfo;
+            prevSearchFollowing.followingByKeyword.list = [
+              ...prevSearchFollowing.followingByKeyword.list,
+              ...moreSearchFollowing.list
+            ];
+          }
+          return {
+            userByDisplayName: prevSearchFollowing
+          };
+        }
+      });
+    });
+  }
+}

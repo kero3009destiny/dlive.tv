@@ -1,0 +1,27 @@
+
+    var doc = {"kind":"Document","definitions":[{"kind":"FragmentDefinition","name":{"kind":"Name","value":"StreamChatroomInputFrag"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"User"}},"directives":[],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"username"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"displayname"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"chatMode"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"chatInterval"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"myRoomRole"},"arguments":[],"directives":[{"kind":"Directive","name":{"kind":"Name","value":"include"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"if"},"value":{"kind":"Variable","name":{"kind":"Name","value":"isLoggedIn"}}}]}]},{"kind":"Field","name":{"kind":"Name","value":"livestream"},"arguments":[],"directives":[],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"creator"},"arguments":[],"directives":[],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"username"},"arguments":[],"directives":[]},{"kind":"Field","name":{"kind":"Name","value":"displayname"},"arguments":[],"directives":[]}]}},{"kind":"Field","name":{"kind":"Name","value":"permlink"},"arguments":[],"directives":[]}]}},{"kind":"FragmentSpread","name":{"kind":"Name","value":"StreamChatMemberManageTabFrag"},"directives":[]},{"kind":"FragmentSpread","name":{"kind":"Name","value":"StreamChatModeSettingsFrag"},"directives":[]},{"kind":"FragmentSpread","name":{"kind":"Name","value":"EmoteBoardStreamerFrag"},"directives":[]}]}}],"loc":{"start":0,"end":465}};
+    doc.loc.source = {"body":"#import './StreamChatMemberManageTab.graphql'\n#import './StreamChatModeSettings.graphql'\n#import './EmoteBoardStreamer.graphql'\n\nfragment StreamChatroomInputFrag on User {\n  id\n  username\n  displayname\n  chatMode\n  chatInterval\n  myRoomRole @include(if: $isLoggedIn)\n  livestream {\n    id\n    creator {\n      id\n      username\n      displayname\n    }\n    permlink\n  }\n  ...StreamChatMemberManageTabFrag\n  ...StreamChatModeSettingsFrag\n  ...EmoteBoardStreamerFrag\n}\n","name":"GraphQL request","locationOffset":{"line":1,"column":1}};
+  
+
+    var names = {};
+    function unique(defs) {
+      return defs.filter(
+        function(def) {
+          if (def.kind !== 'FragmentDefinition') return true;
+          var name = def.name.value
+          if (names[name]) {
+            return false;
+          } else {
+            names[name] = true;
+            return true;
+          }
+        }
+      )
+    }
+  doc.definitions = doc.definitions.concat(unique(require('./StreamChatMemberManageTab.graphql').definitions));
+doc.definitions = doc.definitions.concat(unique(require('./StreamChatModeSettings.graphql').definitions));
+doc.definitions = doc.definitions.concat(unique(require('./EmoteBoardStreamer.graphql').definitions));
+
+
+      module.exports = doc;
+    

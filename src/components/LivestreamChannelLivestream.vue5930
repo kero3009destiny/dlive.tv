@@ -1,0 +1,252 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import VVideoPlayer from '@/components/VVideoPlayer.vue';
+import { EVENTS } from '@/utils/constants';
+import { hlsUrl } from '@/utils/hls.ts';
+import { Component, Mixins, Prop } from 'vue-property-decorator';
+import { PERMISSION_EVENTS, partnerPermissionCheck } from '@/utils/permission';
+import { LivestreamPage } from '@/graphql/types';
+import { SIH_RESIZE_OFFLINE_IMAGE, SIHresize } from '@/utils/images';
+import { namespace } from 'vuex-class';
+import { ROUTE_CLIP_PUBLISH } from '@/router';
+import { RawLocation } from 'vue-router';
+import MeMixin from '@/mixins/MeMixin';
+import GlobalEventBusMixin from '@/mixins/GlobalEventBusMixin';
+import DBtn from '@/components/DBtn.vue';
+
+const userMetaModule = namespace('userMeta');
+const uiModule = namespace('ui');
+
+@Component({
+  components: {
+    VVideoPlayer,
+    DBtn
+  }
+})
+export default class LivestreamChannelLivestream extends Mixins(
+  MeMixin,
+  GlobalEventBusMixin
+) {
+  @Prop({
+    required: true
+  })
+  public streamer!: LivestreamPage.UserByDisplayName;
+
+  get useStarfruit() {
+    return this.streamer.beta.starfruitEnabled;
+  }
+
+  get enableDanmaku() {
+    if (this.streamer === undefined || this.streamer === null) {
+      return false;
+    }
+    return partnerPermissionCheck(
+      PERMISSION_EVENTS.DANMAKU,
+      this.streamer.partnerStatus
+    );
+  }
+
+  get streamerOfflineImage() {
+    if (this.streamer === undefined || this.streamer === null) {
+      return require('@/assets/icon/video-placeholder.png');
+    }
+    return this.imgSrc(this.streamer.offlineImage);
+  }
+
+  get livestream() {
+    if (this.streamer) {
+      return this.streamer.livestream;
+    } else {
+      return null;
+    }
+  }
+  get isMatureTag() {
+    if (this.streamer && this.streamer.livestream) {
+      return this.streamer.livestream.earnRestriction;
+    } else {
+      return false;
+    }
+  }
+
+  get adsTag() {
+    if (
+      this.streamer.username === 'huskyi' ||
+      this.streamer.username === 'huskyi18'
+    ) {
+      return (
+        'https://pubads.g.doubleclick.net/gampad/ads?' +
+        'sz=640x480&iu=/124319096/external/single_ad_samples&ciu_szs=300x250&' +
+        'impl=s&gdfp_req=1&env=vp&output=vast&unviewed_position_start=1&' +
+        'cust_params=deployment%3Ddevsite%26sample_ct%3Dskippablelinear&' +
+        'correlator='
+      );
+    } else if (this.streamer.username === 'ilovedlive10') {
+      return (
+        'http://googleads.g.doubleclick.net/pagead/ads?' +
+        'ad_type=video&client=ca-video-pub-4968145218643279&videoad_start_delay=0&' +
+        'description_url=http%3A%2F%2Fwww.google.com&max_ad_duration=40000&adtest=on'
+      );
+    } else if (this.streamer.username === 'nb399') {
+      return (
+        'https://googleads.g.doubleclick.net/pagead/ads?' +
+        'client=ca-video-pub-9432834403038368&ad_type=video&' +
+        'description_url=https%3A%2F%2Fwww.dlive.tv&max_ad_duration=30000' +
+        '&videoad_start_delay=0&vpmute=0&vpa=auto'
+      );
+    } else {
+      return '';
+    }
+  }
+
+  get adsEnabled() {
+    return (
+      this.streamer.username === 'huskyi' ||
+      this.streamer.username === 'ilovedlive10' ||
+      this.streamer.username === 'huskyi18' ||
+      this.streamer.username === 'nb399' ||
+      this.streamer.username === 'lenovo1995'
+    );
+  }
+
+  get showAds() {
+    return (
+      this.streamer.username === 'huskyi' ||
+      this.streamer.username === 'ilovedlive10' ||
+      this.streamer.username === 'huskyi18' ||
+      this.streamer.username === 'nb399' ||
+      this.streamer.username === 'lenovo1995'
+    );
+  }
+
+  get videoPlayerPlay() {
+    if (this.$refs.videoplayer) {
+      return (this.$refs.videoplayer as VVideoPlayer).isPlaying();
+    }
+    return false;
+  }
+
+  get chanelLivestreamStyle() {
+    if (this.theatreMode) {
+      return 'height:100%';
+    }
+    return 'padding-top:56%';
+  }
+
+  @uiModule.Getter('isMobile')
+  private isMobile!: boolean;
+  @uiModule.Getter('theatreMode')
+  private theatreMode!: boolean;
+  @uiModule.Mutation('setTheatreMode')
+  private setTheatreMode!: (theatreMode: boolean) => void;
+
+  @userMetaModule.Getter('showMatureTagVideo')
+  private showMatureTagVideo!: boolean;
+
+  @userMetaModule.Mutation('setShowMatureTagVideo')
+  private setShowMatureTagVideo!: (showMatureTagVideo: boolean) => void;
+
+  public mounted() {
+    window.onkeydown = (event: KeyboardEvent) => {
+      if (event.keyCode === 27) {
+        this.setTheatreMode(false);
+      }
+    };
+    this.$_smartSubscribe(
+      EVENTS.CHANNEL_PLAYER_PLAY,
+      this.handleChannelPlayerPlay
+    );
+  }
+  public imgSrc(imgUrl: string) {
+    return SIHresize(imgUrl, SIH_RESIZE_OFFLINE_IMAGE);
+  }
+
+  public livestreamUrl(streamer: string) {
+    return hlsUrl(streamer);
+  }
+
+  public toggleTheatreMode() {
+    if (this.theatreMode) {
+      this.setTheatreMode(false);
+    } else {
+      this.setTheatreMode(true);
+    }
+  }
+
+  public clipCliked() {
+    if (this.requireLogin()) {
+      return;
+    }
+    const to: RawLocation = {
+      name: ROUTE_CLIP_PUBLISH,
+      params: {
+        username: this.streamer.username
+      }
+    };
+    const routeData = this.$router.resolve(to);
+    window.open(routeData.href, '_blank');
+  }
+
+  public handleChannelPlayerPlay() {
+    (this.$refs.videoplayer as VVideoPlayer).dpInstance.video.play();
+  }
+}

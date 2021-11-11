@@ -1,0 +1,460 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { Component, Mixins, Watch } from 'vue-property-decorator';
+import LoginRegisterFinalRecommend from '@/components/LoginRegisterFinalRecommend.vue';
+import LoginWalletBtn from '@/components/LoginWalletBtn.vue';
+import LoginWallet from '@/components/LoginWallet.vue';
+import LoginEmailBtn from '@/components/LoginEmailBtn.vue';
+import LoginEmail from '@/components/LoginEmail.vue';
+import LoginEmailForgotPassword from '@/components/LoginEmailForgotPassword.vue';
+import LoginEmailRegister from '@/components/LoginEmailRegister.vue';
+import LoginThirdPartyBtn from '@/components/LoginThirdPartyBtn.vue';
+import LoginThirdParty from '@/components/LoginThirdParty.vue';
+import DBtn from '@/components/DBtn.vue';
+import DTab from '@/components/DTab.vue';
+import DDivider from '@/components/DDivider.vue';
+import DTextField from '@/components/DTextField.vue';
+import { Tab } from '@/models/tab';
+import { ThirdParty } from '@/utils/thirdParty';
+import MeMixin from '@/mixins/MeMixin';
+import NavLoginDialogLoggedIn from '@/components/NavLoginDialogLoggedIn.vue';
+import VNoSsr from '@/components/VNoSsr.vue';
+import { setEmailWithPassword } from '@/apollo/mutation/register';
+import { getToken } from '@/web-notification';
+import { namespace } from 'vuex-class';
+import {
+  ROUTE_HOME,
+  ROUTE_LIVESTREAM,
+  replaceWithoutQueryAndHash
+} from '@/router';
+import { EVENTS } from '@/utils/constants';
+import GlobalEventBusMixin from '@/mixins/GlobalEventBusMixin';
+import SnackbarMixin from '@/mixins/SnackbarMixin';
+
+const accessTokenModule = namespace('accessToken');
+const dialogModule = namespace('dialog');
+const userMetaModule = namespace('userMeta');
+const meModule = namespace('me');
+const bannerModule = namespace('banner');
+
+@Component({
+  components: {
+    LoginEmailForgotPassword,
+    LoginRegisterFinalRecommend,
+    LoginEmail,
+    LoginEmailRegister,
+    LoginEmailBtn,
+    LoginWalletBtn,
+    LoginWallet,
+    LoginThirdPartyBtn,
+    LoginThirdParty,
+    NavLoginDialogLoggedIn,
+    VNoSsr,
+    DBtn,
+    DTab,
+    DDivider,
+    DTextField
+  }
+})
+export default class NavLoginDialog extends Mixins(
+  MeMixin,
+  GlobalEventBusMixin,
+  SnackbarMixin
+) {
+  get loginDefault() {
+    return this.loginStatus === '';
+  }
+
+  get loginForgot() {
+    return this.loginStatus === 'forgot';
+  }
+
+  get registerDefault() {
+    return this.registerStatus === '';
+  }
+
+  get registerThirdparty() {
+    return this.registerStatus === 'thirdparty';
+  }
+
+  get registerWallet() {
+    return this.registerStatus === 'wallet';
+  }
+
+  get onStart() {
+    return this.activeTab === 'login';
+  }
+
+  get activeTab() {
+    if (this.loginDialog === 'signup') {
+      return 'signup';
+    } else if (this.loginDialog === 'login') {
+      return 'login';
+    } else {
+      return 'notice';
+    }
+  }
+
+  get shouldShowDialog() {
+    return this.loginDialog !== 'close';
+  }
+
+  public loginStatus: '' | 'forgot' = ''; // Login page should be in either default or forget password status
+  public registerStatus: '' | 'thirdparty' | 'wallet' = ''; // Register page should be in either default, thirdparty or wallet status
+  public thirdParty: ThirdParty | null = null;
+  public thirdPartyCode: string = '';
+  public walletPayload: string = '';
+  public walletSignedPayload: string = '';
+  public redirectUrl: string = '/';
+  public tabs: Tab[] = [
+    new Tab('NavLoginDialog.LogIn', null, 'login'),
+    new Tab('NavLoginDialog.SignUp', null, 'signup')
+  ];
+  public showRecommend: boolean = false;
+  public email: string = '';
+  public password: string = '';
+  public linoLoginEndTime: number = Number(
+    new Date(Date.UTC(2020, 4, 15, 7, 0, 0))
+  );
+  public checkLinoLoginInterval: number = 0;
+  public hasLinoLogin: boolean = true;
+
+  @dialogModule.Getter('login')
+  public loginDialog!: 'close' | 'login' | 'signup' | 'notice';
+  @accessTokenModule.Getter('token')
+  public token!: string | null;
+  @accessTokenModule.Mutation('resetAccessToken')
+  private resetAccessToken!: () => void;
+  @dialogModule.Mutation('setLoginDialog')
+  private setLoginDialog!: (
+    status: 'close' | 'login' | 'signup' | 'notice'
+  ) => void;
+  @userMetaModule.Mutation('setCashinEmail')
+  private setCashinEmail!: (email: string) => void;
+  @bannerModule.Mutation('setHeaderBanner')
+  private setHeaderBanner!: (state: boolean) => void;
+  @meModule.Getter('meEmail')
+  private meEmail!: string;
+
+  public callbackFinished() {
+    this._resetStatus();
+    this.setLoginDialog('close');
+  }
+
+  public updateLoginDialog(value: boolean) {
+    if (value === false) {
+      this.setLoginDialog('close');
+    } else {
+      this.setLoginDialog('login');
+    }
+  }
+
+  public changeTab(href: 'login' | 'signup') {
+    if (href === 'login') {
+      this.setLoginDialog('login');
+    } else {
+      this.setLoginDialog('signup');
+    }
+  }
+
+  public onClickLogin() {
+    this._resetStatus();
+    this.setLoginDialog('login');
+  }
+  public onClickSignup() {
+    this._resetStatus();
+    this.setLoginDialog('signup');
+  }
+
+  public mounted() {
+    this.checkLinoLoginInterval = window.setInterval(() => {
+      if (Date.now() >= this.linoLoginEndTime) {
+        this.hasLinoLogin = false;
+      }
+    }, 5000);
+    const code = this.$route.query.code as string;
+    const state = this.$route.query.state as string;
+    const payload = this.$route.query.payload as string;
+    const signedPayload = this.$route.query.signature as string;
+    if (
+      code !== undefined &&
+      state !== undefined &&
+      code.length !== 0 &&
+      state.length !== 0
+    ) {
+      const split = state.split('|');
+      this.thirdParty = split[0] as ThirdParty;
+      this.thirdPartyCode = code;
+      this.redirectUrl = split[1];
+      replaceWithoutQueryAndHash(this);
+      this.registerStatus = 'thirdparty';
+      this.setLoginDialog('signup');
+    } else if (
+      payload !== undefined &&
+      payload.length !== 0 &&
+      signedPayload !== undefined &&
+      signedPayload.length !== 0
+    ) {
+      this.walletPayload = payload;
+      this.walletSignedPayload = signedPayload;
+      this.redirectUrl = this.$route.query.state as string;
+      replaceWithoutQueryAndHash(this);
+      this.registerStatus = 'wallet';
+      this.setLoginDialog('signup');
+    }
+    this.$_smartSubscribe(EVENTS.TOGGLE_REGISTER_RECOMMEND, (data: boolean) => {
+      this.showRecommend = data;
+    });
+  }
+
+  public beforeDestroy() {
+    clearInterval(this.checkLinoLoginInterval);
+  }
+
+  public async onClickLogout() {
+    await this.deregisterNotification();
+    this.resetAccessToken();
+    this._resetStatus();
+    if (this.$route.name !== ROUTE_LIVESTREAM) {
+      this.$router.push({ name: ROUTE_HOME });
+    }
+  }
+
+  public async deregisterNotification() {
+    await getToken('unregister');
+  }
+
+  public closeSigninDialog() {
+    this.setLoginDialog('close');
+  }
+
+  public async setEmailWithPassword() {
+    const resp = await setEmailWithPassword(this, {
+      email: this.email,
+      password: this.password
+    });
+    if (!resp.err) {
+      this.closeSigninDialog();
+      this.setHeaderBanner(false);
+    }
+  }
+
+  @Watch('meEmail')
+  public onMeEmail(val: string) {
+    if (val) {
+      this.email = this.meEmail;
+    }
+  }
+
+  private _resetStatus() {
+    this.registerStatus = '';
+    this.loginStatus = '';
+    this.setCashinEmail('');
+  }
+}

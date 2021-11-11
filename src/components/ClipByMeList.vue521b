@@ -1,0 +1,198 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { EVENTS } from '@/utils/constants';
+import VSnapClip from '@/components/VSnapClip.vue';
+import { StateChanger } from 'vue-infinite-loading';
+import VCenteredContainer from '@/components/VCenteredContainer.vue';
+import ME_CLIPS_BY_ME from '@/graphql/queries/MeClipsByMe.graphql';
+import { MeClipsByMe, ClipSortOrder } from '@/graphql/types';
+import { fetchMoreLoading } from '@/utils/fetchdata';
+import { Component, Mixins } from 'vue-property-decorator';
+import VInfiniteLoading from '@/components/VInfiniteLoading.vue';
+import { ApolloQuery } from '@/decorators/apollo';
+import { Maybe } from '@/graphql/types';
+import MeMixin from '@/mixins/MeMixin';
+import GlobalEventBusMixin from '@/mixins/GlobalEventBusMixin';
+interface ClipsSort {
+  sort: ClipSortOrder;
+  label: string;
+}
+@Component({
+  components: {
+    VSnapClip,
+    VCenteredContainer,
+    VInfiniteLoading
+  }
+})
+export default class ClipByMeList extends Mixins(MeMixin, GlobalEventBusMixin) {
+  public clipSort: ClipsSort[] = [
+    { sort: ClipSortOrder.Upvotes, label: 'Likes' },
+    { sort: ClipSortOrder.CreatedAt, label: 'Created At' },
+    { sort: ClipSortOrder.Views, label: 'Views' }
+  ];
+  public selectedSort: ClipsSort = {
+    sort: ClipSortOrder.Upvotes,
+    label: 'Likes'
+  };
+  public infiniteId: number = +new Date();
+  public numPerFetch: number = 20;
+
+  @ApolloQuery({
+    query: ME_CLIPS_BY_ME,
+    fetchPolicy: 'network-only',
+    manual: true,
+    variables(): MeClipsByMe.Variables {
+      return {
+        first: this.numPerFetch,
+        order: this.selectedSort.sort,
+        showUnpicked: true
+      };
+    },
+    skip() {
+      return !this.isLoggedIn;
+    },
+    result({ data }) {
+      if (data) {
+        this.meClipsByMe = data.me;
+      }
+      return;
+    }
+  })
+  public meClipsByMe?: Maybe<MeClipsByMe.Me>;
+
+  get clipsByMe() {
+    if (this.meClipsByMe === undefined || this.meClipsByMe === null) {
+      return null;
+    }
+    return this.meClipsByMe.clipsMade;
+  }
+
+  get clipsToShow() {
+    if (this.clipsByMe !== null) {
+      return this.clipsByMe.list;
+    }
+    return [];
+  }
+
+  public changeSort() {
+    if (this.meClipsByMe !== undefined) {
+      this.meClipsByMe = null;
+    }
+    this.infiniteId += 1;
+  }
+
+  public clipSnapClick(clipID: string) {
+    this.$_smartPublish(EVENTS.CLIP_CLICK, {
+      clipID,
+      clipList: this.clipsToShow
+    });
+  }
+
+  public fetchMoreClip($state: StateChanger) {
+    fetchMoreLoading($state, this.fetchMoreClipsList);
+  }
+
+  public fetchMoreClipsList(): Promise<boolean> {
+    return new Promise(resolve => {
+      if (
+        this.meClipsByMe === undefined ||
+        this.meClipsByMe === null ||
+        !this.meClipsByMe.clipsMade.pageInfo.hasNextPage
+      ) {
+        resolve(false);
+        return;
+      }
+      this.$apollo.queries.meClipsByMe.fetchMore({
+        variables: {
+          first: this.numPerFetch,
+          after: this.meClipsByMe.clipsMade.pageInfo.endCursor
+        },
+        updateQuery: (
+          previousResult: MeClipsByMe.Query,
+          {
+            fetchMoreResult
+          }: {
+            fetchMoreResult?: MeClipsByMe.Query;
+          }
+        ) => {
+          if (fetchMoreResult === undefined || fetchMoreResult.me === null) {
+            resolve(false);
+            return previousResult;
+          }
+          const moreClips = fetchMoreResult.me;
+          let prevClips = previousResult.me;
+          if (!moreClips.clipsMade.pageInfo.hasNextPage) {
+            resolve(false);
+          } else {
+            resolve(true);
+          }
+          if (prevClips === null) {
+            prevClips = moreClips;
+          } else {
+            prevClips.clipsMade.pageInfo = moreClips.clipsMade.pageInfo;
+            prevClips.clipsMade.list = [
+              ...prevClips.clipsMade.list,
+              ...moreClips.clipsMade.list
+            ];
+          }
+          return {
+            me: prevClips
+          };
+        }
+      });
+    });
+  }
+}

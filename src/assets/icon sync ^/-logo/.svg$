@@ -1,0 +1,28 @@
+var map = {
+	"./amazonPay-logo.svg": "179c",
+	"./lemon-logo.svg": "090a",
+	"./moonpay-logo.svg": "a6ea",
+	"./skrill-logo.svg": "e1a5",
+	"./stripe-logo.svg": "4be3"
+};
+
+
+function webpackContext(req) {
+	var id = webpackContextResolve(req);
+	return __webpack_require__(id);
+}
+function webpackContextResolve(req) {
+	var id = map[req];
+	if(!(id + 1)) { // check for number or string
+		var e = new Error("Cannot find module '" + req + "'");
+		e.code = 'MODULE_NOT_FOUND';
+		throw e;
+	}
+	return id;
+}
+webpackContext.keys = function webpackContextKeys() {
+	return Object.keys(map);
+};
+webpackContext.resolve = webpackContextResolve;
+module.exports = webpackContext;
+webpackContext.id = "bba6";

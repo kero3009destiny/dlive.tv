@@ -1,0 +1,81 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { Component, Vue, Prop } from 'vue-property-decorator';
+
+@Component
+export default class DTab extends Vue {
+  @Prop({
+    type: String,
+    required: true
+  })
+  public label!: string;
+
+  @Prop({
+    type: String,
+    required: false
+  })
+  public iconSrc!: string;
+
+  @Prop({
+    type: String,
+    required: false
+  })
+  public iconActiveSrc!: string;
+
+  @Prop({
+    type: Number,
+    required: false,
+    default: 16
+  })
+  public iconSize!: number;
+
+  @Prop({
+    type: Number,
+    required: false
+  })
+  public extraInfo!: number;
+
+  @Prop({
+    type: String,
+    required: false,
+    default: ''
+  })
+  public href!: string;
+
+  @Prop({
+    type: Boolean,
+    required: false,
+    default: false
+  })
+  public focus!: boolean;
+}

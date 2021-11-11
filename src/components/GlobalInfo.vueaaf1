@@ -1,0 +1,92 @@
+
+
+
+
+
+import { Component, Vue } from 'vue-property-decorator';
+import { namespace } from 'vuex-class';
+import { GlobalInformation } from '@/graphql/types';
+import GLOBAL_INFORMATION from '@/graphql/queries/GlobalInformation.graphql';
+import { ApolloQuery } from '@/decorators/apollo';
+
+const globalInfoModule = namespace('globalInfo');
+const userMetaModule = namespace('userMeta');
+// const happyhourModule = namespace('happyhour');
+
+@Component
+export default class GlobalInfo extends Vue {
+  @ApolloQuery({
+    query: GLOBAL_INFORMATION,
+    variables() {
+      return {
+        limit: 10,
+        languageCode: this.langCode
+      };
+    },
+    result({ data }: { data: GlobalInformation.Query }) {
+      const resp = data.globalInfo;
+      if (resp) {
+        this.setGlobalInfo(resp);
+        // below are for 08/2019 happy hour
+        // this.setEventInfo(resp.happyHour);
+        // this.setEventStatusInterval(resp.happyHour);
+      }
+    }
+  })
+  public globalInfo?: GlobalInformation.GlobalInfo;
+
+  // public eventStatusInterval = 0;
+
+  @userMetaModule.Getter('langCode')
+  private langCode!: string;
+  @globalInfoModule.Mutation('setGlobalInfo')
+  private setGlobalInfo!: (globalInfo: GlobalInformation.GlobalInfo) => void;
+
+  // @happyhourModule.Mutation('setEventInfo')
+  // private setEventInfo!: (
+  //   eventInfo: GlobalInformation.HappyHour | null
+  // ) => void;
+
+  // @happyhourModule.Mutation('setEventStatus')
+  // private setEventStatus!: (
+  //   status: 'no_happyhour' | 'prestart' | 'start' | 'end'
+  // ) => void;
+
+  // public beforeDestroy() {
+  //   if (this.eventStatusInterval !== 0) {
+  //     window.clearInterval(this.eventStatusInterval);
+  //   }
+  // }
+
+  // public eventStatus(happyhourInfo: GlobalInformation.HappyHour | null) {
+  //   let status: 'no_happyhour' | 'prestart' | 'start' | 'end' = 'no_happyhour';
+  //   if (happyhourInfo !== null) {
+  //     if (
+  //       Date.now() > Number(happyhourInfo.preStartTime) &&
+  //       Date.now() < Number(happyhourInfo.startTime)
+  //     ) {
+  //       status = 'prestart';
+  //     } else if (
+  //       Date.now() > Number(happyhourInfo.startTime) &&
+  //       Date.now() < Number(happyhourInfo.endTime)
+  //     ) {
+  //       status = 'start';
+  //     } else if (
+  //       Date.now() > Number(happyhourInfo.endTime) &&
+  //       Date.now() < Number(happyhourInfo.endTime) + 2 * 24 * 60 * 60 * 1000
+  //     ) {
+  //       status = 'end';
+  //     }
+  //     this.setEventStatus(status);
+  //   }
+  // }
+
+  // public setEventStatusInterval(happyHour: GlobalInformation.HappyHour | null) {
+  //   this.eventStatus(happyHour);
+  //   if (this.eventStatusInterval === 0) {
+  //     this.eventStatusInterval = window.setInterval(() => {
+  //       this.eventStatus(happyHour);
+  //     }, 60000);
+  //   }
+  // }
+}

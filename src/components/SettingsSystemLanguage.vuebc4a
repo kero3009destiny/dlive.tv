@@ -1,0 +1,131 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import DBtn from '@/components/DBtn.vue';
+import MeMixin from '@/mixins/MeMixin';
+import SnackbarMixin from '@/mixins/SnackbarMixin';
+import { Component, Mixins } from 'vue-property-decorator';
+import { UserUpdateLanguage } from '@/graphql/types';
+import USER_UPDATE_LANGUAGE from '@/graphql/mutations/UserUpdateLanguage.graphql';
+import { LanguageItem, LANGUAGE_ITEMS } from '@/models/languageItem';
+import { setMeLanguage } from '@/apollo/cache/me';
+import { namespace } from 'vuex-class';
+import { LangObj } from '@/store/userMeta/types';
+const userMetaModule = namespace('userMeta');
+
+@Component({
+  components: {
+    DBtn
+  }
+})
+export default class SettingsSystemLanguage extends Mixins(
+  MeMixin,
+  SnackbarMixin
+) {
+  get isDisabled() {
+    // TODO(@ryan): avoid checks on me and private
+    if (
+      this.selectedLanguageItem === null ||
+      this.me === null ||
+      this.me.private === null
+    ) {
+      return false;
+    }
+    return this.selectedLanguageItem.code === this.me.private.language;
+  }
+
+  get languageItems() {
+    return LANGUAGE_ITEMS;
+  }
+
+  public selectedLanguageItem: LanguageItem | null = null;
+  public isLoading = false;
+  @userMetaModule.Action('loadLanguage')
+  private loadLanguage!: (lang: LangObj) => void;
+
+  // Lifecycle Hooks ----------------------------------------------------------------------------------
+  public mounted() {
+    // this.selectedLanguage = this.languagePreference;
+  }
+
+  public created() {
+    const found = this.languageItems.find(x => {
+      // TODO(@ryan): avoid this check
+      if (this.me !== null && this.me.private !== null) {
+        return x.code === this.me.private.language;
+      }
+      return false;
+    });
+    if (found !== undefined) {
+      this.selectedLanguageItem = found;
+    }
+  }
+
+  // Function ----------------------------------------------------------------------------------
+  public async updateLocalLanguage() {
+    // TODO(@ryan): Avoid this check
+    if (
+      this.me === null ||
+      this.me.private === null ||
+      this.selectedLanguageItem === null
+    ) {
+      return;
+    }
+    const langCode = this.selectedLanguageItem.code;
+    // console.log('langCode', langCode)
+    if (this.me.private.language === langCode) {
+      return;
+    }
+    this.isLoading = true;
+    try {
+      const { data } = await this.$apollo.mutate<UserUpdateLanguage.Mutation>({
+        mutation: USER_UPDATE_LANGUAGE,
+        variables: {
+          language: langCode
+        }
+      });
+      this.isLoading = false;
+      const resp = data.userUpdate;
+      if (resp.err !== null) {
+        this.$errCode(resp.err.code);
+        return;
+      }
+      setMeLanguage(this.$apollo.provider.defaultClient, langCode);
+      this.loadLanguage({ langCode, context: this });
+      // TODO(@ryan): This snackbar message's locale is not yet changed. The locale change happens
+      // in GlobalMe and seems slower than snackbar display
+      this.$success('SettingsSystemLanguage.UpdateSystemLanguageSuccess');
+    } catch (err) {
+      this.isLoading = false;
+      // TODO(@ryan): error handling
+    }
+  }
+}

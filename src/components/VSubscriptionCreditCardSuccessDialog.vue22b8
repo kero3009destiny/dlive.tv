@@ -1,0 +1,186 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { EVENTS } from '@/utils/constants';
+import GlobalEventBusMixin from '@/mixins/GlobalEventBusMixin';
+
+import {
+  VSubscriptionFrag,
+  GetSubStatus,
+  SubscriptionStatus
+} from '@/graphql/types';
+import { Component, Mixins, Prop } from 'vue-property-decorator';
+import MeMixin from '@/mixins/MeMixin';
+import SnackbarMixin from '@/mixins/SnackbarMixin';
+import { namespace } from 'vuex-class';
+import DBtn from '@/components/DBtn.vue';
+import GET_SUB_STATUS from '@/graphql/queries/GetSubStatus.graphql';
+import { setHadLemonBack } from '@/apollo/cache/me';
+
+const dialogModule = namespace('dialog');
+const uiModule = namespace('ui');
+
+@Component({
+  components: {
+    DBtn
+  }
+})
+export default class VSubscriptionCreditCardSuccessDialog extends Mixins(
+  MeMixin,
+  SnackbarMixin,
+  GlobalEventBusMixin
+) {
+  @Prop({
+    required: true
+  })
+  public subscribee!: VSubscriptionFrag.Fragment;
+
+  @Prop({
+    required: false,
+    default: false,
+    type: Boolean
+  })
+  public successed!: boolean;
+
+  public noDataText: string = '';
+  public haveSubed: boolean = false;
+  public isLoading: boolean = true;
+  public startTime: number = 0;
+  public subResultTimeout: number = 0;
+
+  public subResultInterval: number = 0;
+  public backedLemon: number = 0;
+  @uiModule.Getter('isMobile')
+  private isMobile!: boolean;
+
+  @dialogModule.Mutation('setSubSuccessDialog')
+  private setSubSuccessDialog!: (status: boolean) => void;
+
+  public mounted() {
+    this.startTime = Date.now();
+    this.getSubResult();
+  }
+
+  public async getSubResult() {
+    this.subResultInterval = window.setInterval(async () => {
+      if (this.startTime === 0) {
+        return;
+      }
+      try {
+        const { data } = await this.$apollo.query<GetSubStatus.Query>({
+          query: GET_SUB_STATUS,
+          fetchPolicy: 'network-only',
+          variables: {
+            username: this.subscribee.username
+          }
+        });
+        if (data) {
+          if (
+            data.user &&
+            data.user.mySubscription !== null &&
+            data.user.mySubscription.status === SubscriptionStatus.Active
+          ) {
+            clearTimeout(this.subResultTimeout);
+            clearInterval(this.subResultInterval);
+            this.isLoading = false;
+            this.$_smartPublish(EVENTS.REFETCH_LIVESTREAM, null);
+            if (data.user.mySubscription.backedLemon > 0) {
+              this.backedLemon = data.user.mySubscription.backedLemon;
+              setHadLemonBack(this.$apollo.provider.defaultClient, true);
+            }
+
+            // this.subResultTimeout = window.setTimeout(() => {
+            //   clearInterval(this.subResultInterval);
+            // }, 20 * 1000);
+            this.haveSubed = true;
+          }
+        }
+      } catch (err) {
+        this.isLoading = false;
+      }
+    }, 1000);
+    this.subResultTimeout = window.setTimeout(() => {
+      clearInterval(this.subResultInterval);
+      this.isLoading = false;
+      this.noDataText =
+        'Payment status is not available at this moment:( Please wait and refresh.';
+    }, 20 * 1000);
+  }
+
+  public closeSubDialog() {
+    this.$emit('closeSubDialog');
+    this.setSubSuccessDialog(false);
+  }
+}

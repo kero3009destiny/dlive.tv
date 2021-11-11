@@ -1,0 +1,82 @@
+
+
+
+
+
+
+
+
+
+
+
+import DTextField from '@/components/DTextField.vue';
+import { Component, Prop, Vue, Emit } from 'vue-property-decorator';
+import { debounce } from 'throttle-debounce';
+import VALID_DISPLAY_NAME from '@/graphql/queries/ValidDisplayName.graphql';
+import { ValidDisplayName } from '@/graphql/types';
+
+@Component({
+  components: {
+    DTextField
+  }
+})
+export default class VTextFieldDisplayName extends Vue {
+  get valid() {
+    return this.displayNameErrors.length === 0;
+  }
+  @Prop({ required: true, type: String })
+  public value!: string;
+
+  public displayNameErrors: string[] = [];
+
+  // XXX(@ryanli): only for debounce
+  private displayName: string = '';
+  private debouncedDisplayNameCheck: () => void = debounce(
+    500,
+    this.checkDisplayNameValid
+  );
+
+  @Emit('input')
+  public onDisplayNameInput(displayName: string) {
+    this.displayName = displayName;
+    if (displayName.length < 3 || displayName.length > 20) {
+      this.displayNameErrors = [
+        'Display name must be 3-20 characters in length'
+      ];
+    } else if (!this.checkDisplayNameForm(displayName)) {
+      this.displayNameErrors = [
+        'Display Name can only contain characters, numbers, hyphens, underscores, and periods'
+      ];
+    } else {
+      this.displayNameErrors = [];
+      this.debouncedDisplayNameCheck();
+    }
+    return displayName;
+  }
+
+  private checkDisplayNameForm(displayName: string) {
+    const isValidUsername = /^[a-zA-Z0-9$_.+!*'(),"-]+$/.test(displayName);
+    return (
+      isValidUsername && displayName.length >= 3 && displayName.length <= 20
+    );
+  }
+
+  private checkDisplayNameValid() {
+    this.$apollo
+      .query<ValidDisplayName.Query>({
+        query: VALID_DISPLAY_NAME,
+        variables: {
+          displayName: this.displayName
+        }
+      })
+      .then(result => {
+        if (result.data.displayNameIsValid) {
+          this.displayNameErrors = [];
+        } else {
+          this.displayNameErrors = [
+            'Display name is not valid or already taken'
+          ];
+        }
+      });
+  }
+}

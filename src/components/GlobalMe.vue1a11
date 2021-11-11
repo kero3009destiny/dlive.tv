@@ -1,0 +1,124 @@
+
+
+
+
+
+import { Component, Mixins, Watch } from 'vue-property-decorator';
+import { namespace } from 'vuex-class';
+import { MeGlobal, Maybe, MeComplete } from '@/graphql/types';
+import ME_GLOBAL from '@/graphql/queries/MeGlobal.graphql';
+import ME_COMPLETE from '@/graphql/queries/MeComplete.graphql';
+import { CompleteMe } from '@/store/me/types';
+import { LangObj } from '@/store/userMeta/types';
+import { ApolloQuery } from '@/decorators/apollo';
+import { onLogin, onLogout } from '@/plugins/apollo';
+import { RegistrationType } from '@/graphql/types';
+// import { minervaSetUser, minervaEvent } from '@/plugins/minerva';
+import { setUser, dataPoint } from '@/plugins/dataCollection';
+import SnackbarMixin from '@/mixins/SnackbarMixin';
+// import { LoggedIn } from '@/plugins/types';
+
+const meModule = namespace('me');
+const accessTokenModule = namespace('accessToken');
+const userMetaModule = namespace('userMeta');
+const dialogModule = namespace('dialog');
+const bannerModule = namespace('banner');
+
+@Component
+export default class GlobalMe extends Mixins(SnackbarMixin) {
+  @ApolloQuery({
+    query: ME_COMPLETE,
+    fetchPolicy: 'cache-only',
+    result({ data }) {
+      const resp = data.me as CompleteMe;
+      // XXX(@ryan): never sets me to null or undefined (during startup or logout)
+      // this apollo query will get called multiple times at start
+      if (resp) {
+        this.setMe(resp);
+      }
+    }
+  })
+  public me?: Maybe<MeComplete.Me>;
+  @meModule.Mutation('setMe')
+  private setMe!: (me: CompleteMe) => void;
+  @accessTokenModule.Getter('token')
+  private token!: string | null;
+  @accessTokenModule.Mutation('resetAccessToken')
+  private resetAccessToken!: () => void;
+  @accessTokenModule.Mutation('setAccessToken')
+  private setAccessToken!: (token: string) => void;
+  @userMetaModule.Action('loadLanguage')
+  private loadLanguage!: (lang: LangObj) => void;
+  @meModule.Mutation('resetMe')
+  private resetMe!: () => void;
+  @dialogModule.Mutation('setLoginDialog')
+  private setLoginDialog!: (
+    status: 'close' | 'login' | 'signup' | 'notice'
+  ) => void;
+  @bannerModule.Mutation('setHeaderBanner')
+  private setHeaderBanner!: (state: boolean) => void;
+
+  // Only call setAccessToken or resetAccessToken for login and logout.
+  @Watch('token', { immediate: true })
+  private async watchAccessToken(
+    val: string | null,
+    oldVal: string | null | undefined
+  ) {
+    if (
+      process.server ||
+      (val === null && oldVal === undefined) ||
+      (val !== null && oldVal !== null && oldVal !== undefined)
+    ) {
+      // server, not logged in or refresh accessToken
+      return;
+    } else if (val === null && oldVal !== undefined) {
+      // Logout
+      this.resetMe();
+      await onLogout(this.$apollo.provider.defaultClient);
+      setUser(null);
+      // minervaSetUser(null);
+      return;
+    } else if (val !== null && oldVal === null) {
+      // Login
+      // FIXME: There might be an issue with resetting store first and setting access token
+      // When resetting store they will try to refetch according to $isLoggedIn=false and
+      // only after this commit happens and GlobalMe is fetched, they will correctly refetch
+      // with $isLoggedIn=true, which cause two requests.
+      await onLogin(this.$apollo.provider.defaultClient);
+    }
+    const { data } = await this.$apollo.query<MeGlobal.Query>({
+      query: ME_GLOBAL,
+      fetchPolicy: 'network-only'
+    });
+    const resp = data.me;
+    if (resp === null) {
+      this.resetAccessToken();
+    } else {
+      // Refresh access token
+      if (resp.private === null || resp.private.accessToken === '') {
+        this.$handleInconsistentError(
+          resp,
+          ['private.accessToken'],
+          ME_GLOBAL,
+          { accessToken: val }
+        );
+        return;
+      }
+      if (
+        !resp.private.registrationType.includes(RegistrationType.Email) &&
+        resp.private.registrationType.includes(RegistrationType.Lino)
+      ) {
+        this.setLoginDialog('notice');
+        this.setHeaderBanner(true);
+      }
+      this.loadLanguage({ langCode: resp.private.language, context: this });
+      this.setAccessToken(resp.private.accessToken);
+      setUser(resp.username);
+      dataPoint('login', {
+        eventCategory: 'logged'
+      });
+      // minervaSetUser(resp.username);
+      // minervaEvent(LoggedIn.eventType);
+    }
+  }
+}

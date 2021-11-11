@@ -1,0 +1,155 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { ApolloQuery } from '@/decorators/apollo';
+import VSnapProfileVideo from '@/components/VSnapProfileVideo.vue';
+import { VideoSortOrder, Maybe, LivestreamProfileVideo } from '@/graphql/types';
+import LIVESTREAM_PROFILE_VIDEO from '@/graphql/queries/LivestreamProfileVideo.graphql';
+import { writeVideoDeleteCache } from '@/apollo/cache/livestreamProfile';
+import { Component, Vue } from 'vue-property-decorator';
+
+@Component({
+  components: {
+    VSnapProfileVideo
+  }
+})
+export default class ProfileVideo extends Vue {
+  @ApolloQuery({
+    query: LIVESTREAM_PROFILE_VIDEO,
+    variables(): LivestreamProfileVideo.Variables {
+      return {
+        displayname: this.displayname,
+        sortedBy: this.videoOrderBy,
+        first: this.numVideoPerFetch
+      };
+    }
+  })
+  public userByDisplayName?: Maybe<LivestreamProfileVideo.UserByDisplayName>;
+
+  // Computed -------------------------------------------------
+  get profileVideo() {
+    if (
+      this.userByDisplayName !== undefined &&
+      this.userByDisplayName !== null
+    ) {
+      return this.userByDisplayName.videos;
+    }
+    return null;
+  }
+
+  get videos() {
+    if (this.profileVideo !== null) {
+      return this.profileVideo.list;
+    }
+    return [];
+  }
+
+  get hasNextPage() {
+    if (this.profileVideo !== null) {
+      return this.profileVideo.pageInfo.hasNextPage;
+    }
+    return false;
+  }
+
+  get displayname() {
+    return this.$route.params.displayname;
+  }
+
+  // Local
+  private followOrderOptions: Array<{ text: string; type: VideoSortOrder }> = [
+    { text: 'profileHome.MostPopular', type: VideoSortOrder.Trending },
+    { text: 'profileHome.DateAddedNewest', type: VideoSortOrder.New },
+    { text: 'profileHome.DateAddedOldest', type: VideoSortOrder.Old }
+  ];
+  private videoOrderBy: VideoSortOrder = VideoSortOrder.Trending;
+  private readonly numVideoPerFetch: number = 20;
+
+  // Function ---------------------------------------------------
+  public changeVideoOption(option: { text: string; type: VideoSortOrder }) {
+    this.videoOrderBy = option.type;
+  }
+
+  public videoDeleted(permlink: string) {
+    const param = {
+      query: LIVESTREAM_PROFILE_VIDEO,
+      variables: {
+        displayname: this.displayname,
+        sortedBy: this.videoOrderBy,
+        first: this.numVideoPerFetch
+      }
+    };
+    writeVideoDeleteCache(this.$apollo.provider.defaultClient, permlink, param);
+  }
+
+  public fetchMoreProfileVideo() {
+    if (this.profileVideo === null || !this.profileVideo.pageInfo.hasNextPage) {
+      return;
+    }
+    this.$apollo.queries.userByDisplayName.fetchMore({
+      variables: {
+        displayname: this.displayname,
+        sortedBy: this.videoOrderBy,
+        first: this.numVideoPerFetch,
+        after: this.profileVideo.pageInfo.endCursor
+      },
+      updateQuery: (
+        previousResult: LivestreamProfileVideo.Query,
+        { fetchMoreResult }: { fetchMoreResult?: LivestreamProfileVideo.Query }
+      ) => {
+        if (
+          fetchMoreResult === undefined ||
+          fetchMoreResult.userByDisplayName === null
+        ) {
+          return previousResult;
+        }
+        const moreVideos: LivestreamProfileVideo.Videos =
+          fetchMoreResult.userByDisplayName.videos;
+        let prevVideos = previousResult.userByDisplayName;
+        if (prevVideos === null) {
+          prevVideos = fetchMoreResult.userByDisplayName;
+        } else {
+          prevVideos.videos.pageInfo = moreVideos.pageInfo;
+          prevVideos.videos.list = [
+            ...prevVideos.videos.list,
+            ...moreVideos.list
+          ];
+        }
+        return {
+          userByDisplayName: prevVideos
+        };
+      }
+    });
+  }
+}

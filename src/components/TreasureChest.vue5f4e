@@ -1,0 +1,352 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { EVENTS } from '@/utils/constants';
+import { Component, Mixins, Prop } from 'vue-property-decorator';
+import clickaway from 'vue-clickaway';
+import TreasureChestWinners from '@/components/TreasureChestWinners.vue';
+import TreasureChestValueUpdate from '@/components/TreasureChestValueUpdate.vue';
+import TreasureChestPopup from '@/components/TreasureChestPopup.vue';
+import DToken from '@/components/DToken.vue';
+import TREASURE_CHEST_MESSAGE_RECEIVED from '@/graphql/subscription/TreasureChestMessageReceived.graphql';
+import {
+  TreasureChestFrag,
+  TreasureChestState,
+  TreasureChestMessageReceived,
+  TreasureChestMessageType,
+  TreasureChestUserFrag
+} from '@/graphql/types';
+import {
+  writeOngoingGiveawayCache,
+  writeValueCache,
+  writeNextGiveawayThresholdAtCache
+} from '@/apollo/cache/chest';
+import GlobalEventBusMixin from '@/mixins/GlobalEventBusMixin';
+import SnackbarMixin from '@/mixins/SnackbarMixin';
+import { namespace } from 'vuex-class';
+import MeMixin from '@/mixins/MeMixin';
+
+const dialogModule = namespace('dialog');
+
+@Component({
+  components: {
+    TreasureChestWinners,
+    TreasureChestPopup,
+    TreasureChestValueUpdate,
+    DToken
+  }
+})
+export default class TreasureChest extends Mixins(
+  clickaway.mixin,
+  SnackbarMixin,
+  GlobalEventBusMixin,
+  MeMixin
+) {
+  @Prop({
+    required: true
+  })
+  public streamerInfo!: TreasureChestFrag.Fragment;
+
+  public showChestEngagementAnimation: boolean = false;
+  public showChestValueUpdateAnimation: boolean = false;
+  public isLoading: boolean = false;
+  public updateValue: string = '0';
+
+  @dialogModule.Mutation('setChestWinnersDialog')
+  private setChestWinnersDialog!: (status: boolean) => void;
+  @dialogModule.Mutation('setChestDialog')
+  private setChestDialog!: (status: boolean) => void;
+  @dialogModule.Getter('chestWinners')
+  private shouldShowWinnersDialog!: boolean;
+  @dialogModule.Getter('chest')
+  private chestPopup!: boolean;
+
+  public mounted() {
+    this.addTreasureChestSubscription();
+    this.$_smartSubscribe(EVENTS.CHEST_ENGAGEMENT, this.handleChestEngagement);
+    if (this.shouldChestOpen) {
+      this.openChestPopup();
+      if (this.ongoingGiveaway !== null) {
+        setTimeout(() => {
+          this.giveawayEnd();
+        }, parseInt(this.ongoingGiveaway.closeAt, 10) - Date.now());
+      }
+    }
+  }
+
+  // close dialogs when change to another channel
+  public beforeDestroy() {
+    this.closeWinnersDialog();
+    this.closeChestPopup();
+  }
+  get isStreamer() {
+    return this.streamerInfo.isMe;
+  }
+  get shouldChestOpen() {
+    return (
+      this.streamerInfo.treasureChest.state === TreasureChestState.Claiming
+    );
+  }
+
+  get shouldChestEngagementAnimation() {
+    return this.showChestEngagementAnimation && !this.shouldChestOpen;
+  }
+
+  get valueUpdateMoreThan1LP() {
+    if (Number(this.updateValue) > 100000) {
+      return true;
+    }
+    return false;
+  }
+
+  get shouldChestValueUpdateAnimation() {
+    return (
+      this.showChestValueUpdateAnimation &&
+      !this.shouldChestOpen &&
+      this.valueUpdateMoreThan1LP
+    );
+  }
+
+  get ongoingGiveaway() {
+    return this.streamerInfo.treasureChest.ongoingGiveaway;
+  }
+
+  get value() {
+    if (this.streamerInfo !== undefined) {
+      if (this.ongoingGiveaway !== null) {
+        return this.ongoingGiveaway.pricePool;
+      } else {
+        return this.streamerInfo.treasureChest.value;
+      }
+    }
+    return '0';
+  }
+
+  get chestIcon() {
+    if (this.shouldChestValueUpdateAnimation) {
+      return require('@/assets/animation/chest-value-update.gif');
+    } else if (this.shouldChestEngagementAnimation) {
+      return require('@/assets/animation/chest-engagement.gif');
+    } else if (this.shouldChestOpen) {
+      return require('@/assets/icon/chest-open.png');
+    } else {
+      return require('@/assets/icon/chest-close.png');
+    }
+  }
+
+  get hasClaimed() {
+    if (this.ongoingGiveaway !== null && this.isLoggedIn) {
+      return this.ongoingGiveaway.claimed;
+    }
+    return false;
+  }
+  get isMyself() {
+    if (this.isLoggedIn) {
+      return this.streamerInfo.isMe;
+    }
+    return false;
+  }
+  get canSeeWinnersPopup() {
+    return this.hasClaimed || this.isMyself;
+  }
+
+  public addTreasureChestSubscription() {
+    this.$apollo.addSmartSubscription('treasureChestMessageReceived', {
+      query: TREASURE_CHEST_MESSAGE_RECEIVED,
+      variables() {
+        return {
+          streamer: this.streamerInfo.username
+        };
+      },
+      result({ data }) {
+        if (
+          data !== undefined &&
+          data.treasureChestMessageReceived !== undefined
+        ) {
+          this.handleTreasureChestMessage(data.treasureChestMessageReceived);
+        }
+      }
+    });
+  }
+
+  public handleTreasureChestMessage(
+    message: TreasureChestMessageReceived.TreasureChestMessageReceived
+  ) {
+    switch (message.type) {
+      case TreasureChestMessageType.GiveawayStarted: {
+        const startedMsg = message as TreasureChestMessageReceived.TreasureChestGiveawayStartedInlineFragment;
+        if (this.shouldShowWinnersDialog) {
+          this.closeWinnersDialog();
+        }
+        const ongoingGiveaway: TreasureChestUserFrag.OngoingGiveaway = {
+          __typename: 'Giveaway',
+          pricePool: startedMsg.pricePool,
+          closeAt: startedMsg.endTime,
+          durationInSeconds: startedMsg.durationInSeconds,
+          claimed: false
+        };
+        const err = writeOngoingGiveawayCache(
+          this.$apollo.provider.defaultClient,
+          this.streamerInfo.id,
+          ongoingGiveaway
+        );
+        writeValueCache(
+          this.$apollo.provider.defaultClient,
+          this.streamerInfo.id,
+          '0'
+        );
+        if (err !== undefined) {
+          throw err;
+        }
+        this.openChestPopup();
+        setTimeout(() => {
+          this.giveawayEnd();
+        }, startedMsg.durationInSeconds * 1000);
+        break;
+      }
+      case TreasureChestMessageType.GiveawayEnd: {
+        const endMsg = message as TreasureChestMessageReceived.TreasureChestGiveawayEndedInlineFragment;
+        if (this.streamerInfo.isMe) {
+          writeNextGiveawayThresholdAtCache(
+            this.$apollo.provider.defaultClient,
+            this.streamerInfo.id,
+            endMsg.nextGiveawayThresholdAt
+          );
+        }
+        break;
+      }
+      case TreasureChestMessageType.ValueUpdated: {
+        const valueUpdatedMsg = message as TreasureChestMessageReceived.TreasureChestValueUpdatedInlineFragment;
+        this.updateValue = String(
+          Number(valueUpdatedMsg.value) -
+            Number(this.streamerInfo.treasureChest.value)
+        );
+        writeValueCache(
+          this.$apollo.provider.defaultClient,
+          this.streamerInfo.id,
+          valueUpdatedMsg.value
+        );
+        if (!this.showChestValueUpdateAnimation) {
+          this.showChestValueUpdateAnimation = true;
+          setTimeout(() => {
+            this.showChestValueUpdateAnimation = false;
+          }, 3000);
+        }
+        break;
+      }
+      case TreasureChestMessageType.ReadyToCollect: {
+        this.isLoading = false;
+        this.closeChestPopup();
+        if (this.canSeeWinnersPopup) {
+          this.openWinnersDialog();
+        }
+        break;
+      }
+      case TreasureChestMessageType.ValueExpired: {
+        const valueExpiredMsg = message as TreasureChestMessageReceived.TreasureChestValueExpiredInlineFragment;
+        writeValueCache(
+          this.$apollo.provider.defaultClient,
+          this.streamerInfo.id,
+          valueExpiredMsg.value
+        );
+        break;
+      }
+      default:
+        return;
+    }
+  }
+
+  public giveawayEnd() {
+    if (this.isMyself || this.hasClaimed) {
+      this.isLoading = true;
+    } else {
+      const err = writeOngoingGiveawayCache(
+        this.$apollo.provider.defaultClient,
+        this.streamerInfo.id,
+        null
+      );
+      if (err !== undefined) {
+        throw err;
+      }
+    }
+  }
+
+  public openWinnersDialog() {
+    this.setChestWinnersDialog(true);
+  }
+
+  public handleChestEngagement() {
+    if (!this.showChestEngagementAnimation) {
+      this.showChestEngagementAnimation = true;
+      setTimeout(() => {
+        this.showChestEngagementAnimation = false;
+      }, 2000);
+    }
+  }
+
+  public closeWinnersDialog() {
+    const err = writeOngoingGiveawayCache(
+      this.$apollo.provider.defaultClient,
+      this.streamerInfo.id,
+      null
+    );
+    if (err !== undefined) {
+      throw err;
+    }
+    this.setChestWinnersDialog(false);
+  }
+
+  public toggleChestPopup() {
+    // can toggle popup only if winners dialog is closed
+    if (!this.shouldShowWinnersDialog) {
+      this.setChestDialog(!this.chestPopup);
+    }
+  }
+  public openChestPopup() {
+    this.setChestDialog(true);
+  }
+  public closeChestPopup() {
+    this.setChestDialog(false);
+  }
+}

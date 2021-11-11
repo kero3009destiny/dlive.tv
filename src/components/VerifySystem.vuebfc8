@@ -1,0 +1,94 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import DDialog from '@/components/DDialog.vue';
+import DBtn from '@/components/DBtn.vue';
+import { verifyEmailLink } from '@/apollo/mutation/settings';
+import { Component, Mixins } from 'vue-property-decorator';
+import { ROUTE_VERIFY } from '@/router';
+import MeMixin from '@/mixins/MeMixin';
+import { redirectToAndroid } from '@/utils/useragent';
+import SnackbarMixin from '@/mixins/SnackbarMixin';
+import { setMeEmail, setMeEmailVerified } from '@/apollo/cache/me';
+
+@Component({
+  components: {
+    DDialog,
+    DBtn
+  }
+})
+export default class VerifySystem extends Mixins(MeMixin, SnackbarMixin) {
+  get dialogTitle() {
+    if (this.verifySuccess) {
+      return this.$t('VerifySystem.EmailVerifySuccessBody') as string;
+    } else {
+      return this.$t('VerifySystem.EmailVerifyFailBody') as string;
+    }
+  }
+
+  public showEmailVerifiedDialog: boolean = false;
+  public verifySuccess: boolean = true;
+  public token = '';
+
+  public mounted() {
+    this.token = this.$route.query.token as string;
+    if (this.$route.name === ROUTE_VERIFY && this.token !== undefined) {
+      const androidRedirectUrl = `dlive://dlive.tv/s/verify?token=${
+        this.token
+      }`;
+      if (
+        redirectToAndroid(
+          androidRedirectUrl,
+          !this.$route.query.gxc,
+          this.setNewToken
+        )
+      ) {
+        return;
+      }
+      this.setNewToken();
+    }
+  }
+
+  public async setNewToken() {
+    try {
+      const resp = await verifyEmailLink(this, this.token);
+      if (
+        resp !== undefined &&
+        resp.email !== null &&
+        this.me !== null &&
+        this.me.private !== null
+      ) {
+        setMeEmail(this.$apollo.provider.defaultClient, resp.email);
+        setMeEmailVerified(this.$apollo.provider.defaultClient, true);
+      }
+      this.verifySuccess = true;
+      this.showEmailVerifiedDialog = true;
+    } catch (e) {
+      this.verifySuccess = false;
+      this.showEmailVerifiedDialog = true;
+    }
+  }
+}

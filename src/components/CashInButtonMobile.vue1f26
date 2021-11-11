@@ -1,0 +1,61 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import DToken from '@/components/DToken.vue';
+import MeMixin from '@/mixins/MeMixin';
+import { MeBalance } from '@/graphql/types';
+import ME_BALANCE from '@/graphql/queries/MeBalance.graphql';
+import { Component, Mixins } from 'vue-property-decorator';
+import CashInButton from '@/components/CashInButton.vue';
+
+@Component({
+  components: {
+    CashInButton,
+    DToken
+  }
+})
+export default class CashInButtonMobile extends Mixins(MeMixin) {
+  // Lifecycle Hooks -------------------------------------------
+  public mounted() {
+    this.updateUser();
+  }
+
+  get balance() {
+    if (
+      this.me === null ||
+      this.me.wallet === undefined ||
+      this.me.wallet.balance === undefined
+    ) {
+      return '0';
+    }
+    return this.me.wallet.balance;
+  }
+
+  // Function -----------------------------------------------
+  public async updateUser() {
+    try {
+      const { data } = await this.$apollo.query<MeBalance.Query>({
+        query: ME_BALANCE,
+        fetchPolicy: 'network-only'
+      });
+      if (data.me === null) {
+        return;
+      }
+    } catch (err) {
+      // TODO(@ryan): error handling
+    }
+  }
+}

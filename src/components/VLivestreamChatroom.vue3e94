@@ -1,0 +1,895 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { ApolloQuery } from '@/decorators/apollo';
+import { EVENTS } from '@/utils/constants';
+import * as linkify from 'linkifyjs';
+import { DanmakuEntry } from '@/models/video';
+import CHAT_MODE_FRAG from '@/graphql/fragments/ChatMode.graphql';
+import STREAM_MESSAGE_SUBSCRIPTION from '@/graphql/subscription/StreamMessageSubscription.graphql';
+import SEND_STREAM_CHAT_MESSAGE from '@/graphql/mutations/SendStreamChatMessage.graphql';
+import {
+  ChatType,
+  StreamMessageSubscription,
+  ChatModeType,
+  SendStreamChatMessage,
+  StreamChatMessageFrag,
+  Role,
+  RoomRole,
+  TopContributors,
+  LivestreamChatroomInfo,
+  Maybe,
+  StreamDonate,
+  DonationType,
+  EmoteItemFrag,
+  BadgeType,
+  MeStreamChatModeSettingFrag,
+  FollowChatDelayType,
+  LivestreamPage
+} from '@/graphql/types';
+import LIVESTREAM_CHATROOM_INFO from '@/graphql/queries/LivestreamChatroomInfo.graphql';
+import { sendStreamChatMessage } from '@/utils/mutations/chatroom';
+import { writeOngoingGiftSubCache } from '@/apollo/cache/giftSub';
+import { isBottom, scrollToBottom } from '@/utils/chatroom';
+import { writeChatModeCache } from '@/utils/cache/chatroom';
+import StreamChatroomHeader from '@/components/StreamChatroomHeader.vue';
+import StreamChatroomList from '@/components/StreamChatroomList.vue';
+import StreamChatroomInput from '@/components/StreamChatroomInput.vue';
+import GlobalEventBusMixin from '@/mixins/GlobalEventBusMixin';
+import MeMixin from '@/mixins/MeMixin';
+import { Component, Mixins, Prop, Watch } from 'vue-property-decorator';
+import TOP_CONTRIBUTORS from '@/graphql/queries/TopContributors.graphql';
+import { debounce } from 'throttle-debounce';
+import { emoteRegex } from '@/utils/emote';
+import SnackbarMixin from '@/mixins/SnackbarMixin';
+import { namespace } from 'vuex-class';
+import GraphemeSplitter from 'grapheme-splitter';
+const userMetaModule = namespace('userMeta');
+const meModule = namespace('me');
+const uiModule = namespace('ui');
+const splitter = new GraphemeSplitter();
+// const wsJson = print(STREAM_MESSAGE_SUBSCRIPTION);
+const pinnedGiftlimit = 20;
+
+@Component({
+  components: {
+    StreamChatroomHeader,
+    StreamChatroomInput,
+    StreamChatroomList
+  }
+})
+export default class VLivestreamChatroom extends Mixins(
+  GlobalEventBusMixin,
+  SnackbarMixin,
+  MeMixin
+) {
+  @ApolloQuery({
+    query: LIVESTREAM_CHATROOM_INFO,
+    fetchPolicy: 'network-only',
+    variables(): LivestreamChatroomInfo.Variables {
+      return {
+        displayname: this.channelName,
+        isLoggedIn: this.isLoggedIn,
+        limit: pinnedGiftlimit,
+        count: this.isMobile ? 5 : 40
+      };
+    },
+    skip() {
+      return this.channelName === undefined || this.channelName === '';
+    }
+  })
+  public userByDisplayName?: Maybe<LivestreamChatroomInfo.UserByDisplayName>;
+
+  @Prop({
+    required: false,
+    default: true
+  })
+  public hasHeader!: boolean;
+
+  @Prop({
+    required: false,
+    default: ''
+  })
+  public displayname!: string;
+
+  @Prop({
+    required: false
+  })
+  public streamerInfo!: LivestreamPage.UserByDisplayName;
+
+  @Prop({
+    required: false,
+    default: false
+  })
+  public isPopped!: boolean;
+
+  public $refs!: {
+    streamChatroomInput: HTMLFormElement;
+  };
+
+  @meModule.Getter('emojisAll')
+  public emojisAll!: EmoteItemFrag.Fragment[];
+
+  public streamChatWS: WebSocket | null = null;
+  public chats: StreamChatMessageFrag.Fragment[] = [];
+  public streamChatBuffer: StreamChatMessageFrag.Fragment[] = [];
+  public apolloClient = this.$apollo.provider.defaultClient;
+  private streamChatIdFromMe: string[] = [];
+  private pushStreamChatInterval: number = 0;
+  private isWebsocktDestroying: boolean = false;
+  private wsReconnectDelay: number = 100;
+  private wsReconnectDelayMax: number = 5000;
+  private debouncedfetchTopContributors: () => void = debounce(
+    10000,
+    this.fetchTopContributors
+  );
+  // XXX(jiayi): In old channel, this.displayname will be chenged to new channel's name,
+  // which means both old and new components will send query and these two queries will be canneled since apollo client treat them as same query.
+  private channelName: string = this.displayname;
+
+  // @chestModule.Mutation('incrementChatCounter')
+  // private incrementChestChatCounter!: () => void;
+
+  @meModule.Getter('displaySetting')
+  private displaySetting!: MeStreamChatModeSettingFrag.DisplaySetting;
+
+  @userMetaModule.Mutation('setShowedShareAnimation')
+  private setShowedShareAnimation!: (showedShareAnimation: boolean) => void;
+
+  @userMetaModule.Getter('showedShareAnimation')
+  private showedShareAnimation!: boolean;
+
+  @uiModule.Getter('isMobile')
+  private isMobile!: boolean;
+
+  get chatroomListStyle() {
+    const userAgent = navigator.userAgent;
+    if (this.isMobile || userAgent.indexOf('Safari') > -1) {
+      return 'flex: 1 1 auto;';
+    }
+    return 'flex: 1 1 auto;';
+  }
+
+  public mounted() {
+    this.listenMessages();
+    this.$_smartSubscribe(EVENTS.CHAT_DELETE, this.chatDelete);
+    this.$_smartSubscribe(EVENTS.CHAT_SEND, this.handleSendChat);
+    this.$_smartSubscribe(EVENTS.GIFT_DONATE, this.handleGiftDonate);
+    // if (this.livestreamChatroom !== null) {
+    //   this.streamChatBuffer = [...this.livestreamChatroom.chats];
+    // }
+  }
+
+  public beforeDestroy() {
+    if (this.pushStreamChatInterval !== 0) {
+      window.clearInterval(this.pushStreamChatInterval);
+    }
+    if (this.streamChatWS) {
+      this.isWebsocktDestroying = true;
+      this.streamChatWS.close();
+      this.streamChatWS = null;
+    }
+  }
+
+  get livestreamChatroom() {
+    if (this.userByDisplayName !== undefined) {
+      return this.userByDisplayName;
+    }
+    return null;
+  }
+
+  get canChatInFollowOnly() {
+    if (
+      this.livestreamChatroom !== null &&
+      this.livestreamChatroom.chatMode === ChatModeType.Followonly &&
+      this.me !== null &&
+      !this.livestreamChatroom.isFollowing &&
+      this.livestreamChatroom.myRoomRole !== RoomRole.Owner &&
+      this.me.role !== Role.Staff &&
+      this.me.role !== Role.Guardian
+    ) {
+      return false;
+    }
+    return true;
+  }
+
+  get streamer() {
+    if (this.livestreamChatroom !== null) {
+      return this.livestreamChatroom.username;
+    }
+    return '';
+  }
+
+  public shouldPopupPinnedSub(
+    chatGiftSub: StreamMessageSubscription.ChatGiftSubInlineFragment
+  ) {
+    // to a specific viewer
+    if (chatGiftSub.receiver !== null) {
+      return false;
+    }
+    // not show for streamer and gifter
+    if (this.me !== null) {
+      return (
+        chatGiftSub.sender.displayname !== this.me.displayname &&
+        this.displayname !== this.me.displayname
+      );
+    }
+    return true;
+  }
+
+  public createConnect() {
+    this.addStreamChatSubscription();
+    // if (this.streamChatWS !== null) {
+    //   this.streamChatWS.onclose = null;
+    //   this.streamChatWS.close();
+    //   this.streamChatWS = null;
+    // }
+
+    // try {
+    //   this.streamChatWS = new WebSocket(
+    //     process.env.VUE_APP_GRAPHQL_WS || '',
+    //     'graphql-ws'
+    //   );
+
+    //   this.streamChatWS.onopen = () => {
+    //     if (this.streamChatWS === null) {
+    //       this.createConnect();
+    //       return;
+    //     }
+    //     this.streamChatWS.send(
+    //       JSON.stringify({ type: 'connection_init', payload: {} })
+    //     );
+    //     this.streamChatWS.send(
+    //       JSON.stringify({
+    //         id: '1',
+    //         type: 'start',
+    //         payload: {
+    //           variables: { streamer: this.streamer },
+    //           extensions: {},
+    //           operationName: 'StreamMessageSubscription',
+    //           query: wsJson
+    //         }
+    //       })
+    //     );
+    //     // XXX(jiayi): reset delay when connect success
+    //     this.wsReconnectDelay = 100;
+    //   };
+
+    //   this.streamChatWS.onmessage = evt => {
+    //     const receives = JSON.parse(evt.data);
+    //     if (
+    //       receives.payload === undefined ||
+    //       receives.payload.data.streamMessageReceived.length === 0
+    //     ) {
+    //       return;
+    //     }
+    //     for (const msg of receives.payload.data.streamMessageReceived) {
+    //       this.handleReceivedMessage(msg);
+    //     }
+    //   };
+
+    //   this.streamChatWS.onclose = () => {
+    //     // NING: check if it is a normal close event (closed by lifecycle hook)
+    //     if (!this.isWebsocktDestroying) {
+    //       this.wsReconnectDelay = Math.min(
+    //         this.wsReconnectDelay,
+    //         this.wsReconnectDelayMax
+    //       );
+    //       setTimeout(() => {
+    //         this.wsReconnectDelay *= 2;
+    //         // NING: check if by the time we want to reconnect, the original page have already been destroyed
+    //         if (!this.isWebsocktDestroying) {
+    //           this.createConnect();
+    //         }
+    //       }, this.wsReconnectDelay);
+    //     }
+    //   };
+    // } catch (e) {
+    //   // TODO
+    // }
+  }
+
+  public addStreamChatSubscription() {
+    if (this.$apollo.subscriptions.streamMessageSubscription) {
+      this.$apollo.subscriptions.streamMessageSubscription.refresh();
+    } else {
+      this.$apollo.addSmartSubscription('streamMessageSubscription', {
+        query: STREAM_MESSAGE_SUBSCRIPTION,
+        variables() {
+          return {
+            streamer: this.streamer
+          };
+        },
+        result({ data }) {
+          if (data !== undefined && data.streamMessageReceived.length !== 0) {
+            for (const msg of data.streamMessageReceived) {
+              this.handleReceivedMessage(msg);
+            }
+          }
+        }
+      });
+    }
+  }
+
+  public handleReceivedMessage(
+    chat: StreamMessageSubscription.StreamMessageReceived
+  ) {
+    if (this.isActivityFeed(chat.type)) {
+      this.$_smartPublish(EVENTS.ACTIVITY_FEED, Object.assign({}, chat));
+    }
+    if (chat.type === ChatType.Message) {
+      const chatText = chat as StreamMessageSubscription.ChatTextInlineFragment;
+      if (this.me !== null && chatText.sender.username === this.me.username) {
+        if (this.streamChatIdFromMe.indexOf(chatText.id) !== -1) {
+          return;
+        } else {
+          this.streamChatIdFromMe.push(chatText.id);
+        }
+      }
+    } else if (chat.type === ChatType.Delete) {
+      const chatDelete = chat as StreamMessageSubscription.ChatDeleteInlineFragment;
+      this.chatDelete(...chatDelete.ids);
+      return;
+    } else if (chat.type === ChatType.Gift) {
+      this.debouncedfetchTopContributors();
+      const chatGift = chat as StreamMessageSubscription.ChatGiftInlineFragment;
+      if (this.me !== null && chatGift.sender.username === this.me.username) {
+        if (this.streamChatIdFromMe.indexOf(chatGift.id) !== -1) {
+          return;
+        } else {
+          this.streamChatIdFromMe.push(chatGift.id);
+          this.sendPinnedGift(chatGift);
+        }
+      } else {
+        this.sendPinnedGift(chatGift);
+      }
+    } else if (chat.type === ChatType.Live || chat.type === ChatType.Offline) {
+      this.$_smartPublish(EVENTS.LIVE_STATUS_CHANGE, null);
+      return;
+    } else if (chat.type === ChatType.ChatMode) {
+      const chatMode = chat as StreamMessageSubscription.ChatChangeModeInlineFragment;
+      this.changeChatModeCache(chatMode.mode);
+      return;
+    } else if (chat.type === ChatType.GiftSub) {
+      const chatGiftSub = chat as StreamMessageSubscription.ChatGiftSubInlineFragment;
+      if (this.shouldPopupPinnedSub(chatGiftSub)) {
+        this.giftSubOngoingStart(chatGiftSub);
+      }
+    } else if (
+      chat.type === ChatType.Host ||
+      chat.type === ChatType.Subscription ||
+      chat.type === ChatType.ExtendSub ||
+      chat.type === ChatType.Follow ||
+      chat.type === ChatType.Ban ||
+      chat.type === ChatType.Mod ||
+      chat.type === ChatType.Emote ||
+      chat.type === ChatType.Timeout ||
+      chat.type === ChatType.TcValue ||
+      chat.type === ChatType.GiftSubReceive ||
+      chat.type === ChatType.Clip ||
+      chat.type === ChatType.SubStreak
+    ) {
+      // Do nothing
+    } else {
+      return;
+    }
+
+    this.streamChatBuffer.push(chat as StreamChatMessageFrag.Fragment);
+
+    if (this.chats.length > 150) {
+      this.chats = this.chats.slice(100);
+    }
+
+    if (isBottom()) {
+      this.scrollToBottom();
+    }
+  }
+
+  public handleClearMessage() {
+    this.chats = [];
+  }
+
+  public handlePurgeMessage(username: string) {
+    for (let i = this.chats.length - 1; i >= 0; i--) {
+      if (
+        this.chats[i].sender.username === username &&
+        this.chats[i].type === ChatType.Message
+      ) {
+        this.chats.splice(i, 1);
+      }
+    }
+  }
+
+  public sendPinnedGift(
+    giftChat: StreamMessageSubscription.ChatGiftInlineFragment
+  ) {
+    if (this.validPinnedGiftType(giftChat.gift)) {
+      this.$_smartPublish(EVENTS.PINNED_GIFT, giftChat);
+    }
+  }
+
+  public chatDelete(...ids: string[]) {
+    ids.forEach((id: string) => {
+      for (let i = this.chats.length - 1; i >= 0; i--) {
+        if (this.chats[i].id === id) {
+          this.chats.splice(i, 1);
+        }
+      }
+    });
+  }
+
+  public changeChatModeCache(mode: ChatModeType) {
+    if (this.livestreamChatroom === null) {
+      return;
+    }
+    const param = {
+      id: this.livestreamChatroom.id,
+      fragment: CHAT_MODE_FRAG
+    };
+    writeChatModeCache(this.apolloClient, mode, param);
+  }
+
+  public handleSendChat(chatInput: string) {
+    if (this.requireLogin()) {
+      return;
+    }
+    if (!this.canChatInFollowOnly) {
+      this.$error('LiveStreamChatroom.FollowerChatOnly');
+      return;
+    }
+    this.sendMessage(chatInput);
+  }
+
+  public handleGiftDonate(data: {
+    resp: StreamDonate.Donate;
+    gift: DonationType;
+    superchatInput: string;
+  }) {
+    if (this.livestreamChatroom === null || this.me === null) {
+      return;
+    }
+    const resp = data.resp;
+    let myBadges: BadgeType[] = [];
+    if (this.me.myChatBadges !== undefined) {
+      myBadges = this.me.myChatBadges;
+    }
+    const chatGift: StreamChatMessageFrag.Fragment = {
+      id: resp.id,
+      role: this.me.role,
+      roomRole: this.livestreamChatroom.myRoomRole as RoomRole,
+      subscribing: this.livestreamChatroom.isSubscribing as boolean,
+      sender: {
+        id: this.me.id,
+        username: this.me.username,
+        displayname: this.me.displayname,
+        avatar: this.me.avatar,
+        partnerStatus: this.me.partnerStatus,
+        badges: myBadges,
+        effect: this.me.effect
+      },
+      gift: data.gift,
+      amount: '1',
+      message: data.superchatInput,
+      type: ChatType.Gift,
+      expireDuration: resp.expireDuration,
+      recentCount: resp.recentCount
+    };
+    if (this.streamChatIdFromMe.indexOf(chatGift.id) === -1) {
+      this.streamChatIdFromMe.push(chatGift.id);
+      this.chatsMergePush(chatGift);
+      this.sendPinnedGift(chatGift);
+    }
+  }
+
+  public giftSubOngoingStart(
+    chatGiftSub: StreamMessageSubscription.ChatGiftSubInlineFragment
+  ) {
+    if (this.livestreamChatroom !== null) {
+      const err = writeOngoingGiftSubCache(
+        this.$apollo.provider.defaultClient,
+        chatGiftSub,
+        this.livestreamChatroom.id
+      );
+      if (err !== undefined) {
+        throw err;
+      }
+    }
+  }
+
+  public async sendMessage(chatInput: string) {
+    if (
+      this.me === null ||
+      chatInput === '' ||
+      this.livestreamChatroom === null ||
+      this.livestreamChatroom.myRoomRole === undefined ||
+      this.livestreamChatroom.myRoomRole === null
+    ) {
+      return;
+    }
+
+    const args = chatInput.trim().split(' ');
+    const emojisData: Maybe<number[]> = [];
+
+    let storeLength = -1;
+    for (const i in args) {
+      if (args.hasOwnProperty(i)) {
+        const currentLength = splitter.splitGraphemes(args[i]).length;
+        storeLength += 1;
+        if (this.emojisAll.some(item => item.name === args[i])) {
+          emojisData.push(storeLength, storeLength + currentLength - 1);
+        }
+        storeLength += currentLength;
+      }
+    }
+
+    const variables: SendStreamChatMessage.Variables = {
+      input: {
+        streamer: this.streamer,
+        message: chatInput.trim(),
+        roomRole: this.livestreamChatroom.myRoomRole,
+        subscribing: true,
+        emojis: emojisData
+      }
+    };
+
+    const resp = await sendStreamChatMessage(this, variables);
+    if (resp.err) {
+      if (resp.err.code === 6021) {
+        let time = '';
+        switch (this.livestreamChatroom.followChatDelay) {
+          case FollowChatDelayType.TenMin: {
+            time = '10 min';
+            break;
+          }
+          case FollowChatDelayType.OneHour: {
+            time = '1 hour';
+            break;
+          }
+          case FollowChatDelayType.OneDay: {
+            time = '1 day';
+            break;
+          }
+          default:
+            break;
+        }
+        const i18nParam = {
+          time
+        };
+        this.$handleError(
+          resp.err,
+          SEND_STREAM_CHAT_MESSAGE,
+          variables,
+          i18nParam
+        );
+      } else {
+        this.$handleError(resp.err, SEND_STREAM_CHAT_MESSAGE, variables);
+      }
+    }
+
+    if (resp === undefined || resp.err !== null || resp.message === null) {
+      return;
+    }
+
+    // Clear the input after sending message successful
+    if (this.$refs.streamChatroomInput && !this.hasEmote(chatInput)) {
+      this.$refs.streamChatroomInput.chatInput = '';
+    }
+    // this.incrementChestChatCounter();
+    this.sendChatCallback(resp.message);
+  }
+
+  public sendChatCallback(message: StreamChatMessageFrag.Fragment) {
+    if (this.streamChatIdFromMe.indexOf(message.id) === -1) {
+      this.streamChatIdFromMe.push(message.id);
+      this.chatsMergePush(message);
+    }
+    this.scrollToBottom();
+    this.$_smartPublish(EVENTS.CHEST_ENGAGEMENT, null);
+    this.shareAnimation();
+  }
+
+  public shareAnimation() {
+    if (!this.showedShareAnimation) {
+      setTimeout(() => {
+        this.$_smartPublish(EVENTS.SHARE_ANIMATION, null);
+      }, 10000);
+      this.setShowedShareAnimation(true);
+    }
+  }
+
+  public listenMessages() {
+    this.pushStreamChatInterval = window.setInterval(() => {
+      if (this.streamChatBuffer.length !== 0) {
+        this.chatsMergePush(...this.streamChatBuffer);
+        this.addDanmakus();
+        this.streamChatBuffer = [];
+      }
+    }, 200);
+  }
+
+  public scrollToBottom() {
+    // XXX(jiayi): Make sure the message has been rendered
+    this.$nextTick(() => {
+      scrollToBottom();
+    });
+  }
+
+  public hasLinkOrEmote(str: string) {
+    const emoteList = str.match(emoteRegex);
+    const linkList = linkify.find(str);
+    return (
+      (emoteList !== null && emoteList.length !== 0) || linkList.length !== 0
+    );
+  }
+
+  public hasEmote(str: string) {
+    const emoteList = str.match(emoteRegex);
+    return emoteList !== null && emoteList.length !== 0;
+  }
+
+  public addDanmakus() {
+    const validMessages = this.streamChatBuffer.filter(msg => {
+      return (
+        msg.type === ChatType.Message &&
+        !this.hasLinkOrEmote(
+          (msg as StreamChatMessageFrag.ChatTextInlineFragment).content
+        )
+      );
+    });
+    // display in danmaku
+    // others
+    const danmakus: DanmakuEntry[] = validMessages
+      .filter(msg => {
+        return this.me !== null
+          ? msg.sender.username !== this.me.username
+          : true;
+      })
+      .map(msg => {
+        return {
+          text: (msg as StreamChatMessageFrag.ChatTextInlineFragment).content,
+          color: '#fff',
+          type: 'right' as 'right'
+        };
+      });
+    this.$_smartPublish(EVENTS.DANMAKU_DRAW, danmakus);
+    // my danmakus
+    if (this.me !== null) {
+      const self = this;
+      const myDanmakus: DanmakuEntry[] = validMessages
+        .filter(msg => {
+          return self.me !== null && msg.sender.username === self.me.username;
+        })
+        .map(msg => {
+          return {
+            text: (msg as StreamChatMessageFrag.ChatTextInlineFragment).content,
+            color: '#fff',
+            type: 'right' as 'right'
+          };
+        });
+      this.$_smartPublish(EVENTS.DANMAKU_SEND, myDanmakus);
+    }
+    this.streamChatBuffer = [];
+  }
+  public shouldMergeMessage(msg: StreamChatMessageFrag.Fragment) {
+    if (msg.type === ChatType.Gift) {
+      const giftMsg = msg as StreamChatMessageFrag.ChatGiftInlineFragment;
+      return (
+        giftMsg.gift === DonationType.Lemon ||
+        giftMsg.gift === DonationType.IceCream
+      );
+    }
+    return false;
+  }
+  public chatsMergePush(...messages: StreamChatMessageFrag.Fragment[]) {
+    const donations = new Map<string, number>();
+    // count messages
+    for (const msg of messages) {
+      if (this.shouldMergeMessage(msg)) {
+        const giftMsg = msg as StreamChatMessageFrag.ChatGiftInlineFragment;
+        const usergift: string = [giftMsg.sender.username, giftMsg.gift].join(
+          '$$'
+        );
+        const oldVal = donations.get(usergift);
+        donations.set(
+          usergift,
+          oldVal ? oldVal + Number(giftMsg.amount) : Number(giftMsg.amount)
+        );
+      }
+    }
+
+    // merge into last n chats, set n to 2 for now.
+    let lastN = 2;
+    const lastChats = this.chats.slice(-lastN);
+    lastN = lastChats.length; // XXX(yumin): adjust if chat length is less than n.
+    const toRemove: string[] = [];
+    for (const [i, chat] of lastChats.entries()) {
+      const msg = chat;
+      if (this.shouldMergeMessage(msg)) {
+        const giftMsg = msg as StreamChatMessageFrag.ChatGiftInlineFragment;
+        const usergift: string = [giftMsg.sender.username, giftMsg.gift].join(
+          '$$'
+        );
+        if (donations.has(usergift)) {
+          toRemove.push((this.chats.length - lastN + Number(i)).toString());
+          const oldv = donations.get(usergift) as number;
+          donations.set(usergift, oldv + Number(giftMsg.amount));
+        }
+      }
+    }
+
+    // delete old
+    let deleted = 0;
+    for (const i of toRemove) {
+      this.$delete(this.chats, Number(i) - deleted);
+      deleted += 1;
+    }
+
+    // insert non donation message
+    for (const msg of messages) {
+      if (!this.shouldMergeMessage(msg)) {
+        // leaving MChat.count as undefined
+        this.chats.push(msg);
+      }
+    }
+
+    // insert donation messages
+    // can be optimized to iterator over map instead of messages, if mapping of msg is kepted.
+    const showed = new Map<string, boolean>();
+    for (const msg of messages) {
+      if (this.shouldMergeMessage(msg)) {
+        const giftMsg = msg as StreamChatMessageFrag.ChatGiftInlineFragment;
+        const usergift: string = [giftMsg.sender.username, giftMsg.gift].join(
+          '$$'
+        );
+        if (!showed.has(usergift)) {
+          showed.set(usergift, true);
+          giftMsg.amount = (donations.get(usergift) as number).toString();
+          this.chats.push(msg);
+        }
+      }
+    }
+  }
+
+  public async fetchTopContributors() {
+    if (
+      this.livestreamChatroom === null ||
+      this.livestreamChatroom.livestream === null
+    ) {
+      return;
+    }
+    try {
+      await this.$apollo.query<TopContributors.Query>({
+        query: TOP_CONTRIBUTORS,
+        fetchPolicy: 'network-only',
+        variables: {
+          displayname: this.livestreamChatroom.displayname,
+          first: 3,
+          rule: 'THIS_STREAM',
+          queryStream: true
+        }
+      });
+    } catch (err) {
+      // TODO(@ryan): error handling
+    }
+  }
+
+  public popped() {
+    this.$emit('popped');
+  }
+
+  public validPinnedGiftType(type: DonationType) {
+    return type === DonationType.Ninjaghini || type === DonationType.Ninjet;
+  }
+
+  public validChatType(type: ChatType) {
+    return (
+      type === ChatType.Message ||
+      type === ChatType.Clip ||
+      type === ChatType.Gift ||
+      type === ChatType.Follow ||
+      type === ChatType.Subscription ||
+      type === ChatType.ExtendSub ||
+      type === ChatType.Host ||
+      type === ChatType.Ban ||
+      type === ChatType.Mod ||
+      type === ChatType.Emote ||
+      type === ChatType.TcValue ||
+      type === ChatType.GiftSub ||
+      type === ChatType.GiftSubReceive ||
+      type === ChatType.SubStreak
+    );
+  }
+
+  public isActivityFeed(type: ChatType) {
+    return (
+      type === ChatType.Gift ||
+      type === ChatType.Follow ||
+      type === ChatType.Subscription ||
+      type === ChatType.ExtendSub ||
+      type === ChatType.GiftSub ||
+      type === ChatType.GiftSubReceive ||
+      type === ChatType.Host ||
+      type === ChatType.SubStreak
+    );
+  }
+
+  // public loadAdsScript() {
+  //   const s1 = document.createElement('script');
+  //   s1.async = true;
+  //   s1.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js';
+  //   const s2 = document.createElement('script');
+  //   s2.innerHTML = '(adsbygoogle = window.adsbygoogle || []).push({});';
+  //   const container = document.getElementById('chatroom-ads');
+  //   if (container === null) {
+  //     return;
+  //   }
+  //   container.appendChild(s1);
+  //   container.appendChild(s2);
+  // }
+
+  @Watch('livestreamChatroom.id', { immediate: true })
+  public onRid(val: string) {
+    if (val !== undefined && val !== '' && process.client) {
+      this.createConnect();
+      if (this.livestreamChatroom !== null) {
+        for (const msg of this.livestreamChatroom.chats) {
+          if (this.validChatType(msg.type)) {
+            this.chatsMergePush(msg);
+          }
+        }
+        // this.$nextTick(() => {
+        //   this.loadAdsScript();
+        // });
+      }
+    }
+  }
+
+  @Watch('chats.length')
+  public onMessagesChanges(val: number, oldVal: number) {
+    if (val > oldVal) {
+      if (isBottom()) {
+        this.scrollToBottom();
+      }
+    }
+  }
+}

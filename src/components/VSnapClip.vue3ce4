@@ -1,0 +1,127 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { Component, Vue, Prop } from 'vue-property-decorator';
+import DSnap from '@/components/DSnap.vue';
+import DToken from '@/components/DToken.vue';
+import { VSnapClipFrag } from '@/graphql/types';
+import { ROUTE_CLIP } from '@/router';
+import { SIH_RESIZE_THUMBNAIL_MEDIAN, SIHresize } from '@/utils/images';
+import { namespace } from 'vuex-class';
+
+const dialogModule = namespace('dialog');
+const uiModule = namespace('ui');
+
+@Component({
+  components: {
+    DSnap,
+    DToken
+  }
+})
+export default class VSnapClip extends Vue {
+  @Prop({
+    required: true
+  })
+  public clip!: VSnapClipFrag.Fragment;
+
+  get params() {
+    if (this.clip !== undefined) {
+      return { clipID: this.clip.id };
+    }
+    return { clipID: '' };
+  }
+  get imgUrl() {
+    if (this.clip !== undefined && this.clip !== null) {
+      return SIHresize(this.clip.thumbnailUrl, SIH_RESIZE_THUMBNAIL_MEDIAN);
+    }
+    return '';
+  }
+
+  @uiModule.Getter('isMobile')
+  private isMobile!: boolean;
+  @dialogModule.Mutation('setClipPopupDialog')
+  private setClipPopupDialog!: (state: boolean) => void;
+
+  public clipOpen(e: { preventDefault: () => void }) {
+    if (this.isMobile) {
+      this.$router.push({ name: ROUTE_CLIP, params: { clipID: this.clip.id } });
+    } else {
+      history.pushState(
+        {},
+        'clip',
+        `${window.location.protocol}//${window.location.host}/clip/${
+          this.clip.id
+        }`
+      );
+      this.setClipPopupDialog(true);
+    }
+    e.preventDefault();
+  }
+}

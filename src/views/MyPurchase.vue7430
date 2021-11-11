@@ -1,0 +1,444 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { ApolloQuery } from '@/decorators/apollo';
+import DBtn from '@/components/DBtn.vue';
+import DMenu from '@/components/DMenu.vue';
+import DMenuItem from '@/components/DMenuItem.vue';
+import DDialog from '@/components/DDialog.vue';
+import ME_USER_CASHIN_RECORDS from '@/graphql/queries/MeUserCashinRecords.graphql';
+import {
+  MeUserCashinRecords,
+  Maybe,
+  UserCashinRecordsFrag,
+  CashinStatusType,
+  CashinVendorType
+} from '@/graphql/types';
+import { cashinRefundRequest } from '@/apollo/mutation/cashin';
+import MeMixin from '@/mixins/MeMixin';
+import SnackbarMixin from '@/mixins/SnackbarMixin';
+import { ROUTE_SETTINGS } from '@/router';
+import { Vue, Component, Mixins } from 'vue-property-decorator';
+import { namespace } from 'vuex-class';
+
+const meModule = namespace('me');
+
+@Component({
+  components: {
+    DBtn,
+    DMenu,
+    DMenuItem,
+    DDialog
+  }
+})
+export default class MyPurchase extends Mixins(MeMixin, SnackbarMixin) {
+  @ApolloQuery({
+    query: ME_USER_CASHIN_RECORDS,
+    manual: true,
+    fetchPolicy: 'network-only',
+    skip() {
+      return !this.isLoggedIn;
+    },
+    result() {
+      return;
+    },
+    variables(): MeUserCashinRecords.Variables {
+      return {
+        first: 10
+      };
+    }
+  })
+  public meCashinInRecords?: Maybe<MeUserCashinRecords.Me>;
+
+  get hasMoreRecords() {
+    if (
+      this.cashinRecords !== null &&
+      this.cashinRecords.pageInfo.hasNextPage
+    ) {
+      return true;
+    }
+    return false;
+  }
+
+  get recordList() {
+    if (this.cashinRecords !== null) {
+      return this.cashinRecords.list;
+    }
+    return [];
+  }
+
+  get hasWallet() {
+    if (
+      this.me !== null &&
+      this.me.private !== null &&
+      !this.me.private.insecure
+    ) {
+      return true;
+    }
+    return false;
+  }
+
+  get refundAmountText() {
+    if (this.refundAmount !== '') {
+      return Number(this.refundAmount).toFixed(1);
+    }
+    return '';
+  }
+
+  public headers = [
+    { text: 'Purchase Time', value: 'purchaseTime', sortable: false },
+    { text: 'Amount', value: 'linoAmount', sortable: false },
+    { text: 'Method', value: 'vender', sortable: false },
+    { text: 'Status', value: 'status', sortable: false }
+  ];
+  public cashinRecordMenuShow: boolean[] = [];
+  public emailVerifyDialogShow: boolean = false;
+  public requestRefundDialogShow: boolean = false;
+  public requestConfirmDialogShow: boolean = false;
+  public requestSentDialogShow: boolean = false;
+  public refundId: string = '';
+  public refundReason: string = '';
+  public refundAmount: string = '';
+  public refundItem: UserCashinRecordsFrag.List | null = null;
+
+  @meModule.Getter('meCashinRecords')
+  private cashinRecords!: UserCashinRecordsFrag.UserCashinRecords;
+  @meModule.Getter('meBalance')
+  private meBalance!: string;
+
+  public openRecordMenu(index: number) {
+    Vue.set(this.cashinRecordMenuShow, index, true);
+  }
+
+  public closeRecordMenu(index: number) {
+    Vue.set(this.cashinRecordMenuShow, index, false);
+  }
+
+  public hasMoreOptions(item: UserCashinRecordsFrag.List) {
+    if (this.isRefundUndefined(item.status) || this.canRequestRefund(item)) {
+      return true;
+    }
+    return false;
+  }
+
+  public canRequestRefund(item: UserCashinRecordsFrag.List) {
+    if (
+      item &&
+      (item.vendor === CashinVendorType.Amazon ||
+        item.vendor === CashinVendorType.Skrill ||
+        item.vendor === CashinVendorType.Stripe) &&
+      item.status === CashinStatusType.Completed
+    ) {
+      return true;
+    }
+    return false;
+  }
+
+  public isRefundUndefined(status: CashinStatusType) {
+    if (status === CashinStatusType.RefundUnverified) {
+      return true;
+    }
+    return false;
+  }
+
+  public checkBalance(item: UserCashinRecordsFrag.List) {
+    let amount = item.linoAmount;
+    if (Number(this.meBalance) < (Number(amount) + 0.1) * 100000) {
+      amount = String((Number(this.meBalance) - 1000) / 100000);
+    }
+    this.refundAmount = amount;
+  }
+
+  public verifyEmailClicked() {
+    this.$router.push({ name: ROUTE_SETTINGS, query: { open: 'email' } });
+  }
+
+  public requestRefund(item: UserCashinRecordsFrag.List) {
+    this.refundItem = item;
+    this.checkBalance(item);
+    if (this.me !== null && this.me.private !== null && this.me.private.email) {
+      this.requestRefundDialogShow = true;
+    } else {
+      this.emailVerifyDialogShow = true;
+    }
+  }
+
+  public btnColor(status: CashinStatusType) {
+    if (status) {
+      return status.toLowerCase();
+    }
+    return 'red';
+  }
+
+  public statusText(status: CashinStatusType) {
+    if (status === CashinStatusType.Completed) {
+      return 'Received';
+    } else if (status === CashinStatusType.RefundPending) {
+      return 'Refund pending';
+    } else if (status === CashinStatusType.RefundUnverified) {
+      return 'Refund Unverified';
+    }
+    return status.charAt(0) + status.slice(1).toLowerCase();
+  }
+
+  public requestNext() {
+    this.requestRefundDialogShow = false;
+    this.requestConfirmDialogShow = true;
+  }
+
+  public confirmBack() {
+    this.requestRefundDialogShow = true;
+    this.requestConfirmDialogShow = false;
+  }
+
+  public async requestSubmit() {
+    if (this.refundItem !== null) {
+      await cashinRefundRequest(this, this.refundItem.id, this.refundReason);
+    }
+    this.requestConfirmDialogShow = false;
+    this.requestSentDialogShow = true;
+  }
+
+  public requestSentDialogClose() {
+    this.requestSentDialogShow = false;
+  }
+
+  public fetchMoreCashinRecords() {
+    if (!this.hasMoreRecords) {
+      return;
+    }
+    this.$apollo.queries.meCashinInRecords.fetchMore({
+      variables: {
+        first: 10,
+        after: this.cashinRecords.pageInfo.endCursor
+      },
+      updateQuery: (
+        previousResult: MeUserCashinRecords.Query,
+        { fetchMoreResult }: { fetchMoreResult?: MeUserCashinRecords.Query }
+      ) => {
+        if (
+          fetchMoreResult === undefined ||
+          fetchMoreResult.me === null ||
+          fetchMoreResult.me.private === null
+        ) {
+          return previousResult;
+        }
+        const moreRecords: UserCashinRecordsFrag.UserCashinRecords =
+          fetchMoreResult.me.private.userCashinRecords;
+        let prevRecords = previousResult.me;
+        if (prevRecords === null || prevRecords.private === null) {
+          prevRecords = fetchMoreResult.me;
+        } else {
+          prevRecords.private.userCashinRecords.pageInfo = moreRecords.pageInfo;
+          prevRecords.private.userCashinRecords.list = [
+            ...prevRecords.private.userCashinRecords.list,
+            ...moreRecords.list
+          ];
+        }
+        return {
+          me: prevRecords
+        };
+      }
+    });
+  }
+}

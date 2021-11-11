@@ -1,0 +1,4 @@
+var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',{staticClass:"profile-replay"},[_c('div',{staticClass:"flex-align-center paddingt-4 flex-wrap"},_vm._l((_vm.clips),function(clip){return _c('v-flex',{key:clip.id,attrs:{"xs6":"","sm6":"","md6":"","lg3":"","xl2":""}},[_c('v-snap-clip',{staticStyle:{"padding":"0px 8px 12px"},attrs:{"clip":clip},nativeOn:{"click":function($event){return _vm.clipSnapClick(clip.id)}}})],1)}),1),(_vm.hasNextPage)?_c('div',{staticClass:"flex-justify-center margintb-4"},[_c('d-btn',{staticClass:"text-12-medium",attrs:{"type":"btnB"},on:{"click":_vm.fetchMoreProfileClip}},[_vm._v(" "+_vm._s(_vm.$t('profileReplay.ShowMore'))+" ")])],1):_vm._e()])}
+var staticRenderFns = []
+
+export { render, staticRenderFns }

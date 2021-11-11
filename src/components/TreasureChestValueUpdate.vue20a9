@@ -1,0 +1,4 @@
+var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',{staticClass:"treasure-chest-value-update",staticStyle:{"z-index":"2"}},[_c('div',{staticClass:"position-relative flex-all-center"},[_c('div',{staticClass:"flex-all-center text-12 text-primary"},[_c('img',{attrs:{"src":require("@/assets/icon/token.svg"),"width":"12px"}}),_c('div',{staticClass:"marginlr-1"},[_vm._v(" + ")]),_vm._v(" "+_vm._s(_vm._f("linoToBMK")(_vm._f("coinToLino")(_vm.updateValue),1))+" ")])])])}
+var staticRenderFns = []
+
+export { render, staticRenderFns }
